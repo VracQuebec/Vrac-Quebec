@@ -72,3 +72,38 @@ const defaultDeps: Deps = {
     return (data as { status?: string } | null)?.status ?? null;
   },
 };
+
+// ── Pré-contrôle AVANT le clic : mêmes règles que publishCityDrafts (publishGate), sans écriture ──
+export type PublishPrecheck = { eligible: string[]; blocked: Array<{ slug: string; reasons: string[] }> };
+
+export function publishPrecheck(drafts: DraftForGate[], cityName: string, copies: Map<string, number>): PublishPrecheck {
+  const out: PublishPrecheck = { eligible: [], blocked: [] };
+  for (const d of drafts) {
+    const reasons = publishGate(d, { cityName, slugCopies: copies.get(d.slug) ?? 1, removeGenerationNoindex: false });
+    if (reasons.length) out.blocked.push({ slug: d.slug, reasons }); else out.eligible.push(d.slug);
+  }
+  return out;
+}
+
+export function precheckReason(p: PublishPrecheck | undefined): string | null {
+  if (!p) return "Contrôle de qualité des brouillons en cours…";
+  if (p.eligible.length > 0) return null;
+  if (p.blocked.length === 0) return "Aucun brouillon dans cette ville.";
+  return `${p.blocked.length} brouillon(s), aucun admissible — ex. ${p.blocked[0].slug} : ${p.blocked[0].reasons[0]}`;
+}
+
+/** Lecture unique de tous les brouillons (toutes villes) pour le pré-contrôle. */
+export async function loadAllDraftsForPrecheck(): Promise<{ drafts: Array<DraftForGate & { city_slug: string }>; copies: Map<string, number> }> {
+  const { data, error } = await supabase.from("seo_pages")
+    .select("id, slug, city_slug, status, noindex, noindex_volontaire, updated_at, meta_title, meta_description, h1, title, content_html, word_count, internal_link_count")
+    .neq("status", "published").limit(1000);
+  if (error) throw new Error(error.message);
+  const drafts = (data ?? []) as never as Array<DraftForGate & { city_slug: string }>;
+  const copies = new Map<string, number>();
+  const slugs = drafts.map((d) => d.slug);
+  if (slugs.length) {
+    const { data: all } = await supabase.from("seo_pages").select("slug").in("slug", slugs);
+    for (const r of (all ?? []) as Array<{ slug: string }>) copies.set(r.slug, (copies.get(r.slug) ?? 0) + 1);
+  }
+  return { drafts, copies };
+}

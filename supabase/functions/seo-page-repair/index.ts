@@ -5,7 +5,7 @@
 // Chaque tentative est journalisée dans seo_page_tasks (historique conservé).
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { selectRepairTargets, type RepairCandidate } from "../_shared/seo-repair-guard.ts";
+import { selectRepairTargets, repairResponse, type RepairCandidate } from "../_shared/seo-repair-guard.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -53,7 +53,7 @@ async function generate(slot: Slot): Promise<{ ok: boolean; error?: string }> {
   }
 }
 
-async function processSlot(sb: SupabaseClient, slot: Slot) {
+async function processSlot(sb: SupabaseClient, slot: Slot): Promise<{ ok: boolean; error?: string; skipped?: boolean }> {
   let active = sb.from("seo_page_tasks").select("id,status", { count: "exact", head: false })
     .eq("city_slug", slot.city_slug).in("status", ["queued", "running"]);
   active = slot.material_slug ? active.eq("material_slug", slot.material_slug) : active.is("material_slug", null);
@@ -160,15 +160,18 @@ Deno.serve(async (req) => {
 
     // Traitement séquentiel en arrière-plan : une page en échec n'empêche
     // jamais les suivantes d'être traitées.
-    const work = (async () => {
+    const work = targets.length === 1 ? Promise.resolve() : (async () => {
       for (const slot of targets) {
         try { await processSlot(sb, slot); } catch (_e) { /* on continue */ }
       }
     })();
 
     if (targets.length === 1) {
-      await work;
-      return json({ ok: true, queued: 1, done: true, skipped_published: skippedPublished });
+      // Résultat réel de la tentative : jamais « réussi » si la génération a échoué.
+      let res: { ok: boolean; error?: string; skipped?: boolean };
+      try { res = await processSlot(sb, targets[0]); } catch (e) { res = { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+      const r = repairResponse(res);
+      return json({ ...r.body, skipped_published: skippedPublished }, r.status);
     }
     // deno-lint-ignore no-explicit-any
     (globalThis as any).EdgeRuntime?.waitUntil?.(work);

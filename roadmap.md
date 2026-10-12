@@ -86,5 +86,7 @@
 - [x] Vérifier six formats, safe areas simulées, navigation, filtres, recherche et menu Plus sans écriture ni publication; 469 marqueurs individuels et 34 tests réussis.
 - [x] Phase 5F : 35 pages P2 « remblai » créées en brouillon (`phase5f-p2`, noindex, published_at vide), 0 exclusion; contenu local contrôlé, 114 liens publiés vérifiés, similarité substantielle maximale 20,7 %, 70/70 rendus ordinateur/mobile validés. Bandeau livraison et compteur de dépôts masqués uniquement pour cette vague afin d’éviter toute promesse non validée. P1 et 16 pages « À VALIDER » inchangées; aucune donnée opérationnelle, sécurité, migration ou publication. Rapport `docs/audit/phase5f-generation-p2.md`.
 
-- [ ] Analyse lecture seule remblai-saint-georges (ancien vs nouveau, sources) + correctif proposé du faux « réussi »
-- [ ] Diagnostic lecture seule des boutons grisés du tableau de bord SEO (Régénérer / Publier / Reprendre)
+- [x] remblai-saint-georges révisée manuellement (brouillon noindex, deux sauvegardes); faux « réussi » corrigé dans le code (déploiement de la fonction non fait)
+- [x] Boutons de ville : raisons catalogue + pré-contrôle publication (aperçu)
+- [ ] Décisions des combinaisons inconnues : table à approuver (prepared/seo-generator/migration-decisions-inconnues-NON-APPLIQUEE.sql)
+- [ ] Déploiement de seo-page-repair corrigé : autorisation requise

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindexOnly } from "@/lib/seo/cityActions";
+import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindexOnly, generateReasonWithCatalog, catalogActionLine } from "@/lib/seo/cityActions";
+import UnknownDecisionDialog from "@/components/seo/UnknownDecisionDialog";
 import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
-import { buildCatInput, summarizeCatalog, mergeSummaries, CAT_STATE_LABEL, estimateCredits, type CatState, type CatSummary } from "@/lib/seo/catalogStatus";
-import { publishCityDrafts, publishOutcomeMessage } from "@/lib/seo/cityPublish";
+import { buildCatInput, classify, summarizeCatalog, mergeSummaries, CAT_STATE_LABEL, estimateCredits, type CatState, type CatSummary } from "@/lib/seo/catalogStatus";
+import { publishCityDrafts, publishOutcomeMessage, publishPrecheck, precheckReason, loadAllDraftsForPrecheck, type PublishPrecheck } from "@/lib/seo/cityPublish";
 import { repairCity, repairOutcomeMessage, type RepairSlot } from "@/lib/seo/cityRepair";
 import { coverageLabel, coveragePct, computeCoverage, splitAll, coverageFlags, catalogBreakdown, COVERAGE_BADGE_LABEL, type Coverage, type CoverageAllRaw } from "@/lib/seo/cityCoverage";
 import { useSeoControlCenter, type ControlCityRow, type ControlProblem } from "@/lib/seo/useSeoControlCenter";
@@ -101,6 +102,13 @@ export default function PipelineControlCenter() {
     void supabase.from("seo_generation_exclusions" as never).select("kind,slug").eq("active", true)
       .then(({ data }) => setExclusions(new Set(((data ?? []) as Array<{ kind: string; slug: string }>).map((x) => `${x.kind}|${x.slug}`))));
   }, []);
+  // Pré-contrôle de publication (lecture seule) : mêmes règles que l'action, calculées AVANT le clic.
+  const [precheckRaw, setPrecheckRaw] = useState<Awaited<ReturnType<typeof loadAllDraftsForPrecheck>> | null>(null);
+  const [precheckErr, setPrecheckErr] = useState(false);
+  useEffect(() => {
+    void loadAllDraftsForPrecheck().then((r) => { setPrecheckRaw(r); setPrecheckErr(false); }).catch(() => setPrecheckErr(true));
+  }, [state?.computed_at]);
+  const [unknownCity, setUnknownCity] = useState<{ slug: string; name: string } | null>(null);
   const [pubReport, setPubReport] = useState<Map<string, Awaited<ReturnType<typeof publishCityDrafts>>>>(new Map());
   // Couverture réelle du catalogue : une combinaison = un seul état (catalogStatus.ts).
   const catalogBySlug = useMemo(() => {
@@ -515,7 +523,11 @@ export default function PipelineControlCenter() {
             const queuePct = c.planned > 0 ? Math.round(((c.generated) / c.planned) * 100) : 0;
             const split = { realErrors: plan.invalidDrafts + plan.invalidPublished + plan.failed, noindex: plan.noindex };
             const retryReason = plan.retry.reason;
-            const publishReason = plan.publish.reason;
+            const pre: PublishPrecheck | undefined = precheckRaw
+              ? publishPrecheck(precheckRaw.drafts.filter((d) => d.city_slug === c.slug), c.name, precheckRaw.copies) : undefined;
+            const publishReason = precheckErr ? "Lecture des brouillons impossible — publication bloquée; utilisez « Actualiser »." : precheckReason(pre);
+            const genReason = generateReasonWithCatalog(plan.generate.reason, catSum);
+            const catLine = catalogActionLine(catSum);
             const legacyMeta = STATUS_META[isRunning ? "running" : c.status];
             // Le badge ne dépend plus de la file du Générateur, sauf génération en cours ou erreur.
             const meta = isRunning || c.status === "error" || !flags ? legacyMeta
@@ -617,8 +629,13 @@ export default function PipelineControlCenter() {
                     {busy === `pub-${c.slug}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />} Publier les non publiées
                   </Button>
                   <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => openLogs(c.slug)}>Voir les logs</Button>
+                  {catSum && catSum.missing_unknown > 0 && (
+                    <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs" onClick={() => setUnknownCity({ slug: c.slug, name: c.name })}>
+                      Décider les inconnues ({catSum.missing_unknown})
+                    </Button>
+                  )}
                   <Button size="sm" className="h-8 px-2.5 text-xs gap-1"
-                    title={plan.generate.reason ?? undefined}
+                    title={genReason ?? undefined}
                     disabled={!plan.generate.enabled}
                     onClick={() => genRow && window.confirm(`${plan.generate.count} page(s) admissible(s) (disponibilité confirmée) pour ${c.name}. Coût IA estimé : ${estimateCredits(plan.generate.count)} crédit(s). Les combinaisons inconnues et exclues ne sont pas générées. Continuer ?`) && void gen.generateCity(genRow, { includeStalled: plan.stalled > 0 }).finally(() => void reload())}>
                     {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
@@ -627,7 +644,10 @@ export default function PipelineControlCenter() {
                   </Button>
                 </div>
                 <div className="text-[10px] text-muted-foreground space-y-0.5" onClick={(e) => e.stopPropagation()}>
-                  {plan.generate.reason && <div>Générer : {plan.generate.reason}</div>}
+                  {catLine && <div className="font-medium text-foreground/80">{catLine}</div>}
+                  {genReason && <div>Générer : {genReason}</div>}
+                  {pre && pre.eligible.length > 0 && <div>Publier : {pre.eligible.length} brouillon(s) admissible(s){pre.blocked.length ? `, ${pre.blocked.length} bloqué(s)` : ""}.</div>}
+                  {pre?.blocked.map((b) => <div key={`pre-${b.slug}`}>Bloquée {b.slug} : {b.reasons.join(" ")}</div>)}
                   {plan.stalled > 0 && <div>{plan.stalled} génération(s) interrompue(s) — reprises par « Reprendre la génération ».</div>}
                   {retryReason && <div>Régénérer : {retryReason}</div>}
                   {plan.retry.enabled && plan.invalidPublished > 0 && <div>Régénérer : {plan.invalidDrafts} brouillon(s) visé(s); {plan.invalidPublished} page(s) en ligne protégée(s).</div>}
@@ -744,6 +764,14 @@ export default function PipelineControlCenter() {
       />
 
       <CityCoverageDialog city={coverageCity} onClose={() => setCoverageCity(null)} />
+      <UnknownDecisionDialog city={unknownCity} onClose={() => setUnknownCity(null)}
+        items={(() => {
+          const cv0 = unknownCity ? cov.get(unknownCity.slug) : null;
+          if (!cv0 || !unknownCity) return [];
+          const inp = buildCatInput(unknownCity.slug, cv0.items as never, (state?.problems ?? []) as never, exclusions, { activeRun: !!state?.active_run });
+          return cv0.items.filter((it) => it.kind !== "hub" && classify(it as never, inp) === "missing_unknown")
+            .map((it) => ({ kind: it.kind as "material" | "service", slug: it.slug as string, label: it.label }));
+        })()} />
 
       <CityPagesDialog
         citySlug={pagesCity?.slug ?? null}
