@@ -9,6 +9,7 @@ import { offerKind, enforceOfferFaq } from "../_shared/seo-faq-offer.ts";
 import { sanitizeContentLinks, candidateSlugs, FIXED_ROUTES } from "../_shared/seo-link-guard.ts";
 import { findPlaceholders, metaIssues, similarityFlags } from "../_shared/seo-quality.ts";
 import { findUnverifiedClaims, CONTENT_RULES } from "../_shared/seo-claims.ts";
+import { checkAvailability } from "../_shared/seo-availability-guard.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
