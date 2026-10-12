@@ -112,15 +112,17 @@ export type DraftForGate = {
   slug: string; status: string; noindex: boolean | null;
   meta_title: string | null; meta_description: string | null; h1: string | null; title: string | null;
   content_html: string | null; word_count: number | null; internal_link_count: number | null;
+  noindex_volontaire?: boolean | null;
 };
 
 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const TECH = /(lorem ipsum|\bundefined\b|\[object |\{\{|\}\}|\bTODO\b|\bnull\b|<script)/i;
 
-export function publishGate(p: DraftForGate, ctx: { cityName: string; slugCopies: number }): string[] {
+export function publishGate(p: DraftForGate, ctx: { cityName: string; slugCopies: number; removeGenerationNoindex?: boolean }): string[] {
   const r: string[] = [];
   if (p.status === "published") return ["Déjà publiée — ignorée (publication idempotente)."];
-  if (p.noindex) r.push("Noindex conservé — retrait seulement par la publication validée (fonction serveur en attente d’approbation) et jamais pour un noindex volontaire.");
+  if (p.noindex && p.noindex_volontaire) r.push("Noindex volontaire — décision distincte requise; jamais retiré automatiquement.");
+  else if (p.noindex && !ctx.removeGenerationNoindex) r.push("Noindex de génération conservé — retrait seulement par une publication explicitement autorisée.");
   const title = (p.meta_title || p.title || "").trim();
   if (title.length < 30) r.push("Titre SEO trop court ou absent.");
   if ((p.meta_description ?? "").trim().length < 70) r.push("Meta description trop courte ou absente.");
