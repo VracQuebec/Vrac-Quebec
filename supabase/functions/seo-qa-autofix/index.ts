@@ -246,6 +246,9 @@ Deno.serve(async (req) => {
       confirmPublishedPageId: typeof body?.confirm_published_page_id === "string" ? body.confirm_published_page_id : null,
     });
     if (!auth.ok) return json({ error: auth.error, code: auth.code }, auth.status);
+    // Lecture du tableau de bord : si la page a changé depuis, rien n'est modifié.
+    const stale = staleReadRefusal(body?.expected_updated_at, (fullBefore as { updated_at?: string } | null)?.updated_at);
+    if (stale) return json({ error: stale, code: "stale_read" }, 409);
 
     // Résout les vrais noms (accentués) du référentiel pour ne jamais générer
     // « Beton à Quebec » à partir d'un slug sans accents.
