@@ -133,7 +133,7 @@ export default function PipelineControlCenter() {
       // Lecture paginée (limite serveur de 1 000 lignes par réponse) : les 4 536 combinaisons sont toutes lues.
       const m = new Map<string, "confirmee" | "exclue" | "inconnue">();
       for (let from = 0; ; from += 1000) {
-        const { data, error } = await supabase.rpc("seo_city_slots_catalog_admin" as never).range(from, from + 999);
+        const { data, error } = await (supabase.rpc("seo_city_slots_catalog_admin" as never) as any).order("city_slug").order("kind").order("material_slug", { nullsFirst: true }).order("service_slug", { nullsFirst: true }).range(from, from + 999);
         if (error) { setSrvAvail(null); setSrvErr(error.message); return; }
         const rows = (data ?? []) as Array<{ city_slug: string; kind: string; material_slug: string | null; service_slug: string | null; availability: string }>;
         for (const r of rows) m.set(`${r.city_slug}|${r.kind}|${r.material_slug ?? r.service_slug ?? ""}`, (r.availability as never));
