@@ -127,9 +127,11 @@ export default function PipelineControlCenter() {
   useEffect(() => { void loadDecisions().then(setDecisions).catch(() => setDecisions(new Map())); }, [decTick]);
   // Catalogue serveur (28 combinaisons × ville) : disponibilité de RÉFÉRENCE pour les compteurs, les fiches et la fenêtre de ville.
   const [srvAvail, setSrvAvail] = useState<Map<string, "confirmee" | "exclue" | "inconnue"> | null>(null);
+  const [srvErr, setSrvErr] = useState<string | null>(null);
   useEffect(() => {
-    void supabase.rpc("seo_city_slots_catalog" as never).then(({ data, error }) => {
-      if (error) { setSrvAvail(null); return; }
+    void supabase.rpc("seo_city_slots_catalog_admin" as never).then(({ data, error }) => {
+      if (error) { setSrvAvail(null); setSrvErr(error.message); return; }
+      setSrvErr(null);
       const m = new Map<string, "confirmee" | "exclue" | "inconnue">();
       for (const r of (data ?? []) as Array<{ city_slug: string; kind: string; material_slug: string | null; service_slug: string | null; availability: string }>)
         m.set(`${r.city_slug}|${r.kind}|${r.material_slug ?? r.service_slug ?? ""}`, (r.availability as never));
@@ -587,6 +589,7 @@ export default function PipelineControlCenter() {
                   {phase === "running" && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
                   {PHASE_LABEL[phase]}
                 </div>
+                {srvErr && <div className="w-full text-xs text-destructive">Disponibilité serveur illisible ({srvErr}) — compteurs approximatifs, ne pas s'y fier.</div>}
                 {globalLock && <div className="w-full text-xs text-destructive">Verrou serveur actif : {globalLock}</div>}
                 <div className="flex flex-wrap gap-2">
                   {(phase === "interrupted" || phase === "paused") && activeRun && (
