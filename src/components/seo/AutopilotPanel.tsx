@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { controlAutopilot, isActive, loadPreview, loadStatus, previewLines, startAutopilot, type AutopilotPreview, type AutopilotStatus } from "@/lib/seo/autopilot";
+import { controlAutopilot, isActive, loadPreview, loadStatus, previewLines, scopeLines, startAutopilot, type AutopilotPreview, type AutopilotStatus } from "@/lib/seo/autopilot";
 
 const STATUS: Record<string, string> = { queued: "En attente de démarrage", running: "En cours", paused: "En pause", completed: "Terminé", cancelled: "Arrêté" };
 const OUTCOME: Record<string, string> = { waiting_evidence: "En attente de preuve", excluded: "Exclue", kept_draft: "Brouillon conservé", error: "Erreur", generated: "Générée (brouillon)", fixed: "Corrigée (brouillon)" };
