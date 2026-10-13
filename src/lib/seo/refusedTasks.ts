@@ -35,3 +35,7 @@ export function filterRefused(rows: RefusedRow[], f: RefusedFilters): RefusedRow
     && (!f.availability || (r.availability ?? "absente") === f.availability)
     && (!f.reason || (r.reason ?? "absent") === f.reason));
 }
+
+/** Nom lisible d'une ville; jamais inventé : si absent, le dire et garder l'identifiant. */
+export const displayCityName = (name: string | null | undefined, slug: string) =>
+  name?.trim() ? name.trim() : `Nom de ville indisponible (${slug})`;

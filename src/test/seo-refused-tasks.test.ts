@@ -24,3 +24,14 @@ describe("Tâches refusées", () => {
     expect(filterRefused(rows, empty)).toHaveLength(2);
   });
 });
+
+import { displayCityName } from "@/lib/seo/refusedTasks";
+describe("Nom de ville affiché", () => {
+  it("affiche le nom officiel quand il existe", () => {
+    expect(displayCityName("Saint-Jules-de-Beauce", "saint-jules-de-beauce")).toBe("Saint-Jules-de-Beauce");
+  });
+  it("signale un nom absent sans l'inventer", () => {
+    expect(displayCityName(null, "weedon")).toBe("Nom de ville indisponible (weedon)");
+    expect(displayCityName("  ", "weedon")).toBe("Nom de ville indisponible (weedon)");
+  });
+});

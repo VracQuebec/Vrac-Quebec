@@ -188,6 +188,12 @@ export default function PipelineControlCenter() {
 
   // ── Poste de travail par ville : une ligne par combinaison, actions manuelles avec résultat par page ──
   const [wbCity, setWbCity] = useState<{ slug: string; name: string } | null>(null);
+  // Noms officiels des villes (seo_cities) : affichage seulement, le slug reste l'identifiant des opérations.
+  const [cityNames, setCityNames] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    void supabase.from("seo_cities").select("slug, name").then(({ data }) =>
+      setCityNames(new Map(((data ?? []) as { slug: string; name: string | null }[]).filter((c) => c.name?.trim()).map((c) => [c.slug, c.name!.trim()]))));
+  }, []);
   // Preuves de disponibilité de la ville ouverte (lecture seule) : distingue demande explicite et « Terre » seulement.
   const [wbEvidence, setWbEvidence] = useState<Evidence[]>([]);
   useEffect(() => {
@@ -665,7 +671,7 @@ export default function PipelineControlCenter() {
 
       {/* ── Tâches refusées (consultation seule) ────────────────── */}
       <RefusedTasksPanel
-        cityName={(s) => (state?.cities ?? []).find((c) => c.slug === s)?.name ?? null}
+        cityName={(s) => (state?.cities ?? []).find((c) => c.slug === s)?.name ?? cityNames.get(s) ?? null}
         comboLabel={(city, t) => {
           const kind = t.material_slug ? "material" : t.service_slug ? "service" : "hub";
           const sl = t.material_slug ?? t.service_slug ?? null;
