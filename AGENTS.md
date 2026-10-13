@@ -25,3 +25,4 @@
 - Home art direction stays local to EntrepreneurDashboard; reusing authorized summaries and existing links isolates visual composition from shared pages and map behavior.
 - SEO draft waves may opt out of automatic operational claims by their wave marker; this keeps unvalidated services out without changing existing published pages.
 <!-- LOVABLE:END -->
+- SEO START (mode 'complete' de seo_pipeline_runs) : lancé seulement par seo_autopilot_start (admin, confirmation), seul mode autorisé à franchir le verrou global; planification pure dans supabase/functions/_shared/seo-autopilot.ts, publication via seo_autopilot_publish (mêmes contrôles que la publication validée) — un seul moteur serveur, reprise sans doublon.
