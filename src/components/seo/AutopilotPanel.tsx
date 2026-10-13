@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { controlAutopilot, isActive, loadPreview, loadStatus, previewLines, scopeLines, startAutopilot, type AutopilotPreview, type AutopilotStatus } from "@/lib/seo/autopilot";
+import { autopilotPercent, controlAutopilot, isActive, kickAutopilot, loadPreview, loadStatus, previewLines, scopeLines, startAutopilot, type AutopilotPreview, type AutopilotStatus } from "@/lib/seo/autopilot";
 
 const STATUS: Record<string, string> = { queued: "En attente de démarrage", running: "En cours", paused: "En pause", completed: "Terminé", cancelled: "Arrêté" };
 const OUTCOME: Record<string, string> = { waiting_evidence: "En attente de preuve", excluded: "Exclue", kept_draft: "Brouillon conservé", error: "Erreur", generated: "Générée (brouillon)", fixed: "Corrigée (brouillon)" };
@@ -23,11 +23,19 @@ export default function AutopilotPanel() {
   }, []);
   useEffect(() => { void refresh(); }, [refresh]);
   const active = isActive(status);
+  const running = !!status?.run && ["queued", "running"].includes(status.run.status);
   useEffect(() => {
     if (!active) return;
-    const t = window.setInterval(() => void refresh(), 10000);
+    const t = window.setInterval(() => void refresh(), 5000);
     return () => window.clearInterval(t);
   }, [active, refresh]);
+  // Tant que la page est ouverte, relance le traitement serveur toutes les 30 s (sinon le superviseur le fait chaque minute).
+  useEffect(() => {
+    if (!running) return;
+    void kickAutopilot();
+    const t = window.setInterval(() => void kickAutopilot(), 30000);
+    return () => window.clearInterval(t);
+  }, [running]);
 
   const openStart = async () => {
     setBusy("preview"); setOpen(true); setPreview(null);
@@ -39,7 +47,9 @@ export default function AutopilotPanel() {
     try {
       const r = await startAutopilot();
       toast({ title: r.created ? `Traitement lancé — ${r.cities} villes` : "Rien n'a été lancé", description: r.reason });
-      setOpen(false); await refresh();
+      setOpen(false);
+      if (r.created) void kickAutopilot();
+      await refresh();
     } catch (e) { toast({ title: "Lancement refusé", description: e instanceof Error ? e.message : "", variant: "destructive" }); }
     finally { setBusy(null); }
   };
@@ -53,9 +63,10 @@ export default function AutopilotPanel() {
   };
 
   const s = status;
-  const pct = s?.cities_total ? Math.round(((s.cities_done ?? 0) / s.cities_total) * 100) : 0;
+  const pct = autopilotPercent(s);
   const kpis: [string, number | string | undefined][] = s?.run ? [
     ["Villes terminées", `${s.cities_done ?? 0} / ${s.cities_total ?? 0}`], ["Villes restantes", (s.cities_total ?? 0) - (s.cities_done ?? 0)],
+    ["Combinaisons traitées", `${s.tasks_done ?? 0} / ${s.tasks_total ?? 0}`],
     ["Pages générées", s.generated], ["Pages corrigées", s.fixed], ["Pages publiées", s.published], ["Brouillons conservés", s.not_published],
     ["En attente de preuve", s.waiting_evidence], ["Exclues", s.excluded], ["Erreurs réelles", s.errors],
     ["Coût IA depuis le lancement", `${Number(s.credits ?? 0).toFixed(2)} crédit(s)`],
@@ -89,6 +100,10 @@ export default function AutopilotPanel() {
             </div>
           </div>
           {s.run.pause_reason && <p className="text-xs text-amber-700">{s.run.pause_reason}</p>}
+          <div className="flex items-center gap-2 text-xs"><span className="font-semibold text-base">{pct} %</span>
+            {s.current_step && s.run.status === "running" && <span className="text-muted-foreground">· étape : {s.current_step}</span>}
+            {s.run.last_progress_at && <span className="text-muted-foreground ml-auto">dernière activité {new Date(s.run.last_progress_at).toLocaleTimeString("fr-CA")}</span>}
+          </div>
           <Progress value={pct} className="h-2" />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-xs">
             {kpis.map(([l, v]) => <div key={l} className="rounded-md border border-border p-2"><div className="text-muted-foreground">{l}</div><div className="font-semibold text-base">{v ?? 0}</div></div>)}
