@@ -25845,6 +25845,7 @@ export type Database = {
           material_slug: string | null
           max_attempts: number
           next_attempt_at: string | null
+          outcome: string | null
           page_id: string | null
           page_slug: string | null
           qa_score: number | null
@@ -25868,6 +25869,7 @@ export type Database = {
           material_slug?: string | null
           max_attempts?: number
           next_attempt_at?: string | null
+          outcome?: string | null
           page_id?: string | null
           page_slug?: string | null
           qa_score?: number | null
@@ -25891,6 +25893,7 @@ export type Database = {
           material_slug?: string | null
           max_attempts?: number
           next_attempt_at?: string | null
+          outcome?: string | null
           page_id?: string | null
           page_slug?: string | null
           qa_score?: number | null
@@ -26249,6 +26252,7 @@ export type Database = {
           city_slugs: string[]
           created_at: string
           created_by: string | null
+          credits_at_start: number | null
           current_city_slug: string | null
           done_pages: number
           eta_seconds: number | null
@@ -26261,6 +26265,7 @@ export type Database = {
           mode: string
           page_timeout_ms: number
           pages_per_minute: number | null
+          pause_reason: string | null
           qa_avg: number | null
           qa_threshold: number
           retries_count: number
@@ -26274,6 +26279,7 @@ export type Database = {
           city_slugs?: string[]
           created_at?: string
           created_by?: string | null
+          credits_at_start?: number | null
           current_city_slug?: string | null
           done_pages?: number
           eta_seconds?: number | null
@@ -26286,6 +26292,7 @@ export type Database = {
           mode?: string
           page_timeout_ms?: number
           pages_per_minute?: number | null
+          pause_reason?: string | null
           qa_avg?: number | null
           qa_threshold?: number
           retries_count?: number
@@ -26299,6 +26306,7 @@ export type Database = {
           city_slugs?: string[]
           created_at?: string
           created_by?: string | null
+          credits_at_start?: number | null
           current_city_slug?: string | null
           done_pages?: number
           eta_seconds?: number | null
@@ -26311,6 +26319,7 @@ export type Database = {
           mode?: string
           page_timeout_ms?: number
           pages_per_minute?: number | null
+          pause_reason?: string | null
           qa_avg?: number | null
           qa_threshold?: number
           retries_count?: number
@@ -34120,6 +34129,14 @@ export type Database = {
         }
         Returns: Json
       }
+      seo_autopilot_control: {
+        Args: { _action: string; _run_id: string }
+        Returns: Json
+      }
+      seo_autopilot_preview: { Args: never; Returns: Json }
+      seo_autopilot_publish: { Args: { _page_id: string }; Returns: Json }
+      seo_autopilot_start: { Args: { _confirm: boolean }; Returns: Json }
+      seo_autopilot_status: { Args: never; Returns: Json }
       seo_bulk_errors: {
         Args: { _run_id: string }
         Returns: {

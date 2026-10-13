@@ -1541,6 +1541,13 @@
       "when": 1791896668034,
       "tag": "0219_seo_city_slots_catalog_admin_json",
       "breakpoints": true
+    },
+    {
+      "idx": 220,
+      "version": "7",
+      "when": 1791912585860,
+      "tag": "0220_seo_autopilot_start",
+      "breakpoints": true
     }
   ]
 }
