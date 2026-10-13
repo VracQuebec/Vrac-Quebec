@@ -756,7 +756,7 @@ export default function PipelineControlCenter() {
                   <span>{c.generated} page{c.generated > 1 ? "s" : ""} existante{c.generated > 1 ? "s" : ""}</span>
                   <span>{c.published} publiée{c.published > 1 ? "s" : ""}</span>
                   <span>{c.drafts} en brouillon</span>
-                  <span>{plan.missing + plan.failed + plan.stalled} manquante(s)</span>
+                  <span>{catSum ? catSum.missing_confirmed + catSum.missing_unknown + catSum.failed + catSum.stalled : "…"} manquante(s) sur 28{catSum ? ` (${catSum.missing_unknown} inconnue(s), ${catSum.excluded_missing} exclue(s) à part)` : ""}</span>
                   {plan.pending > 0 && <span>{plan.pending} en file d'attente</span>}
                   <span className={split.realErrors > 0 ? "text-destructive font-medium" : ""}>{split.realErrors} erreur{split.realErrors > 1 ? "s" : ""}{plan.invalidPublished > 0 ? ` (dont ${plan.invalidPublished} en ligne)` : ""}</span>
                   {split.noindex > 0 && <span className="text-muted-foreground">{split.noindex} publiée(s) non indexée(s) volontairement</span>}
