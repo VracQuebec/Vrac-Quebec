@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { buildRefusedRows, filterRefused, comboKeyOf, REFUSED_STATUSES, type RefusedTaskRaw, type RefusedRow, type RefusedFilters } from "@/lib/seo/refusedTasks";
+import { displayCityName, buildRefusedRows, filterRefused, comboKeyOf, REFUSED_STATUSES, type RefusedTaskRaw, type RefusedRow, type RefusedFilters } from "@/lib/seo/refusedTasks";
 
 type Props = {
   cityName: (slug: string) => string | null;
@@ -44,7 +44,7 @@ export default function RefusedTasksPanel({ cityName, comboLabel, availability, 
       {err && <p className="text-sm text-destructive">Lecture impossible : {err}</p>}
       {raw && rows.length > 0 && (
         <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
-          {sel("city", "Ville", opts((r) => [r.city_slug, r.cityName ?? r.city_slug]))}
+          {sel("city", "Ville", opts((r) => [r.city_slug, displayCityName(r.cityName, r.city_slug)]))}
           {sel("combo", "Matériau / service", opts((r) => [comboKeyOf(r), r.comboLabel ?? "Non disponible"]))}
           {sel("availability", "Disponibilité", opts((r) => [r.availability ?? "absente", AV[r.availability ?? "absente"]]))}
           {sel("reason", "Motif", opts((r) => [r.reason ?? "absent", r.reason ?? "Motif non enregistré"]))}
@@ -55,11 +55,11 @@ export default function RefusedTasksPanel({ cityName, comboLabel, availability, 
         {shown.map((r) => (
           <li key={r.id} className="py-2 flex flex-wrap items-start justify-between gap-2 text-sm">
             <div className="min-w-0 space-y-0.5">
-              <p className="font-semibold">{r.cityName ?? r.city_slug} — {r.comboLabel ?? "Combinaison non disponible"}</p>
+              <p className="font-semibold">{displayCityName(r.cityName, r.city_slug)} — {r.comboLabel ?? "Combinaison non disponible"}</p>
               <p className="text-xs text-muted-foreground">Refusée le {fmt(r.refusedAt)} · Disponibilité : {AV[r.availability ?? "absente"]}</p>
               <p className="text-xs">Motif : {r.reason ?? "Motif non enregistré"}</p>
             </div>
-            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => onOpenCity(r.city_slug, r.cityName ?? r.city_slug)}>Ouvrir la fiche de la ville</Button>
+            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => onOpenCity(r.city_slug, displayCityName(r.cityName, r.city_slug))}>Ouvrir la fiche de la ville</Button>
           </li>
         ))}
       </ul>
