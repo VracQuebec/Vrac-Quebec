@@ -3,6 +3,7 @@ import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindex
 import UnknownDecisionDialog from "@/components/seo/UnknownDecisionDialog";
 import RefusedTasksPanel from "@/components/seo/RefusedTasksPanel";
 import PublishConfirmDialog from "@/components/seo/PublishConfirmDialog";
+import AutopilotPanel from "@/components/seo/AutopilotPanel";
 import CityWorkbenchDialog, { type RowResult, type Evidence } from "@/components/seo/CityWorkbenchDialog";
 import { buildWorkbench, type WbAction, type WbRow } from "@/lib/seo/cityWorkbench";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
@@ -446,6 +447,7 @@ export default function PipelineControlCenter() {
 
   return (
     <div className="space-y-4">
+      <AutopilotPanel />
       {/* ── En-tête + contrôles globaux ─────────────────────────── */}
       <Card className="p-4 md:p-6 space-y-4">
         <header className="flex flex-wrap items-start gap-3 justify-between">

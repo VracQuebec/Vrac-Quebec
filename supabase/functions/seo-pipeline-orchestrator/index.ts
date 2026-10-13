@@ -7,6 +7,7 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 import { isTrustedCron } from "../_shared/cron-auth.ts";
 import { pipelinePublishRefusal } from "../_shared/seo-write-guards.ts";
 import { checkAvailability } from "../_shared/seo-availability-guard.ts";
+import { planCityTasks, isCircuitBreak, finalOutcome } from "../_shared/seo-autopilot.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -75,6 +76,31 @@ async function materializeBatch(sb: SupabaseClient, run: any, batch: any) {
 
   const citySlug: string = batch.city_slug;
   const mode: string = run.mode;
+
+  if (mode === "complete") {
+    // START — Compléter le SEO : une tâche par combinaison du catalogue (disponibilité serveur).
+    const [{ data: slots, error: se }, { data: pages, error: pe }] = await Promise.all([
+      sb.rpc("seo_city_slots_catalog", { _city_slug: citySlug }),
+      sb.from("seo_pages").select("id, slug, status, material_slug, service_slug").eq("city_slug", citySlug),
+    ]);
+    if (se || pe) throw new Error(`Lecture de la ville impossible : ${(se ?? pe)!.message}`);
+    const plan = planCityTasks((slots ?? []) as any, (pages ?? []) as any);
+    const rows = plan.map((t) => ({
+      batch_id: batch.id, run_id: run.id, city_slug: citySlug, material_slug: t.material_slug, service_slug: t.service_slug,
+      kind: t.kind, status: t.status, max_attempts: 3, page_id: t.page_id, page_slug: t.page_slug,
+      outcome: t.outcome, last_error: t.last_error, step: t.step, finished_at: t.status === "skipped" ? nowIso() : null,
+    }));
+    if (rows.length) {
+      const { error } = await sb.from("seo_page_tasks").insert(rows);
+      if (error && !/duplicate/i.test(error.message)) throw new Error(error.message);
+    }
+    const queued = rows.filter((r) => r.status === "queued").length;
+    await sb.from("seo_city_batches").update({
+      total_tasks: rows.length, status: queued === 0 ? "completed" : "running", started_at: nowIso(), last_progress_at: nowIso(),
+      current_step: queued === 0 ? "rien d'admissible" : "traitement", finished_at: queued === 0 ? nowIso() : null,
+    }).eq("id", batch.id);
+    return;
+  }
 
   if (mode === "republish") {
     // Only re-publish already existing pages for this city.
@@ -228,7 +254,93 @@ async function loadContext(sb: SupabaseClient, task: any) {
   return { city, material, service };
 }
 
+// ---------------- START — Compléter le SEO ----------------
+
+async function pauseRun(sb: SupabaseClient, run: any, reason: string) {
+  await sb.from("seo_pipeline_runs").update({ status: "paused", pause_reason: reason, last_progress_at: nowIso() }).eq("id", run.id);
+}
+
+async function qa(pageId: string) {
+  const r = await callFn("seo-qa-check", { page_id: pageId, threshold: 90, enforce_draft: true }, STEP_TIMEOUT_MS);
+  const score = typeof r.data?.score === "number" ? r.data.score : null;
+  const blockers: string[] = Array.isArray(r.data?.blockers) ? r.data.blockers : [];
+  return { ok: r.ok && score !== null, score, blockers, error: r.error };
+}
+
+async function runAutoTask(sb: SupabaseClient, run: any, batch: any, task: any) {
+  const av = await checkAvailability((fn, a) => sb.rpc(fn, a) as any, task.city_slug, task.material_slug ?? null, task.service_slug ?? null);
+  if (!av.ok) {
+    await sb.from("seo_page_tasks").update({ status: "skipped", outcome: av.availability === "exclue" ? "excluded" : "waiting_evidence",
+      step: "refusée", last_error: av.error, finished_at: nowIso() }).eq("id", task.id);
+    return;
+  }
+  const started = Date.now();
+  await sb.from("seo_page_tasks").update({ status: "running", attempts: task.attempts + 1, started_at: nowIso(), step: "traitement" }).eq("id", task.id);
+  await sb.from("seo_city_batches").update({ current_step: `${task.material_slug ?? task.service_slug ?? "page ville"}`, last_progress_at: nowIso() }).eq("id", batch.id);
+  let pageId: string | null = task.page_id ?? null;
+  const done = { generated: false, fixed: false, published: false };
+  try {
+    const ctx = await loadContext(sb, task);
+    if (!ctx.city) throw new Error(`Ville introuvable: ${task.city_slug}`);
+    if (task.kind === "auto_generate") {
+      await sb.from("seo_page_tasks").update({ step: "génération" }).eq("id", task.id);
+      const gen = await callFn("seo-generate-page", { city: ctx.city, material: ctx.material, service: ctx.service,
+        force: false, publish: false, bypass_cache: task.attempts > 0, allow_ai: true }, STEP_TIMEOUT_MS);
+      if (!gen.ok && isCircuitBreak(gen.status, gen.error)) {
+        await sb.from("seo_page_tasks").update({ status: "queued", attempts: task.attempts, step: "en pause", last_error: gen.error }).eq("id", task.id);
+        await pauseRun(sb, run, `Traitement mis en pause automatiquement : ${gen.error ?? "accès IA refusé"} (code ${gen.status}).`);
+        return;
+      }
+      if (!gen.ok) throw new Error(`génération : ${gen.error}`);
+      pageId = gen.data?.page?.id ?? gen.data?.page_id ?? null;
+      if (!pageId) {
+        let q = sb.from("seo_pages").select("id").eq("city_slug", task.city_slug);
+        q = task.material_slug ? q.eq("material_slug", task.material_slug) : q.is("material_slug", null);
+        q = task.service_slug ? q.eq("service_slug", task.service_slug) : q.is("service_slug", null);
+        pageId = (await q.limit(1).maybeSingle()).data?.id ?? null;
+      }
+      if (!pageId) throw new Error("Page introuvable après génération");
+      done.generated = !gen.data?.skipped;
+    }
+    // Qualité → correction sans IA → régénération (IA, limitée à 3 par le serveur) si toujours insuffisante.
+    await sb.from("seo_page_tasks").update({ step: "qualité", page_id: pageId }).eq("id", task.id);
+    let q1 = await qa(pageId!);
+    if (!q1.ok) throw new Error(`contrôle qualité : ${q1.error ?? "réponse invalide"}`);
+    if (q1.score! < 90 || q1.blockers.length) {
+      await sb.from("seo_page_tasks").update({ step: "correction sans IA" }).eq("id", task.id);
+      const fix = await callFn("seo-qa-autofix", { page_id: pageId, actions: [], allow_ai: false }, STEP_TIMEOUT_MS);
+      if (fix.ok && (fix.data?.fixed?.length ?? 0) > 0) { done.fixed = true; q1 = await qa(pageId!); }
+    }
+    if (q1.ok && (q1.score! < 90 || q1.blockers.length) && task.kind === "auto_finish") {
+      await sb.from("seo_page_tasks").update({ step: "régénération" }).eq("id", task.id);
+      const rep = await callFn("seo-page-repair", { city_slug: task.city_slug, material_slug: task.material_slug, service_slug: task.service_slug }, STEP_TIMEOUT_MS);
+      if (!rep.ok && isCircuitBreak(rep.status, rep.error)) {
+        await sb.from("seo_page_tasks").update({ status: "queued", attempts: task.attempts, step: "en pause", last_error: rep.error }).eq("id", task.id);
+        await pauseRun(sb, run, `Traitement mis en pause automatiquement : ${rep.error ?? "accès IA refusé"} (code ${rep.status}).`);
+        return;
+      }
+      if (rep.ok && (rep.data?.done?.length ?? 0) > 0) { done.fixed = true; q1 = await qa(pageId!); }
+    }
+    // Publication : mêmes contrôles serveur que la publication validée (disponibilité, ≥ 90 actuelle, blocages, noindex volontaire).
+    await sb.from("seo_page_tasks").update({ step: "publication" }).eq("id", task.id);
+    const { data: pub, error: pubErr } = await sb.rpc("seo_autopilot_publish" as any, { _page_id: pageId } as any);
+    const pr = (pub ?? {}) as { ok?: boolean; issues?: string[] };
+    done.published = !pubErr && pr.ok === true;
+    const reason = done.published ? null : `Conservée en brouillon : ${pubErr?.message ?? (pr.issues ?? ["refus"]).join(" · ")} (note ${q1.score ?? "?"}).`;
+    await sb.from("seo_page_tasks").update({ status: "succeeded", step: done.published ? "publiée" : "brouillon conservé", page_id: pageId,
+      qa_score: q1.score, outcome: finalOutcome(done), last_error: reason, duration_ms: Date.now() - started, finished_at: nowIso() }).eq("id", task.id);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const attempts = task.attempts + 1;
+    const retry = attempts < (task.max_attempts ?? 3);
+    await sb.from("seo_page_tasks").update({ status: retry ? "queued" : "needs_retry", outcome: retry ? null : "error", last_error: msg, page_id: pageId,
+      duration_ms: Date.now() - started, next_attempt_at: retry ? new Date(Date.now() + [5, 20, 60][Math.min(attempts, 2)] * 1000).toISOString() : null,
+      finished_at: retry ? null : nowIso() }).eq("id", task.id);
+  }
+}
+
 async function runOneTask(sb: SupabaseClient, run: any, batch: any, task: any) {
+  if (run.mode === "complete" && String(task.kind).startsWith("auto_")) return runAutoTask(sb, run, batch, task);
   // Le pilote ne publie jamais : refus définitif, sans QA, correction ni écriture de page.
   const refusal = pipelinePublishRefusal(task.kind);
   if (refusal) {
