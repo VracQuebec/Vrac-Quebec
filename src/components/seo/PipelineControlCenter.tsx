@@ -239,6 +239,8 @@ export default function PipelineControlCenter() {
         if (!availFor(city.slug)(d)) { out.set(r.key, { ok: false, msg: "Disponibilité non confirmée — génération refusée." }); continue; }
         const m = d.material_slug ? gen.materials.find((x) => x.slug === d.material_slug) : undefined;
         const s = d.service_slug ? gen.services.find((x) => x.slug === d.service_slug) : undefined;
+        // Référentiel non chargé : refuser plutôt que d'envoyer une demande sans matériau/service (qui viserait la page ville).
+        if ((d.material_slug && !m) || (d.service_slug && !s)) { out.set(r.key, { ok: false, msg: "Référentiel des matériaux et services non chargé — rien envoyé. Actualisez puis réessayez." }); continue; }
         try {
           const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { created?: boolean; skipped?: boolean; error?: string }>("seo-generate-page", {
             city: { slug: city.slug, name: city.name, region: row?.region ?? null },

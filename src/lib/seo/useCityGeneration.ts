@@ -88,13 +88,20 @@ export function useCityGeneration() {
         supabase.from("seo_materials").select("slug,name,short_name,description").eq("active", true).order("sort_order"),
         supabase.from("seo_services").select("slug,name,description").eq("active", true).order("sort_order"),
       ]);
-      // Une lecture lourde peut échouer ponctuellement (délai dépassé) : une seule nouvelle tentative.
-      const ov = ovFirst.error ? await supabase.rpc("seo_city_generation_overview" as never) : ovFirst;
+      // Référentiels chargés même si le registre échoue (le générateur en a besoin pour chaque combinaison).
+      if (m.data) setMaterials(m.data as Ref[]);
+      if (s.data) setServices(s.data as Ref[]);
+      // Lecture lourde (~4 s) lancée en même temps que les autres lectures du tableau de bord :
+      // elle dépasse le délai serveur de 8 s sous charge. Nouvelles tentatives espacées, une fois la charge passée.
+      let ov = ovFirst;
+      for (const wait of [2000, 5000, 10000]) {
+        if (!ov.error) break;
+        await new Promise((r) => setTimeout(r, wait));
+        ov = await supabase.rpc("seo_city_generation_overview" as never);
+      }
       if (ov.error) throw ov.error;
       setOverview(ov.data as unknown as Overview);
       setOverviewError(null);
-      if (m.data) setMaterials(m.data as Ref[]);
-      if (s.data) setServices(s.data as Ref[]);
     } catch (e) {
       const msg = e instanceof Error ? e.message : (e as { message?: string })?.message ?? "Chargement impossible";
       setOverviewError(msg);
