@@ -34209,6 +34209,7 @@ export type Database = {
         Args: { _city_slug: string; _total: number }
         Returns: string
       }
+      seo_city_slots_availability_admin: { Args: never; Returns: Json }
       seo_city_slots_catalog: {
         Args: { _city_slug?: string }
         Returns: {
@@ -34221,6 +34222,16 @@ export type Database = {
           page_count: number
           page_slug: string
           page_status: string
+          service_slug: string
+        }[]
+      }
+      seo_city_slots_catalog_admin: {
+        Args: { _city_slug?: string }
+        Returns: {
+          availability: string
+          city_slug: string
+          kind: string
+          material_slug: string
           service_slug: string
         }[]
       }
