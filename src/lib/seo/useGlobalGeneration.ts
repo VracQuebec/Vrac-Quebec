@@ -7,7 +7,8 @@ import { EMPTY_PREVIEW, normalizePreview, type MissingPreview } from "@/lib/seo/
  * Aucune logique SEO ici : la pertinence, l'unicité et la file sont gérées
  * par le moteur existant (seo_city_slots_expected + seo_pipeline_*).
  */
-export function useGlobalGeneration(active: boolean) {
+export function useGlobalGeneration(active: boolean, enabled: boolean | null = true) {
+  // enabled=null : verrou inconnu (attente) ; false : verrou actif → aperçu lourd non chargé.
   const [preview, setPreview] = useState<MissingPreview>(EMPTY_PREVIEW);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
@@ -25,13 +26,15 @@ export function useGlobalGeneration(active: boolean) {
     finally { inflight.current = false; setLoading(false); }
   }, []);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => { if (enabled === true) void refresh(); }, [refresh, enabled]);
 
   useEffect(() => {
-    if (!active) return;
+    if (!active || enabled !== true) return;
     const t = window.setInterval(() => { void refresh(); }, 8000);
     return () => window.clearInterval(t);
-  }, [active, refresh]);
+  }, [active, refresh, enabled]);
+
+  const skipped = enabled === false;
 
   /** Démarre (ou rejoint) la génération globale. Idempotent côté base. */
   const start = useCallback(async (): Promise<{ created: boolean; cities: number; runId: string | null }> => {
