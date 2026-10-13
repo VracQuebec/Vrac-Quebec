@@ -112,6 +112,11 @@ export default function AutopilotPanel() {
           <DialogHeader><DialogTitle>START — Compléter le SEO des villes</DialogTitle></DialogHeader>
           {!preview ? <div className="flex items-center gap-2 text-sm"><Loader2 className="w-4 h-4 animate-spin" /> Calcul du travail prévu…</div> : (
             <div className="space-y-1.5 text-sm">
+              <div className="rounded-md border p-2 space-y-1 mb-2">
+                <p className="font-medium text-xs uppercase text-muted-foreground">Périmètres comparés</p>
+                {scopeLines(preview).map((l) => <p key={l} className="text-xs">• {l}</p>)}
+              </div>
+              <p className="font-medium text-xs uppercase text-muted-foreground">Travail START (municipalités seulement)</p>
               {previewLines(preview).map((l) => <p key={l}>• {l}</p>)}
               <p className="text-xs text-muted-foreground pt-1">Aucune disponibilité inconnue n'est confirmée sans preuve. Aucune page n'est supprimée. Pause, reprise et arrêt sont possibles à tout moment.</p>
               <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
