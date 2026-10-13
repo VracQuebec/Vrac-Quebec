@@ -33,3 +33,18 @@ describe("START — arrêt sur crédits et résultats", () => {
     expect(l.join(" ")).toMatch(/1 crédit/);
   });
 });
+
+import { scopeLines as _scopeLines } from "@/lib/seo/autopilot";
+describe("Résumé START — périmètres", () => {
+  const base = { cities: 162, combinations: 4536, published: 1383, to_generate: 0, drafts_to_finish: 0, drafts_waiting: 0, waiting_evidence: 0, excluded: 0, global_locked: true };
+  it("sépare municipalités, arrondissements/secteurs et total", () => {
+    const l = _scopeLines({ ...base, scopes: { muni_places: 162, muni_published: 1383, muni_drafts: 62, other_places: 26, other_published: 728, other_drafts: 0, all_published: 2111, all_drafts: 62 } });
+    expect(l[0]).toContain("1383 pages publiées");
+    expect(l[1]).toContain("728 pages publiées");
+    expect(l[2]).toContain("188 lieux");
+    expect(l[2]).toContain("2111 pages publiées");
+  });
+  it("signale une répartition absente au lieu d'inventer", () => {
+    expect(_scopeLines(base)[0]).toContain("indisponible");
+  });
+});
