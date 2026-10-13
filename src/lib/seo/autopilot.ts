@@ -24,7 +24,8 @@ export function scopeLines(p: AutopilotPreview): string[] {
   ];
 }
 export type AutopilotStatus = {
-  run: null | { id: string; status: string; pause_reason: string | null; started_at: string | null; finished_at: string | null; current_city_slug: string | null };
+  run: null | { id: string; status: string; pause_reason: string | null; started_at: string | null; finished_at: string | null; current_city_slug: string | null; last_progress_at?: string | null };
+  current_step?: string | null; tasks_total?: number; tasks_done?: number;
   cities_total?: number; cities_done?: number; tasks_queued?: number; generated?: number; fixed?: number; published?: number;
   not_published?: number; waiting_evidence?: number; excluded?: number; errors?: number; credits?: number;
   recent_issues?: { city: string; material: string | null; service: string | null; outcome: string | null; reason: string; at: string }[];
@@ -39,6 +40,18 @@ const rpc = async <T,>(fn: string, args?: Record<string, unknown>): Promise<T> =
 export const loadPreview = () => rpc<AutopilotPreview>("seo_autopilot_preview");
 export const loadStatus = () => rpc<AutopilotStatus>("seo_autopilot_status");
 export const startAutopilot = () => rpc<{ created: boolean; run_id?: string; cities?: number; reason?: string }>("seo_autopilot_start", { _confirm: true });
+/** Relance immédiate du traitement serveur (idempotent, protégé par un bail serveur) — évite d'attendre le passage minute du superviseur. */
+export async function kickAutopilot(): Promise<void> {
+  try { await supabase.functions.invoke("seo-pipeline-orchestrator", { body: { steps: 40 } }); } catch { /* le superviseur reprendra à la minute suivante */ }
+}
+
+/** Avancement réel : villes terminées (chaque ville pèse 1) — affiné par les tâches de la ville en cours. */
+export function autopilotPercent(s: AutopilotStatus | null): number {
+  if (!s?.run || !s.cities_total) return 0;
+  if (s.run.status === "completed") return 100;
+  return Math.min(100, Math.round(((s.cities_done ?? 0) / s.cities_total) * 100));
+}
+
 export const controlAutopilot = (runId: string, action: "pause" | "resume" | "stop") => rpc<{ ok: boolean }>("seo_autopilot_control", { _run_id: runId, _action: action });
 
 /** Lignes du résumé affiché avant la confirmation (chiffres serveur, coût estimé). */
