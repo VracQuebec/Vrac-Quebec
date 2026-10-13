@@ -48,3 +48,24 @@ describe("Résumé START — périmètres", () => {
     expect(_scopeLines(base)[0]).toContain("indisponible");
   });
 });
+
+import { autopilotPercent } from "@/lib/seo/autopilot";
+import { planCityTasks as _plan } from "../../supabase/functions/_shared/seo-autopilot";
+describe("START — avancement et inconnues non bloquantes", () => {
+  const run = { id: "r", status: "running", pause_reason: null, started_at: null, finished_at: null, current_city_slug: null };
+  it("pourcentage = villes terminées / villes totales", () => {
+    expect(autopilotPercent({ run, cities_total: 162, cities_done: 81 })).toBe(50);
+    expect(autopilotPercent({ run: { ...run, status: "completed" }, cities_total: 162, cities_done: 160 })).toBe(100);
+    expect(autopilotPercent({ run: null })).toBe(0);
+  });
+  it("17 inconnues mises en attente n'empêchent pas la génération confirmée ni la finition des brouillons", () => {
+    const slots = [
+      ...Array.from({ length: 17 }, (_, i) => ({ kind: "material", material_slug: `x${i}`, service_slug: null, availability: "inconnue" })),
+      { kind: "material", material_slug: "roche", service_slug: null, availability: "confirmee" },
+      { kind: "material", material_slug: "sable", service_slug: null, availability: "confirmee" },
+    ];
+    const plan = _plan(slots, [{ id: "p1", slug: "sable-x", status: "draft", material_slug: "sable", service_slug: null }]);
+    expect(plan.filter((t) => t.status === "queued").map((t) => t.kind).sort()).toEqual(["auto_finish", "auto_generate"]);
+    expect(plan.filter((t) => t.outcome === "waiting_evidence")).toHaveLength(17);
+  });
+});
