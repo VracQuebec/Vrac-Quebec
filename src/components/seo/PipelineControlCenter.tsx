@@ -80,6 +80,7 @@ export default function PipelineControlCenter() {
   const { state, loading, error, reload } = useSeoControlCenter();
   const { pause, resume, stop, retryErrors } = useSeoPipelineV2();
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [showAudits, setShowAudits] = useState(false);
   const [search, setSearch] = useState("");
   const [visible, setVisible] = useState(24);
   const [busy, setBusy] = useState<string | null>(null);
@@ -887,6 +888,14 @@ export default function PipelineControlCenter() {
         )}
       </Card>
 
+      {/* ── Audits secondaires : lectures massives (contenu de toutes les pages) chargées sur demande seulement,
+           sinon elles saturent la base au chargement et font échouer la liste des villes et la fiche de ville. ── */}
+      {!showAudits ? (
+        <Card className="p-4 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">Audits secondaires (combinaisons, qualité, brouillons, publication par lots) : non chargés pour garder la gestion des villes rapide.</p>
+          <Button size="sm" variant="outline" onClick={() => setShowAudits(true)}>Afficher les audits secondaires</Button>
+        </Card>
+      ) : (<>
       {/* ── Audit lecture seule des combinaisons par ville ───────── */}
       <CityCombinationAudit />
 
@@ -898,6 +907,7 @@ export default function PipelineControlCenter() {
 
       {/* ── Publication par lots des pages prêtes ───────────────── */}
       <PublishReadyPanel cities={state?.cities ?? []} />
+      </>)}
 
       {/* ── Dialogs ─────────────────────────────────────────────── */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
