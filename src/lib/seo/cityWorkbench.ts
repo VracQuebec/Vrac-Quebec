@@ -71,7 +71,8 @@ export function buildWorkbench(input: {
     if (pub) { row.blocked = "En ligne — protégée (aucune modification automatique)."; return row; }
 
     if (!draft) {
-      if (prob?.task_error) row.problems.push(`Erreur de génération : ${prob.task_error}`);
+      // Une tâche refusée par la protection (disponibilité non confirmée) n'est pas une erreur de génération.
+      if (prob?.task_error) row.problems.push(availability === "confirmee" ? `Erreur de génération : ${prob.task_error}` : `Tâche refusée par la protection : ${prob.task_error}`);
       if (state === "pending") { row.blocked = "Génération en cours."; return row; }
       if (availability === "exclue") { row.blocked = availReason; return row; }
       if (availability === "inconnue") { row.problems.push(availReason!); row.action = "decide"; return row; }
@@ -121,4 +122,45 @@ export function summarizeWorkbench(rows: WbRow[]) {
     excluded: n((r) => r.availability === "exclue"),
     byAction: Object.fromEntries((["generate", "repair", "autofix", "recheck", "publish", "decide"] as WbAction[]).map((a) => [a, n((r) => r.action === a || r.alt === a)])) as Record<WbAction, number>,
   };
+}
+
+/** Lignes visées par une action (mêmes règles pour la sélection, le compteur et l'exécution). */
+export function rowsForAction(rows: WbRow[], a: WbAction): WbRow[] {
+  if (a === "decide") return rows.filter((r) => r.availability === "inconnue" && !r.state.startsWith("published"));
+  // Outils de qualité offerts pour TOUS les brouillons (jamais pour les pages en ligne).
+  if (a === "recheck" || a === "autofix") return rows.filter((r) => !!r.pageId);
+  return rows.filter((r) => r.action === a || r.alt === a);
+}
+
+/** Raison précise et chiffrée quand une action n'a aucune ligne admissible (jamais de bouton muet). */
+export function emptyReason(rows: WbRow[], a: WbAction): string {
+  const n = (f: (r: WbRow) => boolean) => rows.filter(f).length;
+  const unknownMissing = n((r) => !r.pageSlug && r.availability === "inconnue");
+  const excluded = n((r) => !r.pageSlug && r.availability === "exclue");
+  const drafts = n((r) => !!r.pageId);
+  const parts: string[] = [];
+  switch (a) {
+    case "decide": return "Aucune combinaison à disponibilité inconnue dans cette ville.";
+    case "generate":
+      parts.push("Aucune combinaison manquante à disponibilité confirmée.");
+      if (unknownMissing) parts.push(`${unknownMissing} combinaison(s) sans page attendent une décision de disponibilité (section « Décider la disponibilité »).`);
+      if (excluded) parts.push(`${excluded} exclue(s), jamais générée(s).`);
+      return parts.join(" ");
+    case "repair": {
+      parts.push("Aucune page réellement en erreur dans cette ville (0).");
+      const quality = n((r) => !!r.pageId && r.action !== "repair" && r.action !== "publish");
+      const failedNoPage = n((r) => !r.pageId && r.action === "generate" && r.problems.some((p) => p.startsWith("Erreur de génération")));
+      const refused = n((r) => r.problems.some((p) => p.startsWith("Tâche refusée")));
+      if (quality) parts.push(`${quality} brouillon(s) de qualité insuffisante : section « Corriger sans IA ».`);
+      if (failedNoPage) parts.push(`${failedNoPage} génération(s) échouée(s) sans page : section « Générer ».`);
+      if (refused) parts.push(`${refused} tâche(s) refusée(s) par la protection (disponibilité inconnue) : décider d'abord.`);
+      if (unknownMissing || excluded) parts.push(`${unknownMissing + excluded} combinaison(s) sans page (manquantes, pas en erreur).`);
+      return parts.join(" ");
+    }
+    case "recheck": case "autofix": return "Aucun brouillon dans cette ville — rien à corriger ni à recalculer.";
+    case "publish":
+      if (!drafts) return "Aucun brouillon dans cette ville : rien à publier. Générez d'abord les combinaisons confirmées.";
+      return `Aucun brouillon admissible : ${drafts} brouillon(s) bloqué(s) (disponibilité confirmée, note actuelle ≥ 90, aucun problème bloquant et noindex volontaire respecté sont requis) — détail ci-dessous.`;
+    default: return "";
+  }
 }

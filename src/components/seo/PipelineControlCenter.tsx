@@ -4,9 +4,9 @@ import UnknownDecisionDialog from "@/components/seo/UnknownDecisionDialog";
 import RefusedTasksPanel from "@/components/seo/RefusedTasksPanel";
 import PublishConfirmDialog from "@/components/seo/PublishConfirmDialog";
 import CityWorkbenchDialog, { type RowResult, type Evidence } from "@/components/seo/CityWorkbenchDialog";
-import { buildWorkbench, type WbRow } from "@/lib/seo/cityWorkbench";
+import { buildWorkbench, type WbAction, type WbRow } from "@/lib/seo/cityWorkbench";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
-import { loadDecisions, availabilityOf, decisionKey, type DecisionRow } from "@/lib/seo/slotDecisions";
+import { loadDecisions, saveDecisions, availabilityOf, decisionKey, type DecisionRow } from "@/lib/seo/slotDecisions";
 import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
 import { buildCatInput, classify, summarizeCatalog, mergeSummaries, CAT_STATE_LABEL, estimateCredits, type CatState, type CatSummary } from "@/lib/seo/catalogStatus";
 import { publishCityDrafts, publishOutcomeMessage, publishPrecheck, precheckReason, loadAllDraftsForPrecheck, type PublishPrecheck } from "@/lib/seo/cityPublish";
@@ -190,6 +190,8 @@ export default function PipelineControlCenter() {
 
   // ── Poste de travail par ville : une ligne par combinaison, actions manuelles avec résultat par page ──
   const [wbCity, setWbCity] = useState<{ slug: string; name: string } | null>(null);
+  const [wbFocus, setWbFocus] = useState<WbAction | null>(null);
+  const openWb = (c: { slug: string; name: string }, focus: WbAction | null) => { setWbFocus(focus); setWbCity({ slug: c.slug, name: c.name }); void verifyWb(); };
   // Noms officiels des villes (seo_cities) : affichage seulement, le slug reste l'identifiant des opérations.
   const [cityNames, setCityNames] = useState<Map<string, string>>(new Map());
   useEffect(() => {
@@ -229,7 +231,23 @@ export default function PipelineControlCenter() {
   const verifyWb = async () => {
     await reload();
     setDecisions(await loadDecisions().catch(() => new Map()));
-    setPrecheckRaw(await loadAllDraftsForPrecheck());
+    // Disponibilité serveur relue aussi (une décision change la disponibilité de référence).
+    setDecTick((t) => t + 1);
+    try { setPrecheckRaw(await loadAllDraftsForPrecheck()); setPrecheckErr(false); } catch { setPrecheckErr(true); }
+  };
+  // Décisions de disponibilité : une ligne enregistrée PAR combinaison cochée, motif obligatoire; aucune génération.
+  const decideRows = (city: { slug: string; name: string }) => async (rows: WbRow[], decision: "confirmee" | "exclue", reason: string) => {
+    const out = new Map<string, RowResult>();
+    const valid = rows.filter((r) => r.kind !== "hub" && r.slug);
+    for (const r of rows) if (!valid.includes(r)) out.set(r.key, { ok: false, msg: "La page ville n'a pas de décision de disponibilité." });
+    const o = await saveDecisions(valid.map((r) => ({ city_slug: city.slug, kind: r.kind as "material" | "service", slug: r.slug!, decision, reason })));
+    for (const r of valid) {
+      const f = o.failed.find((x) => x.slug === r.slug);
+      out.set(r.key, f ? { ok: false, msg: `Décision non enregistrée : ${f.error}` }
+        : { ok: true, msg: decision === "confirmee" ? "Disponibilité confirmée et enregistrée (motif conservé). Aucune génération lancée — sélectionnable dans « Générer »." : "Combinaison exclue et enregistrée (motif conservé). Elle ne sera jamais générée." });
+    }
+    setDecTick((t) => t + 1);
+    return out;
   };
   const wbRun = (city: { slug: string; name: string }) => ({
     generate: async (rows: WbRow[]) => {
@@ -830,36 +848,28 @@ export default function PipelineControlCenter() {
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
                     disabled={gen.verifying === c.slug || isRunning}
-                    onClick={() => { setWbCity({ slug: c.slug, name: c.name }); void verifyWb(); }}>
+                    onClick={() => openWb(c, null)}>
                     <CheckCircle2 className="w-3 h-3" /> Vérifier et gérer la ville
                   </Button>
-                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
-                    title={retryReason ?? undefined}
-                    disabled={!!retryReason || busy === `retry-${c.slug}`}
-                    onClick={() => window.confirm(`Régénérer ${plan.invalidDrafts} brouillon(s) en erreur de ${c.name} ? Les pages en ligne ne seront pas remplacées.`) && act(`retry-${c.slug}`, async () => {
-                      const slots = ((state?.problems ?? []) as ControlProblem[]).filter((p) => p.city_slug === c.slug).map(toRepairSlot);
-                      const o = await repairCity(slots);
-                      void reload();
-                      return repairOutcomeMessage(o);
-                    }, `Régénération — ${c.name}`)}>
-                    {busy === `retry-${c.slug}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <ListRestart className="w-3 h-3" />} Régénérer les erreurs
+                  {/* Ouvrent la fenêtre de la ville sur la section visée : sélection page par page, raisons chiffrées si rien n'est admissible. */}
+                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" disabled={isRunning}
+                    title={retryReason ?? undefined} onClick={() => openWb(c, "repair")}>
+                    <ListRestart className="w-3 h-3" /> Régénérer les erreurs ({plan.invalidDrafts})
                   </Button>
-                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
-                    title={publishReason ?? undefined}
-                    disabled={!!publishReason || busy === `pub-${c.slug}`}
-                    onClick={() => setPublishCity({ slug: c.slug, name: c.name })}>
-                    {busy === `pub-${c.slug}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />} Publier les non publiées
+                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" disabled={isRunning}
+                    title={publishReason ?? undefined} onClick={() => openWb(c, "publish")}>
+                    <Send className="w-3 h-3" /> Publier les non publiées ({pre?.eligible.length ?? 0})
                   </Button>
                   <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => openLogs(c.slug)}>Voir les logs</Button>
                   {catSum && catSum.missing_unknown > 0 && (
-                    <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs" onClick={() => setUnknownCity({ slug: c.slug, name: c.name })}>
+                    <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs" onClick={() => openWb(c, "decide")}>
                       Décider les inconnues ({catSum.missing_unknown})
                     </Button>
                   )}
                   <Button size="sm" className="h-8 px-2.5 text-xs gap-1"
                     title={genReason ?? undefined}
                     disabled={!plan.generate.enabled && wbGen === 0}
-                    onClick={() => !plan.generate.enabled ? setWbCity({ slug: c.slug, name: c.name }) : genRow && window.confirm(`${plan.generate.count} page(s) admissible(s) (disponibilité confirmée) pour ${c.name}. Coût IA estimé : ${estimateCredits(plan.generate.count)} crédit(s). Les combinaisons inconnues et exclues ne sont pas générées. Continuer ?`) && void gen.generateCity(genRow, { includeStalled: plan.stalled > 0 }).finally(() => void reload())}>
+                    onClick={() => !plan.generate.enabled ? openWb(c, "generate") : genRow && window.confirm(`${plan.generate.count} page(s) admissible(s) (disponibilité confirmée) pour ${c.name}. Coût IA estimé : ${estimateCredits(plan.generate.count)} crédit(s). Les combinaisons inconnues et exclues ne sont pas générées. Continuer ?`) && void gen.generateCity(genRow, { includeStalled: plan.stalled > 0 }).finally(() => void reload())}>
                     {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
                     {c.generated > 0 ? "Reprendre la génération" : "Générer cette ville"}
                     {Math.max(plan.generate.count, wbGen) > 0 ? ` (${Math.max(plan.generate.count, wbGen)})` : ""}
@@ -1013,9 +1023,10 @@ export default function PipelineControlCenter() {
             .map((it) => ({ kind: it.kind as "material" | "service", slug: it.slug as string, label: it.label }));
         })()} />
 
-      <CityWorkbenchDialog city={wbCity} rows={wbCity ? wbRowsFor(wbCity.slug, wbCity.name) : []}
-        onClose={() => setWbCity(null)} onVerify={verifyWb}
-        onDecide={() => wbCity && setUnknownCity(wbCity)}
+      <CityWorkbenchDialog city={wbCity} rows={wbCity ? wbRowsFor(wbCity.slug, wbCity.name) : []} focus={wbFocus}
+        loadState={!wbCity ? "ok" : precheckErr || srvErr || covState === "error" ? "error" : !cov.get(wbCity.slug) || !precheckRaw || !srvAvail ? "loading" : "ok"}
+        onClose={() => { setWbCity(null); setWbFocus(null); }} onVerify={verifyWb}
+        onDecideRows={wbCity ? decideRows(wbCity) : undefined}
         run={wbCity ? wbRun(wbCity) : {}} evidence={wbEvidence} />
       <CityPagesDialog
         citySlug={pagesCity?.slug ?? null}
