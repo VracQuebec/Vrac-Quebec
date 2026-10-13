@@ -54,9 +54,12 @@ export function classify(it: CatItem, i: CatInput): CatState {
     return "draft_ready";
   }
   if (i.pendingKeys.has(k)) return "pending";
-  if (i.stalledKeys.has(k)) return "stalled";
-  if (i.failedKeys.has(k)) return "failed";
   if (it.kind !== "hub" && i.excluded.has(k)) return "excluded_missing";
+  // Une tâche interrompue ou refusée n'est « à reprendre » que si la disponibilité est confirmée;
+  // sinon (ex. refus serveur « disponibilité inconnue ») elle reste une inconnue à décider, sans crédit annoncé.
+  const confirmed = i.queueKeys.has(k) || it.kind === "hub";
+  if (confirmed && i.stalledKeys.has(k)) return "stalled";
+  if (confirmed && i.failedKeys.has(k)) return "failed";
   if (i.queueKeys.has(k) || it.kind === "hub") return "missing_confirmed";
   return "missing_unknown";
 }
