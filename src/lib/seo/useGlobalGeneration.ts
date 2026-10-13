@@ -55,5 +55,5 @@ export function useGlobalGeneration(active: boolean, enabled: boolean | null = t
     } finally { setStarting(false); }
   }, [preview, refresh]);
 
-  return { preview, baseline, loading, starting, refresh, start, clearBaseline: () => setBaseline(null) };
+  return { preview, baseline, loading: loading && enabled !== false, skipped, starting, refresh, start, clearBaseline: () => setBaseline(null) };
 }

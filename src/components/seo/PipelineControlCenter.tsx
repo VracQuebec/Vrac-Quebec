@@ -331,7 +331,7 @@ export default function PipelineControlCenter() {
           .from("seo_pages")
           .select("slug, city_slug, title, status, meta_title, internal_link_count")
           .range(from, from + 999);
-        if (error) break;
+        if (error) return; // lecture incomplète : ne jamais afficher un décompte partiel comme complet
         all.push(...((data ?? []) as SeoPageRow[]));
         if (!data || data.length < 1000) break;
       }
