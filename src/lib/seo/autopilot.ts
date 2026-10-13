@@ -2,10 +2,27 @@
 import { supabase } from "@/integrations/supabase/client";
 import { estimateCredits } from "@/lib/seo/catalogStatus";
 
+export type AutopilotScopes = {
+  muni_places: number; muni_published: number; muni_drafts: number;
+  other_places: number; other_published: number; other_drafts: number;
+  all_published: number; all_drafts: number;
+};
 export type AutopilotPreview = {
   cities: number; combinations: number; published: number; to_generate: number;
   drafts_to_finish: number; drafts_waiting: number; waiting_evidence: number; excluded: number; global_locked: boolean;
+  scopes?: AutopilotScopes;
 };
+
+/** Périmètres comparables : municipalités (catalogue START), arrondissements/secteurs (hors START), total. */
+export function scopeLines(p: AutopilotPreview): string[] {
+  const s = p.scopes;
+  if (!s) return ["Répartition par périmètre indisponible (lecture serveur incomplète)."];
+  return [
+    `Municipalités (${s.muni_places}) — périmètre START : ${p.combinations} combinaisons, ${s.muni_published} pages publiées, ${s.muni_drafts} brouillons.`,
+    `Arrondissements et secteurs (${s.other_places}) — hors START, sans combinaisons au catalogue : ${s.other_published} pages publiées, ${s.other_drafts} brouillons (jamais modifiées par START).`,
+    `Total général (${s.muni_places + s.other_places} lieux) : ${s.all_published} pages publiées, ${s.all_drafts} brouillons — chiffre des statistiques générales.`,
+  ];
+}
 export type AutopilotStatus = {
   run: null | { id: string; status: string; pause_reason: string | null; started_at: string | null; finished_at: string | null; current_city_slug: string | null };
   cities_total?: number; cities_done?: number; tasks_queued?: number; generated?: number; fixed?: number; published?: number;

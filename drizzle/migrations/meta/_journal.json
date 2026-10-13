@@ -1555,6 +1555,13 @@
       "when": 1791913212681,
       "tag": "0221_seo_autopilot_preview_fix",
       "breakpoints": true
+    },
+    {
+      "idx": 222,
+      "version": "7",
+      "when": 1791914277508,
+      "tag": "0222_seo_material_synonyms_and_preview_scopes",
+      "breakpoints": true
     }
   ]
 }
