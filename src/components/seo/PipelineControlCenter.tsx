@@ -101,6 +101,12 @@ export default function PipelineControlCenter() {
     });
   }, [state?.computed_at]);
   const [coverageCity, setCoverageCity] = useState<{ slug: string; name: string } | null>(null);
+  // Verrou serveur de la génération globale (trigger seo_pipeline_runs_guard) : boutons désactivés avec la raison.
+  const [globalLock, setGlobalLock] = useState<string | null>(null);
+  useEffect(() => {
+    void supabase.from("seo_pipeline_guard" as never).select("global_disabled,reason").maybeSingle()
+      .then(({ data }) => { const g = data as { global_disabled: boolean; reason: string } | null; setGlobalLock(g?.global_disabled ? g.reason : null); });
+  }, []);
   // Exclusions temporaires (ex. Terre contaminée, Neige) : lecture admin seulement.
   const [exclusions, setExclusions] = useState<Set<string>>(new Set());
   useEffect(() => {
@@ -424,8 +430,8 @@ export default function PipelineControlCenter() {
               <RefreshCw className="w-4 h-4" /> Rafraîchir
             </Button>
             {!run && (
-              <Button size="sm" className="gap-2" disabled={!startable.allowed || global.starting || global.loading}
-                title={startable.allowed ? "Génère uniquement les pages pertinentes manquantes" : startable.reason}
+              <Button size="sm" className="gap-2" disabled={!!globalLock || !startable.allowed || global.starting || global.loading}
+                title={globalLock ?? (startable.allowed ? "Génère uniquement les pages pertinentes manquantes" : startable.reason)}
                 onClick={() => setConfirmOpen(true)}>
                 {global.starting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                 Générer toutes les pages manquantes
@@ -435,7 +441,7 @@ export default function PipelineControlCenter() {
               <Button size="sm" variant="outline" onClick={() => act("pause", () => pause(run.id), "Pipeline en pause")} className="gap-2"><Pause className="w-4 h-4" /> Pause</Button>
             )}
             {run?.status === "paused" && (
-              <Button size="sm" onClick={() => act("resume", () => resume(run.id), "Pipeline reprise")} className="gap-2"><Play className="w-4 h-4" /> Reprendre</Button>
+              <Button size="sm" disabled={!!globalLock} title={globalLock ?? undefined} onClick={() => window.confirm("Reprendre la génération globale ? Des appels IA payants peuvent être lancés.") && act("resume", () => resume(run.id), "Pipeline reprise")} className="gap-2"><Play className="w-4 h-4" /> Reprendre</Button>
             )}
             {run && (
               <Button size="sm" variant="ghost" onClick={() => act("stop", () => stop(run.id), "Pipeline arrêtée")} className="gap-2"><Square className="w-4 h-4" /> Arrêter</Button>
@@ -581,16 +587,17 @@ export default function PipelineControlCenter() {
                   {phase === "running" && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
                   {PHASE_LABEL[phase]}
                 </div>
+                {globalLock && <div className="w-full text-xs text-destructive">Verrou serveur actif : {globalLock}</div>}
                 <div className="flex flex-wrap gap-2">
                   {(phase === "interrupted" || phase === "paused") && activeRun && (
-                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1"
-                      onClick={() => act("resume-global", () => resume(activeRun.id), "Génération reprise")}>
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1" disabled={!!globalLock} title={globalLock ?? undefined}
+                      onClick={() => window.confirm("Reprendre la génération globale ? Des appels IA payants peuvent être lancés.") && act("resume-global", () => resume(activeRun.id), "Génération reprise")}>
                       <Play className="w-3 h-3" /> Reprendre la génération
                     </Button>
                   )}
                   {shouldOfferRetry(activeRun as never, global.preview) && activeRun && (
-                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1"
-                      onClick={() => act("retry-global", () => retryErrors(activeRun.id), "Erreurs remises en file")}>
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1" disabled={!!globalLock} title={globalLock ?? undefined}
+                      onClick={() => window.confirm("Remettre en file les tâches en erreur de la génération globale ?") && act("retry-global", () => retryErrors(activeRun.id), "Erreurs remises en file")}>
                       <ListRestart className="w-3 h-3" /> Régénérer les erreurs
                     </Button>
                   )}

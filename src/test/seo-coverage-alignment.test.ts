@@ -19,3 +19,12 @@ describe("décisions en lot", () => {
   });
   it("motif trop court refusé", () => expect(() => expandBulk([{ city_slug: "a", kind: "service", slugs: ["dompe"], decision: "confirmee", reason: "ok" }])).toThrow());
 });
+
+import { classify, type CatInput } from "@/lib/seo/catalogStatus";
+const inp = (o: Partial<CatInput>): CatInput => ({ items: [], queueKeys: new Set(), draftErrorKeys: new Set(), pendingKeys: new Set(), stalledKeys: new Set(), failedKeys: new Set(), excluded: new Set(), ...o });
+describe("tâches refusées de la génération globale", () => {
+  it("refus « disponibilité inconnue » = inconnue à décider, pas génération admissible", () =>
+    expect(classify({ kind: "material", slug: "remblai", page: null }, inp({ failedKeys: new Set(["material|remblai"]) }))).toBe("missing_unknown"));
+  it("échec sur combinaison confirmée = à reprendre", () =>
+    expect(classify({ kind: "material", slug: "sable", page: null }, inp({ failedKeys: new Set(["material|sable"]), queueKeys: new Set(["material|sable"]) }))).toBe("failed"));
+});
