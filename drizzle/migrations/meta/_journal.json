@@ -1520,6 +1520,13 @@
       "when": 1791826642510,
       "tag": "0216_seo_publish_guard_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 217,
+      "version": "7",
+      "when": 1791895946815,
+      "tag": "0217_seo_global_generation_guard",
+      "breakpoints": true
     }
   ]
 }

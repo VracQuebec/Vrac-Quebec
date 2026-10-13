@@ -26220,6 +26220,30 @@ export type Database = {
           },
         ]
       }
+      seo_pipeline_guard: {
+        Row: {
+          global_disabled: boolean
+          id: boolean
+          reason: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          global_disabled?: boolean
+          id?: boolean
+          reason?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          global_disabled?: boolean
+          id?: boolean
+          reason?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       seo_pipeline_runs: {
         Row: {
           city_slugs: string[]
