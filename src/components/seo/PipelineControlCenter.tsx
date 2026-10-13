@@ -105,9 +105,10 @@ export default function PipelineControlCenter() {
   const [coverageCity, setCoverageCity] = useState<{ slug: string; name: string } | null>(null);
   // Verrou serveur de la génération globale (trigger seo_pipeline_runs_guard) : boutons désactivés avec la raison.
   const [globalLock, setGlobalLock] = useState<string | null>(null);
+  const [lockKnown, setLockKnown] = useState(false);
   useEffect(() => {
     void supabase.from("seo_pipeline_guard" as never).select("global_disabled,reason").maybeSingle()
-      .then(({ data }) => { const g = data as { global_disabled: boolean; reason: string } | null; setGlobalLock(g?.global_disabled ? g.reason : null); });
+      .then(({ data }) => { const g = data as { global_disabled: boolean; reason: string } | null; setGlobalLock(g?.global_disabled ? g.reason : null); setLockKnown(true); });
   }, []);
   // Exclusions temporaires (ex. Terre contaminée, Neige) : lecture admin seulement.
   const [exclusions, setExclusions] = useState<Set<string>>(new Set());
@@ -318,9 +319,11 @@ export default function PipelineControlCenter() {
   const [stats, setStats] = useState<SeoStats | null>(null);
   // Pages à corriger : critères de qualité (audit) appliqués en lecture seule sur les pages réelles.
   const [fixRows, setFixRows] = useState<QualityFix<SeoPageRow>[] | null>(null);
-  useEffect(() => { void fetchSeoStats().then(setStats).catch(() => setStats(null)); }, []);
+  const mainLoaded = !!state;
+  useEffect(() => { if (mainLoaded) void fetchSeoStats().then(setStats).catch(() => setStats(null)); }, [mainLoaded]);
   useEffect(() => {
-    // Lecture complète (pagination) : la table dépasse 1 000 pages.
+    // Lecture complète (pagination) : la table dépasse 1 000 pages. Différée après l'écran principal.
+    if (!mainLoaded) return;
     void (async () => {
       const all: SeoPageRow[] = [];
       for (let from = 0; ; from += 1000) {
@@ -328,20 +331,21 @@ export default function PipelineControlCenter() {
           .from("seo_pages")
           .select("slug, city_slug, title, status, meta_title, internal_link_count")
           .range(from, from + 999);
-        if (error) break;
+        if (error) return; // lecture incomplète : ne jamais afficher un décompte partiel comme complet
         all.push(...((data ?? []) as SeoPageRow[]));
         if (!data || data.length < 1000) break;
       }
       setFixRows(collectFixes(all));
     })();
-  }, []);
+  }, [mainLoaded]);
   // Statuts des villes déduits uniquement des chiffres réels du Centre de pilotage.
   const citySummary = useMemo(() => summarize(state?.cities ?? []), [state]);
   // ── Génération globale (orchestration du moteur existant) ──
   const [confirmOpen, setConfirmOpen] = useState(false);
   const activeRun = state?.active_run ?? null;
   const phase = globalPhase(activeRun as never);
-  const global = useGlobalGeneration(phase === "running" || phase === "paused");
+  // Aperçu global (lecture lourde) chargé seulement si le verrou serveur est levé.
+  const global = useGlobalGeneration(phase === "running" || phase === "paused", lockKnown ? !globalLock : null);
   const startable = canStartGlobal(global.preview, activeRun as never);
   const prog = runProgress(activeRun as never);
   const globalActive = phase === "running" || phase === "paused";
@@ -633,7 +637,9 @@ export default function PipelineControlCenter() {
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  {global.preview.remaining > 0
+                  {globalLock
+                    ? "Aperçu global non chargé : la génération globale est verrouillée côté serveur."
+                    : global.preview.remaining > 0
                     ? "Génère uniquement les pages pertinentes qui ne sont pas encore créées. Les pages existantes et publiées sont protégées."
                     : "Aucune page pertinente à générer."}
                 </p>
