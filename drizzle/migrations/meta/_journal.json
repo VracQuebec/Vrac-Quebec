@@ -1527,6 +1527,13 @@
       "when": 1791895946815,
       "tag": "0217_seo_global_generation_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 218,
+      "version": "7",
+      "when": 1791896456514,
+      "tag": "0218_seo_city_slots_catalog_admin_reader",
+      "breakpoints": true
     }
   ]
 }

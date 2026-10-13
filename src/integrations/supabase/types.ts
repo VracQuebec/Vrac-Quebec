@@ -34224,6 +34224,16 @@ export type Database = {
           service_slug: string
         }[]
       }
+      seo_city_slots_catalog_admin: {
+        Args: { _city_slug?: string }
+        Returns: {
+          availability: string
+          city_slug: string
+          kind: string
+          material_slug: string
+          service_slug: string
+        }[]
+      }
       seo_city_slots_expected: {
         Args: { _city_slug?: string }
         Returns: {
