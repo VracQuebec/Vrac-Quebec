@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindexOnly, generateReasonWithCatalog, catalogActionLine } from "@/lib/seo/cityActions";
 import UnknownDecisionDialog from "@/components/seo/UnknownDecisionDialog";
+import RefusedTasksPanel from "@/components/seo/RefusedTasksPanel";
 import PublishConfirmDialog from "@/components/seo/PublishConfirmDialog";
 import CityWorkbenchDialog, { type RowResult, type Evidence } from "@/components/seo/CityWorkbenchDialog";
 import { buildWorkbench, type WbRow } from "@/lib/seo/cityWorkbench";
@@ -661,6 +662,23 @@ export default function PipelineControlCenter() {
           <p className="text-xs text-muted-foreground">Exclues : {nf(bilan.offCriteria)} page(s) existante(s) hors critères — aucune demande ni service configuré ne les justifie; elles sont conservées mais ne comptent pas dans les pages attendues.</p>
         </Card>
       )}
+
+      {/* ── Tâches refusées (consultation seule) ────────────────── */}
+      <RefusedTasksPanel
+        cityName={(s) => (state?.cities ?? []).find((c) => c.slug === s)?.name ?? null}
+        comboLabel={(city, t) => {
+          const kind = t.material_slug ? "material" : t.service_slug ? "service" : "hub";
+          const sl = t.material_slug ?? t.service_slug ?? null;
+          return (cov.get(city)?.items ?? []).find((x) => x.kind === kind && (x.slug ?? null) === sl)?.label ?? sl;
+        }}
+        availability={(city, t) => {
+          const kind = t.material_slug ? "material" : t.service_slug ? "service" : "hub";
+          const sl = t.material_slug ?? t.service_slug ?? null;
+          if (kind !== "hub" && exclusionsFor(city).has(`${kind}|${sl}`)) return "exclue";
+          const it = (cov.get(city)?.items ?? []).find((x) => x.kind === kind && (x.slug ?? null) === sl);
+          return it ? (availabilityOf(it, decisions.get(decisionKey(city, kind, sl))?.decision, srvOf(city, kind, sl)) as "confirmee" | "exclue" | "inconnue") : null;
+        }}
+        onOpenCity={(slug, name) => { setWbCity({ slug, name }); void verifyWb(); }} />
 
       {/* ── État des villes ─────────────────────────────────────── */}
       <Card className="p-4 md:p-6 space-y-4">
