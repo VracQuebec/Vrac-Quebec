@@ -2,6 +2,7 @@
 // seule, versions, et boutons Modifier / Annuler. Toutes les règles sont
 // appliquées par le serveur (request_update / request_cancel / request_cancel_request).
 import { useCallback, useEffect, useState } from "react";
+import { formatRequestLabel, formatDompeLabel, requestSearchText } from "@/lib/requests/labels";
 import { History, Pencil, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppCard } from "@/components/entrepreneur-app/ui";
@@ -93,7 +94,7 @@ export default function TransportLifecyclePanel({ id, onChanged }: { id: string;
   const pendingCancel = events.some((e) => e.action === "annulation_demandee") && mode !== "none";
 
   const info: [string, unknown][] = [
-    ["Numéro", row.request_number], ["Créée le", dt(row.created_at)], ["Dernière mise à jour", dt(row.updated_at)],
+    ["Numéro de demande", formatRequestLabel(row.request_number as string | null)], ["Créée le", dt(row.created_at)], ["Dernière mise à jour", dt(row.updated_at)],
     ["Version actuelle", row.current_version], ["Adresse du chantier", [row.site_address, row.site_city].filter(Boolean).join(", ")],
     ["Point de chargement", row.loading_point], ["Matériau", row.material_type ?? row.material_other],
     ["Quantité", row.quantity != null ? `${row.quantity} ${row.quantity_unit ?? ""}` : null], ["Voyages", row.estimated_trips],

@@ -5,6 +5,7 @@
 // Données : vue calculée existante (aucune nouvelle structure, lecture seule).
 // ============================================================
 import { useEffect, useMemo, useState } from "react";
+import { formatRequestLabel, formatDompeLabel, requestSearchText } from "@/lib/requests/labels";
 import { useNavigate, useParams } from "react-router-dom";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import {
@@ -252,7 +253,7 @@ export default function EntrepreneurChantierDetail() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-display text-sm font-bold">
-                  {transportKindLabel(r)}{r.request_number ? ` #${r.request_number}` : ""}
+                  {transportKindLabel(r)}{r.request_number ? ` · ${formatRequestLabel(String(r.request_number))}` : ""}
                 </p>
                 <p className="truncate font-body text-xs text-muted-foreground">
                   {(r.material_type as string | null) ?? "Matériau à confirmer"}

@@ -1,6 +1,7 @@
 // Historique — demandes terminées, annulées ou refusées.
 // Lecture seule sur les données existantes : aucune suppression.
 import { useEffect, useState } from "react";
+import { formatRequestLabel, formatDompeLabel, requestSearchText } from "@/lib/requests/labels";
 import { supabase } from "@/integrations/supabase/client";
 import { statusMeta } from "@/lib/access-requests/status";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
@@ -61,7 +62,7 @@ const EntrepreneurHistorique = () => {
                 <article key={r.id} className="rounded-2xl border border-border bg-card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <span className="font-display text-sm font-bold">
-                      {r.request_number || `#${r.id.slice(0, 8)}`}
+                      {r.request_number ? formatRequestLabel(r.request_number) : `Demande #${r.id.slice(0, 8)}`}
                     </span>
                     <span
                       className="shrink-0 rounded-full px-2.5 py-1 font-display text-[10px] font-bold uppercase text-white"

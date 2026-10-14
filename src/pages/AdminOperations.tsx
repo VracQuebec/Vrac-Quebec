@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { formatRequestLabel, formatDompeLabel, requestSearchText } from "@/lib/requests/labels";
 import { Link } from "react-router-dom";
 import { Loader2, Truck, Calendar as CalendarIcon, Map as MapIcon, ListChecks, Zap, ArrowLeft, RefreshCw, Play, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -255,7 +256,7 @@ function DispatchTab({ onApplied }: { onApplied: () => void }) {
               className={`w-full text-left p-3 hover:bg-secondary/50 ${selected === r.id ? "bg-secondary/60" : ""}`}>
               <div className="flex justify-between items-start gap-2">
                 <div>
-                  <div className="font-display font-semibold text-sm text-foreground">{r.request_number || "—"} · {r.client_name || "Client"}</div>
+                  <div className="font-display font-semibold text-sm text-foreground">{formatRequestLabel(r.request_number)} · {r.client_name || "Client"}</div>
                   <div className="text-xs text-muted-foreground font-body mt-0.5">{r.site_city || "—"} · {r.material_type || "—"} · {r.quantity ? `${r.quantity} ${r.quantity_unit || ""}` : "?"}</div>
                   <div className="text-[11px] text-muted-foreground font-body mt-1">{r.status}</div>
                 </div>

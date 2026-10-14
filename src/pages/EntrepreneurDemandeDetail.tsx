@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { formatRequestLabel, formatDompeLabel, requestSearchText } from "@/lib/requests/labels";
 import { CalendarDays, Check, ChevronRight, Circle, ClipboardList, HardHat, MapPin, Package, Truck } from "lucide-react";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import { AppCard } from "@/components/entrepreneur-app/ui";
@@ -135,7 +136,7 @@ export default function EntrepreneurDemandeDetail() {
                   <SectionHeader title="Transport associé" />
                   <AppCard>
                     <p className="font-body text-sm text-muted-foreground">Ce dossier présente uniquement les renseignements de transport réellement enregistrés.</p>
-                    {request.transport?.request_number ? <p className="mt-3 font-display text-sm font-bold">Nº {String(request.transport.request_number)}</p> : null}
+                    {request.transport?.request_number ? <p className="mt-3 font-display text-sm font-bold">{formatRequestLabel(String(request.transport.request_number))}</p> : null}
                   </AppCard>
                 </section>
                 </>
