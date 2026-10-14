@@ -448,6 +448,44 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Courriel administrateur : une seule fois par demande (clé d'idempotence),
+    // destinataire lu dans les paramètres; un échec n'annule jamais la demande.
+    if (inserted?.id) {
+      try {
+        const { data: setting } = await admin.from("jsc_settings").select("value")
+          .eq("key", "admin_notification_email").eq("is_active", true).is("archived_at", null).maybeSingle();
+        const adminEmail = (setting as { value?: string } | null)?.value;
+        if (adminEmail) {
+          const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+            body: JSON.stringify({
+              templateName: "nouvelle-demande-dompe",
+              recipientEmail: adminEmail,
+              idempotencyKey: `nouvelle-demande-dompe-${inserted.id}`,
+              templateData: {
+                requestNumber: inserted.request_number ?? "",
+                name: data.client_name ?? "",
+                company: data.client_company ?? "",
+                phone: data.client_phone ?? "",
+                email: data.client_email ?? "",
+                city: data.site_city ?? data.site_address ?? "",
+                material: data.material_type ?? data.material_other ?? "",
+                quantity: [data.quantity, data.quantity_unit].filter(Boolean).join(" "),
+                dump: data.dump_name ?? "",
+                desiredDate: data.desired_date ?? "",
+                submittedAt: new Date().toLocaleString("fr-CA", { timeZone: "America/Toronto" }),
+                link: `https://vracquebec.ca/admin/demandes-acces?demande=${inserted.id}`,
+              },
+            }),
+          });
+          if (!res.ok) console.error("admin email failed", res.status, await res.text());
+        } else console.error("admin_notification_email missing");
+      } catch (e) {
+        console.error("admin email error", (e as Error).message);
+      }
+    }
+
     return jsonResponse({
       ok: true,
       request_number: inserted?.request_number,
