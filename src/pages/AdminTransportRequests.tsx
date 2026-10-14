@@ -117,6 +117,8 @@ const AdminTransportRequests = () => {
 
   const openDetail = async (request: AccessRequest) => {
     setSelected(request);
+    // Ouvrir = « Consultée » seulement; le statut de la demande reste inchangé.
+    void supabase.rpc("request_followup_mark_seen" as any, { _entity_type: "transport_request", _entity_id: request.id });
     await loadHistory(request.id);
   };
 
