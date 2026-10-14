@@ -20,7 +20,7 @@ const STATE_CLASS: Record<InboxState, string> = {
   traitee: "bg-muted text-muted-foreground",
 };
 
-const fmt = (d: string) => new Date(d).toLocaleString("fr-CA", { dateStyle: "medium", timeStyle: "short" });
+const fmt = (d: string) => new Date(d).toLocaleString("fr-CA", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Toronto" });
 
 /**
  * Accueil super admin : demandes de dompes non traitées, en temps réel
