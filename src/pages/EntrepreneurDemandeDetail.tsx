@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { formatRequestLabel, formatDompeLabel, requestSearchText } from "@/lib/requests/labels";
 import { CalendarDays, Check, ChevronRight, Circle, ClipboardList, HardHat, MapPin, Package, Truck } from "lucide-react";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import { AppCard } from "@/components/entrepreneur-app/ui";
@@ -56,7 +57,7 @@ export default function EntrepreneurDemandeDetail() {
           <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="min-w-0 space-y-7">
               <section className="border-b border-border pb-5">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><StatusBadge label={request.statusLabel} tone={request.tone} /><span className="font-body text-xs font-semibold tabular-nums text-muted-foreground">Nº {request.reference}</span></div>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><StatusBadge label={request.statusLabel} tone={request.tone} /><span className="font-body text-xs font-semibold tabular-nums text-muted-foreground">{/^(Demande|Dompe) #/.test(request.reference) ? request.reference : `Nº ${request.reference}`}</span></div>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-body text-xs font-semibold uppercase text-muted-foreground">{request.typeLabel}</p>
@@ -135,7 +136,7 @@ export default function EntrepreneurDemandeDetail() {
                   <SectionHeader title="Transport associé" />
                   <AppCard>
                     <p className="font-body text-sm text-muted-foreground">Ce dossier présente uniquement les renseignements de transport réellement enregistrés.</p>
-                    {request.transport?.request_number ? <p className="mt-3 font-display text-sm font-bold">Nº {String(request.transport.request_number)}</p> : null}
+                    {request.transport?.request_number ? <p className="mt-3 font-display text-sm font-bold">{formatRequestLabel(String(request.transport.request_number))}</p> : null}
                   </AppCard>
                 </section>
                 </>

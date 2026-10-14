@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatRequestLabel, formatDompeLabel, requestSearchText } from "@/lib/requests/labels";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -177,7 +178,7 @@ const AdminTransportRequests = () => {
     if (filters.priority === "none" && pr) return false;
     if (filters.priority !== "all" && filters.priority !== "none" && pr !== filters.priority) return false;
     if (statusFilter !== "all" && normalizeStatus(r.status) !== statusFilter) return false;
-    const text = `${r.request_number} ${r.client_name} ${r.client_company ?? ""} ${r.site_address} ${r.material_type} ${r.dump_name ?? ""}`.toLocaleLowerCase("fr-CA");
+    const text = `${requestSearchText(r.request_number)} ${r.client_name} ${r.client_company ?? ""} ${r.site_address} ${r.material_type} ${r.dump_name ?? ""} ${formatDompeLabel(r.dump_name) ?? ""}`.toLocaleLowerCase("fr-CA");
     if (filters.search && !text.includes(filters.search.toLocaleLowerCase("fr-CA"))) return false;
     if (filters.dump !== "all" && r.dump_name !== filters.dump) return false;
     if (filters.entrepreneur !== "all" && (r.client_company || r.client_name) !== filters.entrepreneur) return false;
@@ -297,12 +298,12 @@ const AdminTransportRequests = () => {
                 {['No demande', 'Entrepreneur', 'Chantier', 'Matériau', 'Quantité', 'Dompe demandée', 'Date demandée', 'Statut', 'Priorité', 'Action'].map((h) => <th key={h} className="px-3 py-3 text-left font-semibold">{h}</th>)}
               </tr></thead>
               <tbody>{filtered.map((r) => <tr key={r.id} className={`border-t border-border align-top ${priorities[r.id] === "urgente" ? "border-l-4 border-l-destructive" : ""}`}>
-                <td className="px-3 py-3 font-bold">{r.request_number}</td>
+                <td className="px-3 py-3 font-bold whitespace-nowrap">{formatRequestLabel(r.request_number)}</td>
                 <td className="max-w-44 px-3 py-3"><b className="block break-words">{r.client_company || r.client_name}</b>{r.client_company && <span className="text-xs text-muted-foreground">{r.client_name}</span>}</td>
                 <td className="max-w-56 px-3 py-3 break-words">{r.site_address}</td>
                 <td className="px-3 py-3 capitalize">{r.material_other || r.material_type}</td>
                 <td className="px-3 py-3">{quantity(r)}</td>
-                <td className="max-w-44 px-3 py-3 break-words">{r.dump_name || "À confirmer"}{r.distance_km != null && <span className="block text-xs text-muted-foreground">{r.distance_km} km</span>}</td>
+                <td className="max-w-44 px-3 py-3 break-words">{formatDompeLabel(r.dump_name) || "À confirmer"}{r.distance_km != null && <span className="block text-xs text-muted-foreground">{r.distance_km} km</span>}</td>
                 <td className="px-3 py-3">{formatDate(r.desired_date || r.created_at)}</td>
                 <td className="px-3 py-3"><StatusBadge status={r.status} /></td>
                 <td className="px-3 py-3"><PriorityBadge priority={priorities[r.id] ?? null} /></td>
@@ -328,12 +329,12 @@ const StatusTab = ({ label, count, active, onClick }: { label: string; count: nu
 
 function RequestCard({ request: r, priority, onOpen }: { request: AccessRequest; priority: AccessPriority | null; onOpen: () => void }) {
   return <article className={`rounded-md border bg-card p-4 ${priority === "urgente" ? "border-destructive/60 border-l-4 border-l-destructive" : "border-border"}`}>
-    <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs text-muted-foreground">Demande</p><h2 className="font-display font-bold">{r.request_number}</h2></div><div className="flex flex-wrap gap-1.5"><PriorityBadge priority={priority} /><StatusBadge status={r.status} /></div></div>
+    <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs text-muted-foreground">Demande</p><h2 className="font-display font-bold">{formatRequestLabel(r.request_number)}</h2></div><div className="flex flex-wrap gap-1.5"><PriorityBadge priority={priority} /><StatusBadge status={r.status} /></div></div>
     <p className="mt-3 font-semibold break-words">{r.client_company || r.client_name}</p><p className="text-sm text-muted-foreground break-words">{r.site_address}</p>
     <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
       <Info label="Matériau" value={r.material_other || r.material_type} />
       <Info label="Quantité" value={quantity(r)} />
-      <Info label="Dompe" value={r.dump_name || "À confirmer"} />
+      <Info label="Dompe" value={formatDompeLabel(r.dump_name) || "À confirmer"} />
       <Info label="Date demandée" value={formatDate(r.desired_date || r.created_at)} />
     </dl>
     <Button className="mt-4 w-full" onClick={onOpen}>Voir la demande</Button>
@@ -344,7 +345,7 @@ function RequestDetail({ request: r, priority, onPriority, history, onStatus, on
   const alternatives = Array.isArray(r.alternative_dumps) ? r.alternative_dumps : [];
   return <>
     <div className="sticky top-0 z-10 border-b border-border bg-background px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] pr-14">
-      <p className="text-xs text-muted-foreground">Demande d'accès</p><h2 className="font-display text-lg font-bold">{r.request_number}</h2>
+      <p className="text-xs text-muted-foreground">Demande d'accès</p><h2 className="font-display text-lg font-bold">{formatRequestLabel(r.request_number)}</h2>{formatDompeLabel(r.dump_name) && <p className="text-sm font-semibold">{formatDompeLabel(r.dump_name)}</p>}
       <div className="mt-2 flex flex-wrap gap-2"><StatusBadge status={r.status} /><PriorityBadge priority={priority} /></div>
       <label htmlFor="access-priority" className="mt-3 block text-xs font-bold text-muted-foreground">Priorité</label>
       <select id="access-priority" value={priority ?? ""} onChange={(e) => e.target.value && onPriority(e.target.value as AccessPriority)} className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm sm:w-56">
@@ -353,11 +354,11 @@ function RequestDetail({ request: r, priority, onPriority, history, onStatus, on
       </select>
     </div>
     <div className="space-y-5 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <section><SectionTitle number="1" title="Résumé" /><InfoGrid items={[["Numéro", r.request_number], ["Créée", formatDateTime(r.created_at)], ["Statut", statusLabel(r.status)], ["Date souhaitée", formatDate(r.desired_date)], ["Priorité", priorityLabel(priority)]]} /></section>
+      <section><SectionTitle number="1" title="Résumé" /><InfoGrid items={[["Numéro de demande", formatRequestLabel(r.request_number)], ["Numéro de dompe", formatDompeLabel(r.dump_name) || "À confirmer"], ["Créée", formatDateTime(r.created_at)], ["Statut", statusLabel(r.status)], ["Date souhaitée", formatDate(r.desired_date)], ["Priorité", priorityLabel(priority)]]} /></section>
       <section><SectionTitle number="2" title="Entrepreneur" /><InfoGrid items={[["Nom", r.client_name], ["Entreprise", r.client_company || "—"]]} /><div className="mt-2 flex flex-wrap gap-2"><Button asChild variant="outline" size="sm"><a href={`tel:${r.client_phone}`}><Phone />{r.client_phone}</a></Button>{r.client_email && <Button asChild variant="outline" size="sm"><a href={`mailto:${r.client_email}`}><Mail />Courriel</a></Button>}</div></section>
       <section><SectionTitle number="3" title="Chantier" /><p className="flex items-start gap-2 text-sm"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"/><span className="break-words">{r.site_address}</span></p>{r.site_city && <p className="mt-1 text-sm text-muted-foreground">{r.site_city}</p>}{r.site_latitude != null && r.site_longitude != null && <Button asChild variant="link" size="sm" className="px-0"><a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${r.site_latitude},${r.site_longitude}`}>Ouvrir la localisation</a></Button>}</section>
       <section><SectionTitle number="4" title="Besoin" /><InfoGrid items={[["Matériau", r.material_other || r.material_type], ["Quantité", quantity(r)], ["Camion", r.truck_type || "—"], ["Voyages", r.estimated_trips?.toString() || "—"], ["Date souhaitée", formatDate(r.desired_date)], ["Heure", r.desired_time || "—"]]} />{r.client_notes && <p className="mt-3 whitespace-pre-line rounded-md bg-muted/40 p-3 text-sm text-muted-foreground">{r.client_notes}</p>}</section>
-      <section><SectionTitle number="5" title="Dompe" /><InfoGrid items={[["Dompe demandée", r.dump_name || "À confirmer"], ["Distance", r.distance_km != null ? `${r.distance_km} km` : "Distance à confirmer"], ["Temps estimé", r.travel_time_minutes != null ? `${r.travel_time_minutes} min` : "—"], ["Accès", statusLabel(r.status)], ["Compatibilité", "Non renseignée"]]} />{alternatives.length > 0 && <div className="mt-3"><p className="mb-1 text-xs font-semibold text-muted-foreground">Alternatives enregistrées</p>{alternatives.map((d, index) => <p key={index} className="text-sm">{String(d.name ?? d.dump_name ?? "Dompe")}</p>)}</div>}</section>
+      <section><SectionTitle number="5" title="Dompe" /><InfoGrid items={[["Dompe demandée", formatDompeLabel(r.dump_name) || "À confirmer"], ["Distance", r.distance_km != null ? `${r.distance_km} km` : "Distance à confirmer"], ["Temps estimé", r.travel_time_minutes != null ? `${r.travel_time_minutes} min` : "—"], ["Accès", statusLabel(r.status)], ["Compatibilité", "Non renseignée"]]} />{alternatives.length > 0 && <div className="mt-3"><p className="mb-1 text-xs font-semibold text-muted-foreground">Alternatives enregistrées</p>{alternatives.map((d, index) => <p key={index} className="text-sm">{String(d.name ?? d.dump_name ?? "Dompe")}</p>)}</div>}</section>
       <section><SectionTitle number="6" title="Historique" /><ol className="relative ml-2 space-y-4 border-l border-border pl-5"><li><span className="absolute -left-1.5 h-3 w-3 rounded-full border-2 border-background bg-muted-foreground"/><p className="text-sm font-semibold">Demande créée</p><p className="text-xs text-muted-foreground">{formatDateTime(r.created_at)}</p></li>{history.map((h) => <li key={h.id} className="relative"><span className="absolute -left-[1.6rem] top-1 h-3 w-3 rounded-full border-2 border-background bg-primary"/><p className="text-sm font-semibold">{FIELD_LABELS[h.field_key] || h.field_key}</p><p className="text-xs text-muted-foreground">{formatHistoryVal(h.field_key, h.old_value)} → {formatHistoryVal(h.field_key, h.new_value)}</p><p className="text-xs text-muted-foreground">{formatDateTime(h.created_at)}{h.user_email ? ` · par ${h.user_email}` : ""}</p></li>)}</ol></section>
       <section><SectionTitle number="7" title="Traitement" /><div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-2"><Button onClick={() => onStatus("acceptee")}><Check />Accepter</Button><Button variant="outline" onClick={() => onStatus("en_analyse")}><Clock />Mettre en analyse</Button><Button variant="outline" onClick={() => onStatus("informations_requises")}><AlertCircle />Demander des informations</Button><Button variant="destructive" onClick={() => onStatus("refusee")}><XCircle />Refuser</Button></div><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" className="mt-2 w-full"><CircleEllipsis />Plus<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-64"><DropdownMenuItem onSelect={() => onStatus("terminee")}>Marquer terminée</DropdownMenuItem><DropdownMenuItem onSelect={() => onStatus("annulee")}>Marquer annulée</DropdownMenuItem><DropdownMenuItem onSelect={() => onOwnerContacted(!r.owner_contacted)}>{r.owner_contacted ? "Annuler le contact propriétaire" : "Propriétaire contacté"}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></section>
       <section><label htmlFor="internal-notes" className="mb-1 block text-xs font-bold text-muted-foreground">Notes internes</label><textarea id="internal-notes" defaultValue={r.internal_notes || ""} onBlur={(e) => void onNotes(e.target.value)} rows={4} className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-base sm:text-sm" placeholder="Ajouter une note…" /></section>

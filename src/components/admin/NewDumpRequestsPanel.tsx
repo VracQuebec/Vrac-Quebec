@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { formatRequestLabel, formatDompeLabel, requestSearchText } from "@/lib/requests/labels";
 import { useNavigate } from "react-router-dom";
 import { BellRing, ChevronRight, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +13,7 @@ import { statusLabel } from "@/lib/access-requests/status";
 import { toast } from "sonner";
 
 interface Row {
-  id: string; request_number: string | null; client_name: string | null; client_company: string | null;
+  id: string; request_number: string | null; client_name: string | null; client_company: string | null; dump_name?: string | null;
   site_city: string | null; site_address: string | null; status: string | null; created_at: string;
   state: InboxState;
 }
@@ -45,7 +46,7 @@ export default function NewDumpRequestsPanel() {
   const load = useCallback(async () => {
     // Toutes les demandes sans décision finale, sans limite d'ancienneté.
     const { data: reqs } = await supabase.from("transport_requests")
-      .select("id,request_number,client_name,client_company,site_city,site_address,status,created_at")
+      .select("id,request_number,dump_name,client_name,client_company,site_city,site_address,status,created_at")
       .or(`status.is.null,status.not.in.(${CLOSED_RAW_STATUSES.join(",")})`)
       .order("created_at", { ascending: false }).limit(1000);
     const list = reqs ?? [];
@@ -64,7 +65,7 @@ export default function NewDumpRequestsPanel() {
       const fresh = next.filter((r) => r.state === "nouvelle" && !known.current!.has(r.id) && !alerted.current.has(r.id));
       fresh.forEach((r) => {
         alerted.current.add(r.id);
-        toast.warning(`Nouvelle demande de dompe ${r.request_number ?? ""}`, {
+        toast.warning(`Nouvelle demande de dompe — ${formatRequestLabel(r.request_number, "")}${formatDompeLabel(r.dump_name) ? ` · ${formatDompeLabel(r.dump_name)}` : ""}`, {
           description: r.client_name ?? undefined, duration: 20000,
         });
       });
@@ -132,7 +133,7 @@ export default function NewDumpRequestsPanel() {
             <p className="font-bold">{arrived.length === 1 ? "Une nouvelle demande vient d'arriver" : `${arrived.length} nouvelles demandes viennent d'arriver`}</p>
             {arrived.slice(0, 3).map((r) => (
               <button key={r.id} onClick={() => void open(r)} className="block truncate text-left text-sm underline">
-                {r.request_number ?? "—"} · {r.client_name ?? "Entrepreneur"}
+                {formatRequestLabel(r.request_number)}{formatDompeLabel(r.dump_name) ? ` · ${formatDompeLabel(r.dump_name)}` : ""} · {r.client_name ?? "Entrepreneur"}
               </button>
             ))}
           </div>
@@ -151,7 +152,8 @@ export default function NewDumpRequestsPanel() {
               <button onClick={() => void open(r)} className={`flex w-full items-center gap-3 rounded-md px-2 py-3 text-left hover:bg-muted/60 ${r.state === "nouvelle" ? "font-semibold" : ""}`}>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm">{r.request_number ?? "—"}</span>
+                    <span className="text-sm">{formatRequestLabel(r.request_number)}</span>
+                    {formatDompeLabel(r.dump_name) && <span className="rounded border border-border px-1.5 py-0.5 text-xs">{formatDompeLabel(r.dump_name)}</span>}
                     <Badge className={STATE_CLASS[r.state]}>{INBOX_LABELS[r.state]}</Badge>
                     <span className="text-xs text-muted-foreground">{statusLabel(r.status)}</span>
                   </div>

@@ -1,3 +1,4 @@
+import { formatRequestLabel } from "@/lib/requests/labels";
 import type { MySubmission } from "@/lib/parcours/mes-demandes";
 import type { AccessRequestRow, TripRow } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { statusBucket, statusMeta } from "@/lib/access-requests/status";
@@ -107,7 +108,7 @@ export function buildEntrepreneurRequests(
       tone: life ? life.tone : cancelled ? "refused" : bucket === "completed" ? "done" : bucket === "accepted" ? "active" : "pending",
       filter,
       nextAction: filter === "pending" ? "Demande envoyée — accès non encore accordé" : filter === "active" ? "Suivre le transport" : "Consulter le dossier",
-      reference: transport.request_number ? String(transport.request_number) : String(transport.id).slice(0, 8).toUpperCase(),
+      reference: transport.request_number ? formatRequestLabel(String(transport.request_number)) : String(transport.id).slice(0, 8).toUpperCase(),
       typeLabel: transport.request_kind === "transport" ? "Transport" : "Accès à une dompe",
       city: transport.site_city ? String(transport.site_city) : "À compléter",
       subjectLabel: transport.material_type ? String(transport.material_type) : "Non précisé",
