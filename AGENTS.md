@@ -26,3 +26,4 @@
 - SEO draft waves may opt out of automatic operational claims by their wave marker; this keeps unvalidated services out without changing existing published pages.
 <!-- LOVABLE:END -->
 - SEO START (mode 'complete' de seo_pipeline_runs) : lancé seulement par seo_autopilot_start (admin, confirmation), seul mode autorisé à franchir le verrou global; planification pure dans supabase/functions/_shared/seo-autopilot.ts, publication via seo_autopilot_publish (mêmes contrôles que la publication validée) — un seul moteur serveur, reprise sans doublon.
+- Numérotation des demandes d'accès (transport_requests.request_number) : compteur à ligne unique transport_request_number_counter incrémenté par le trigger zz_tr_assign_number, nommé pour s'exécuter après les validations — aucun numéro consommé par un refus ou un échec (la séquence transport_requests_number_seq est retirée).
