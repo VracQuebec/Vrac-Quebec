@@ -57,12 +57,20 @@ const Login = () => {
       } catch {
       }
       if (data.user) {
+        // Vérification du rôle bornée dans le temps : un serveur lent ne doit jamais
+        // laisser le bouton bloqué sur « Connexion… » (le rôle reste lu côté serveur).
         let roleList: string[] = [];
-        for (let i = 0; i < 3; i++) {
-          const { data: roles } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", data.user.id);
+        const roleDeadline = Date.now() + 12000;
+        for (let i = 0; i < 3 && Date.now() < roleDeadline; i++) {
+          let roleTimer: ReturnType<typeof setTimeout> | undefined;
+          const roleTimeout = new Promise<never>((_, reject) => {
+            roleTimer = setTimeout(() => reject(new Error("__login_timeout__")), Math.max(1000, roleDeadline - Date.now()));
+          });
+          const { data: roles, error: roleErr } = await Promise.race([
+            supabase.from("user_roles").select("role").eq("user_id", data.user.id),
+            roleTimeout,
+          ]).finally(() => clearTimeout(roleTimer));
+          if (roleErr) throw roleErr;
           roleList = (roles || []).map((r: any) => r.role);
           if (roleList.length > 0) break;
           await new Promise((r) => setTimeout(r, 200));
