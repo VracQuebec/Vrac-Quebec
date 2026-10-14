@@ -32,3 +32,14 @@ export function inboxState(rawStatus: string | null | undefined, f?: InboxFollow
 
 /** Demandes à garder visibles : tout ce qui n'est pas traité. */
 export const isPending = (state: InboxState) => state !== "traitee";
+
+/** Statuts bruts exclus du compteur « À traiter » (décision finale, y compris anciens équivalents). */
+export const CLOSED_RAW_STATUSES = ["acceptee", "refusee", "terminee", "annulee", "planifiee", "en_cours"];
+
+const URGENCY_RANK: Record<InboxState, number> = { nouvelle: 0, consultee: 1, en_traitement: 2, traitee: 3 };
+
+/** Plus urgentes d'abord : jamais ouvertes, puis consultées, puis en traitement; à égalité, la plus ancienne d'abord. */
+export function sortByUrgency<T extends { state: InboxState; created_at: string }>(rows: T[]): T[] {
+  return [...rows].sort((a, b) =>
+    URGENCY_RANK[a.state] - URGENCY_RANK[b.state] || a.created_at.localeCompare(b.created_at));
+}
