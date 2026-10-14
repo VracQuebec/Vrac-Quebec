@@ -738,6 +738,7 @@ const Admin = () => {
       <TransportBanner />
 
       <main className="container mx-auto px-4 sm:px-6 py-8">
+        <NewDumpRequestsPanel />
         
         <div className="mb-5 flex flex-wrap items-center gap-2 border-b border-border pb-4">
           <Button variant={tab === "leads" ? "default" : "outline"} onClick={() => setTab("leads")}>
