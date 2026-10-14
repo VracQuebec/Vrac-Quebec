@@ -28559,6 +28559,21 @@ export type Database = {
           },
         ]
       }
+      transport_request_number_counter: {
+        Row: {
+          id: number
+          last_value: number
+        }
+        Insert: {
+          id?: number
+          last_value: number
+        }
+        Update: {
+          id?: number
+          last_value?: number
+        }
+        Relationships: []
+      }
       transport_request_versions: {
         Row: {
           changed_fields: string[]
