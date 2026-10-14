@@ -56,6 +56,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Activity, AlertTriangle as AlertTriangleCC, SlidersHorizontal, Wrench, Gauge, MoreHorizontal, RefreshCw } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import DompesApprobationPanel from "@/components/admin/DompesApprobationPanel";
+import NewDumpRequestsPanel from "@/components/admin/NewDumpRequestsPanel";
 import {
   ACCESS_RESTRICTION_OPTIONS,
   TRUCK_OPTIONS,
