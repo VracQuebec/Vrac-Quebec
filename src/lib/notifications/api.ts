@@ -202,7 +202,9 @@ export async function fetchNotifications(limit = 200): Promise<CrmNotification[]
  * par l'administrateur (request_followups.priority). Rien n'est réécrit en
  * base : seule la présentation est ajustée; sans priorité, celle d'origine reste.
  */
-export async function applyAccessPriorities(rows: CrmNotification[]): Promise<CrmNotification[]> {
+export async function applyAccessPriorities(input: CrmNotification[]): Promise<CrmNotification[]> {
+  // Présentation : « DT-0053 » s'affiche « Demande #0053 » (texte en base inchangé).
+  const rows = input.map((n) => ({ ...n, title: humanizeRequestRefs(n.title), body: humanizeRequestRefs(n.body) }));
   const ids = [...new Set(rows.filter((n) => n.entity_type === "transport_request" && n.entity_id).map((n) => n.entity_id!))];
   if (!ids.length) return rows;
   const map = await fetchAccessPriorities(ids);
