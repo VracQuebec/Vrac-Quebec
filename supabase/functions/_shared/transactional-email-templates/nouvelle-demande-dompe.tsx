@@ -8,6 +8,10 @@ interface Props {
   submittedAt?: string; link?: string
 }
 
+// Présentation seulement : « DT-0053 » → « Demande #0053 »; « Dompe 926 » → « Dompe #926 ».
+const reqLabel = (v?: string) => { const t = (v ?? '').trim(); if (!t) return ''; const m = t.match(/^DT-?(\d+)$/i); return `Demande #${m ? m[1] : t}` }
+const dompeLabel = (v?: string) => { const t = (v ?? '').trim(); if (!t) return ''; const m = t.match(/^(?:dompe\s*#?\s*)?(\d+)$/i); return m ? `Dompe #${m[1]}` : t }
+
 const Line = ({ label, value }: { label: string; value?: string }) => (
   <tr><td style={th}>{label}</td><td style={td}>{value ? value : '—'}</td></tr>
 )
@@ -15,12 +19,12 @@ const Line = ({ label, value }: { label: string; value?: string }) => (
 const Email = (p: Props) => (
   <Html lang="fr" dir="ltr">
     <Head />
-    <Preview>Nouvelle demande de dompe {p.requestNumber ?? ''} — action requise</Preview>
+    <Preview>Nouvelle demande de dompe {reqLabel(p.requestNumber)} — action requise</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
           <Heading style={h1}>Nouvelle demande de dompe</Heading>
-          <Text style={sub}>{p.requestNumber ?? ''} · Action requise</Text>
+          <Text style={sub}>{[reqLabel(p.requestNumber), dompeLabel(p.dump)].filter(Boolean).join(' · ')} · Action requise</Text>
         </Section>
         <table style={table as any} cellPadding={0} cellSpacing={0}><tbody>
           <Line label="Entrepreneur" value={[p.name, p.company].filter(Boolean).join(' — ')} />
@@ -29,7 +33,8 @@ const Email = (p: Props) => (
           <Line label="Ville / secteur" value={p.city} />
           <Line label="Matériau" value={p.material} />
           <Line label="Quantité" value={p.quantity} />
-          <Line label="Dompe demandée" value={p.dump} />
+          <Line label="Numéro de demande" value={reqLabel(p.requestNumber)} />
+          <Line label="Numéro de dompe" value={dompeLabel(p.dump) || 'À confirmer'} />
           <Line label="Date souhaitée" value={p.desiredDate} />
           <Line label="Soumise le" value={p.submittedAt} />
         </tbody></table>
@@ -44,9 +49,9 @@ const Email = (p: Props) => (
 
 export const template = {
   component: Email,
-  subject: (d: Record<string, any>) => `NOUVELLE DEMANDE DE DOMPE — ACTION REQUISE${d?.requestNumber ? ` (${d.requestNumber})` : ''}`,
+  subject: (d: Record<string, any>) => `NOUVELLE DEMANDE DE DOMPE — ACTION REQUISE${d?.requestNumber ? ` (${reqLabel(d.requestNumber)})` : ''}`,
   displayName: 'Nouvelle demande de dompe — admin',
-  previewData: { requestNumber: 'DT-0055', name: 'Jean Tremblay', city: 'Lévis', material: 'Remblai', link: 'https://vracquebec.ca/admin/demandes-acces' },
+  previewData: { requestNumber: 'DT-0055', dump: 'Dompe 926', name: 'Jean Tremblay', city: 'Lévis', material: 'Remblai', link: 'https://vracquebec.ca/admin/demandes-acces' },
 } satisfies TemplateEntry
 
 const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
