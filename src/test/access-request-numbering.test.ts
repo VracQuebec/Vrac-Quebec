@@ -1,4 +1,3 @@
-// @vitest-environment node
 // Numérotation des demandes d'accès : testée dans une base isolée en mémoire
 // avec la vraie migration (aucun accès aux données de production).
 import { describe, expect, it, beforeEach } from "vitest";
