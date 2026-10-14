@@ -1,3 +1,4 @@
+import { formatRequestLabel } from "@/lib/requests/labels";
 import { isMapLink, parseCoordinates } from "@/lib/parcours/sens-besoin";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { rankDumps, dumpRoleLabel } from "@/lib/entrepreneur/dump-ranking";
@@ -1787,7 +1788,7 @@ const ConfirmationView = ({
       "VRAC QUÉBEC — PLATEFORME DE DISPOSITION DE REMBLAI",
       "RÉSUMÉ DE LA DEMANDE D'ACCÈS À LA DOMPE",
       "================================================",
-      `Numéro de demande : ${requestNumber || "—"}`,
+      `Numéro de demande : ${formatRequestLabel(requestNumber)}`,
       `Date : ${new Date().toLocaleString("fr-CA")}`,
       "",
       "CLIENT",
@@ -1851,7 +1852,7 @@ const ConfirmationView = ({
               {pending ? "État" : "Numéro de demande d'accès"}
             </div>
             <div className="font-display font-bold text-lg text-primary">
-              {pending ? "Envoi en cours…" : requestNumber}
+              {pending ? "Envoi en cours…" : formatRequestLabel(requestNumber)}
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { formatRequestLabel } from "@/lib/requests/labels";
 // ============================================================
 // CENTRE DE CONTRÔLE — modèle unifié en LECTURE des demandes
 // existantes (submissions + transport_requests). Aucune seconde
@@ -40,6 +41,8 @@ export interface ControlRequest {
   id: string;
   kind: "dompe" | "transport";
   number: string;
+  /** Identifiant technique brut (recherche « DT-0053 »). */
+  rawNumber?: string;
   typeLabel: string;
   requester: string;
   city: string;
@@ -127,7 +130,8 @@ export function fromTransport(r: Row): ReturnType<typeof fromSubmission> {
     key: `transport_request:${r.id}`,
     id: s(r.id),
     kind: "transport",
-    number: s(r.request_number) || "—",
+    number: s(r.request_number) ? formatRequestLabel(s(r.request_number)) : "—",
+    rawNumber: s(r.request_number),
     typeLabel: "Transport",
     requester: s(r.client_company) || s(r.client_name) || "—",
     city: s(r.site_city),

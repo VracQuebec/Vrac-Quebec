@@ -1,3 +1,4 @@
+import { formatRequestLabel } from "@/lib/requests/labels";
 import { useScreenContext } from "@/lib/navigation/listContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
@@ -1482,7 +1483,7 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               <D label="Camions acceptés" v={(sub.truck_types_allowed || []).join(", ") || "Non renseigné"} />
               <D label="Camions lourds" v={sub.access_heavy_truck || "Non renseigné"} />
               <D label="Accessibilité camion" v={(sub.accessibility || []).join(", ") || "Non renseigné"} />
-              <D label="Demande de transport" v={linkedTransport ? (linkedTransport.requestNumber || linkedTransport.id.slice(0, 8)) : "Aucune"} />
+              <D label="Demande de transport" v={linkedTransport ? (linkedTransport.requestNumber ? formatRequestLabel(linkedTransport.requestNumber) : linkedTransport.id.slice(0, 8)) : "Aucune"} />
             </div>
 
           </LeadSection>
@@ -1688,7 +1689,7 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                     <div className="mt-1 space-y-0.5">
                       <div>
                         <span className="font-semibold">Numéro : </span>
-                        {linkedTransport.requestNumber || linkedTransport.id.slice(0, 8)}
+                        {linkedTransport.requestNumber ? formatRequestLabel(linkedTransport.requestNumber) : linkedTransport.id.slice(0, 8)}
                         {linkedTransport.status ? ` — ${linkedTransport.status}` : ""}
                       </div>
                       <div>

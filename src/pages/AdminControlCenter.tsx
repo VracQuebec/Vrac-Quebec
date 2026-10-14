@@ -198,7 +198,7 @@ export default function AdminControlCenter() {
   const list = useMemo(() => {
     const term = q.trim().toLowerCase();
     return rows.filter((r) => matches(r, filter)).filter((r) => !term ||
-      [r.number, r.requester, r.service, r.typeLabel, r.city].some((v) => v.toLowerCase().includes(term)))
+      [r.number, r.rawNumber ?? "", r.requester, r.service, r.typeLabel, r.city].some((v) => v.toLowerCase().includes(term)))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [rows, filter, q]);
 
