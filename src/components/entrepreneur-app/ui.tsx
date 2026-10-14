@@ -239,7 +239,7 @@ export const RequestCard = ({
   <Link to={to} className="group block py-4 text-left transition-colors duration-150 hover:bg-secondary/30 active:bg-secondary/50 motion-reduce:transition-none">
     {(reference || typeLabel) && <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
       <p className="font-body text-[10px] font-bold uppercase text-muted-foreground">{typeLabel || (kind === "acces" ? "Transport" : "Demande")}</p>
-      {reference && <p className="font-body text-[11px] font-semibold tabular-nums text-foreground">Nº {reference}</p>}
+      {reference && <p className="font-body text-[11px] font-semibold tabular-nums text-foreground">{/^(Demande|Dompe) #/.test(reference) ? reference : `Nº ${reference}`}</p>}
     </div>}
     <div className="flex items-start gap-3">
       <span

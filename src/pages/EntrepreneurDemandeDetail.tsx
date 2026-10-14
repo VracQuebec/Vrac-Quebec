@@ -57,7 +57,7 @@ export default function EntrepreneurDemandeDetail() {
           <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="min-w-0 space-y-7">
               <section className="border-b border-border pb-5">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><StatusBadge label={request.statusLabel} tone={request.tone} /><span className="font-body text-xs font-semibold tabular-nums text-muted-foreground">Nº {request.reference}</span></div>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><StatusBadge label={request.statusLabel} tone={request.tone} /><span className="font-body text-xs font-semibold tabular-nums text-muted-foreground">{/^(Demande|Dompe) #/.test(request.reference) ? request.reference : `Nº ${request.reference}`}</span></div>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-body text-xs font-semibold uppercase text-muted-foreground">{request.typeLabel}</p>
