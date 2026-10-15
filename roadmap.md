@@ -4,9 +4,9 @@ Source : /mnt/documents/audit-global-2026-10-15.md (22 constats classés P1–P3
 Contraintes : aperçu = même base que la production (confirmé) → aucune soumission réelle, aucune écriture de test, aucune notification réelle. Aucune publication sans autorisation. Les 1 281 meta_title SEO = chantier séparé, non touché.
 
 ## Lot 1 — Fiabilité des demandes
-- [ ] P1-1 /acces-dompe : refus serveur maquillé en « en attente » (submitQueue.ts:282-296)
-- [ ] P1-2 Achat vrac : échec courriel → ok:false alors que la demande est écrite (quote-submit + vrac/submit.ts)
-- [ ] Vérifier conservation des saisies et anti-doublon (déjà en place : idempotence/empreinte)
+- [x] P1-1 /acces-dompe : refus serveur → état « rejeté » honnête (submitQueue.ts + TransportRequest.tsx). Testé : 3 tests unitaires + E2E navigateur avec refus simulé (toast rouge, saisie conservée, aucune confirmation).
+- [x] P1-2 Achat vrac : demande enregistrée + courriel en échec → confirmation avec numéros et mention « courriel non envoyé » (submitResult.ts + submit.ts + QuoteCard + AchatVrac). Testé : 6 tests unitaires. Modification serveur quote-submit préparée (ok:true + email_sent:false) — NON déployée (déploiement = production, attend autorisation). Le client gère aussi l'ancienne réponse 502.
+- [x] Anti-doublon et conservation des saisies : déjà en place (idempotence, verrous), confirmés par les tests.
 
 ## Lot 2 — SEO technique
 - [ ] P1-3 Canonical du blogue pointe vers l'accueil (/blog, /blog/outils)
