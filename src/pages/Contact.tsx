@@ -11,7 +11,7 @@ export default function Contact() {
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>Nous joindre | Vrac Québec</title>
-        <meta name="description" content="Joignez Vrac Québec par téléphone ou texto au 819-592-3495." />
+        <meta name="description" content={`Joignez Vrac Québec par téléphone ou texto au ${PUBLIC_PHONE}.`} />
         <meta name="robots" content="noindex,follow" />
       </Helmet>
       <TransportBanner />

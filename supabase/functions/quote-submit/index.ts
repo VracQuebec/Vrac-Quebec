@@ -15,6 +15,7 @@ import { type Unit } from '../_shared/vqos/index.ts';
 import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
 import { clientIp, GuardError, guardPublicRequest, rememberResult } from '../_shared/public-guard.ts';
+import { fetchWithTimeout } from '../_shared/http.ts';
 import { logEvent, logEventAsync } from '../_shared/observability.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
@@ -72,7 +73,7 @@ async function resolveMaterialId(sb: any, body: any): Promise<string | null> {
  */
 async function sendEmail(payload: Record<string, unknown>): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
+    const res = await fetchWithTimeout(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

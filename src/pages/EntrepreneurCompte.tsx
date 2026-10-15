@@ -17,6 +17,7 @@ import { LoadingSkeleton, SectionHeader, ErrorState } from "@/components/entrepr
 import { BottomSheet } from "@/components/entrepreneur-app/ui";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { PUBLIC_PHONE } from "@/lib/public-phone";
 import {
   loadMyProfil,
   saveMyProfil,
@@ -189,7 +190,7 @@ const EntrepreneurCompte = () => {
             </section>
 
             <p className="px-1 font-body text-xs text-muted-foreground">
-              Une information ne peut pas être corrigée ici ? Appelez le 819-592-3495.
+              Une information ne peut pas être corrigée ici ? Appelez le {PUBLIC_PHONE}.
             </p>
 
             <Button variant="ghost"
