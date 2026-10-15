@@ -107,7 +107,29 @@ export async function guardPublicRequest(sb: any, o: GuardOptions): Promise<Guar
     );
   }
 
-  // 5. Déduplication : demande identique déjà traitée récemment.
+  // 5+6. Déduplication ET journalisation en une seule transaction côté base
+  // (RPC guard_check_and_log, verrou consultatif) : deux requêtes
+  // parfaitement simultanées ne peuvent plus créer deux demandes, quelle que
+  // soit l'instance serveur. Repli sur l'ancien chemin si la fonction n'est
+  // pas encore déployée (migration en attente d'autorisation).
+  const { data: verdict, error: rpcError } = await sb.rpc("guard_check_and_log", {
+    p_scope: o.scope,
+    p_identity: o.identity,
+    p_fingerprint: o.fingerprint,
+    p_payload: { ip: o.ip },
+    p_dedupe_minutes: dedupeMinutes,
+  });
+  if (!rpcError && verdict) {
+    return {
+      duplicate: Boolean(verdict.duplicate),
+      previous: (verdict.previous as Record<string, unknown>) ?? null,
+    };
+  }
+  const rpcMissing = rpcError && /could not find the function|42883|PGRST202/i.test(String(rpcError.message ?? rpcError));
+  if (rpcError && !rpcMissing) console.error(`[guard:${o.scope}] RPC guard_check_and_log en échec`, rpcError.message);
+
+  // Repli : lecture puis insertion en deux requêtes (course possible —
+  // comportement historique, valide seulement avant la migration).
   const { data: dup } = await sb
     .from("public_request_guard")
     .select("payload,created_at")
@@ -118,7 +140,6 @@ export async function guardPublicRequest(sb: any, o: GuardOptions): Promise<Guar
     .limit(1)
     .maybeSingle();
 
-  // 6. Journalisation de la tentative (sert de compteur et de mémoire).
   const { error: logError } = await sb.from("public_request_guard").insert({
     scope: o.scope,
     identity: o.identity,
