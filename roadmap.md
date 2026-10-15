@@ -14,10 +14,10 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [~] P1-4 Soft 404 : bloqué par l'hébergement (SPA statique renvoie 200 pour toute route ; le code 404 ne peut pas être émis côté applicatif). Atténuation déjà en place et revérifiée : page 404 rendue avec noindex. Option réelle : migration vers le gabarit SSR — décision de l'utilisateur.
 
 ## Lot 3 — Intégrations et stabilité
-- [ ] P2-7 SiteAssistant : erreur réseau réinitialise silencieusement la conversation
-- [ ] P2-6 Modale GBP sans bouton Fermer
-- [ ] P2-9 mailchimp-webhook / sitemap-live sans gestion d'erreur
-- [ ] P2-8 ~47 appels externes sans timeout (traiter les plus exposés)
+- [x] P2-7 SiteAssistant : erreur transitoire ne supprime plus le jeton ni la conversation; message « Connexion instable » affiché et effacé au retour du réseau (aperçu, publié au prochain déploiement)
+- [x] P2-6 Modale GBP : bouton Fermer visible avec aria-label + rôle dialog ajoutés
+- [x] P2-9 mailchimp-webhook : try/catch global, journal d'erreur, 500 explicite (Mailchimp retente), comparaison du secret par empreinte SHA-256; sitemap-live : try/catch, 503 no-store au lieu d'une 500 brute/XML vide — PRÉPARÉ, NON DÉPLOYÉ
+- [x] P2-8 : helper _shared/http.ts (fetchWithTimeout) appliqué aux 8 chemins les plus exposés (Google Routes/géocodage/matrice, IA assistant/soumission, courriels internes ×3); ~39 autres appels (cron SEO, GBP/GA4, Mailchimp sortant) restent sans délai — PRÉPARÉ, NON DÉPLOYÉ. Syntaxe validée esbuild (10/10); deno check signale 2 erreurs de typage préexistantes hors périmètre.
 
 ## Lot 4 — Sécurité
 - [ ] P2-12 CSP / X-Frame-Options : configuration hébergement → documenter précisément
