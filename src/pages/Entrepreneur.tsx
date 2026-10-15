@@ -377,6 +377,9 @@ const Entrepreneur = () => {
             <Button variant="ghost" aria-pressed={activeFilters.size === 0} onClick={() => setActiveFilters(new Set())} className="ent-chip shrink-0">Tous</Button>
             {MATERIAL_LEGEND.filter(k => leads.some(l => leadMaterialKeys(l).includes(k))).map(k => <Button key={k} variant="ghost" aria-pressed={activeFilters.has(k)} onClick={() => toggleFilter(k)} className="ent-chip shrink-0">{MATERIAL_COLORS[k].label}</Button>)}
           </div>
+          {activeFilters.size > 1 && (
+            <p className="font-body text-xs text-muted-foreground">Plusieurs matériaux choisis : les dompes qui acceptent au moins un de ces matériaux sont affichées.</p>
+          )}
         </section>
 
         {/* Recherche : l'outil principal de l'écran */}
@@ -424,7 +427,8 @@ const Entrepreneur = () => {
             </div>
           </div>
           <div>
-            <p className="mb-2 font-display text-sm font-bold">Matériaux acceptés</p>
+            <p className="mb-1 font-display text-sm font-bold">Matériaux acceptés</p>
+            <p className="mb-2 font-body text-xs text-muted-foreground">Si vous en choisissez plusieurs, les dompes qui acceptent au moins un d'entre eux s'affichent.</p>
             <div className="flex flex-wrap gap-1.5">
               {MATERIAL_LEGEND.map((k) => {
                 const active = activeFilters.has(k);
@@ -497,7 +501,7 @@ const Entrepreneur = () => {
                     <SiteCard
                       key={l.id}
                       title={`Dompe #${dompeLabel(l)}`}
-                      sector={`Secteur ${l.postal_prefix || "—"}${l.quantity ? ` · ${l.quantity}` : ""}`}
+                      sector={`Secteur ${l.postal_prefix?.toUpperCase() || "—"}${l.quantity ? ` · ${l.quantity}` : ""}`}
                       availability={{ label: l.availability_status ? availMeta(l.availability_status).label : "Disponibilité à confirmer", color: av.color }}
                       freshness={freshnessLabel(l.freshness, l.availability_updated_at)}
                       tags={keys.map((k) => MATERIAL_COLORS[k].label)}
@@ -520,7 +524,7 @@ const Entrepreneur = () => {
 
       <BottomSheet open={!!preview} onOpenChange={open => { if (!open) setPreview(null); }} title={preview ? `Dompe #${dompeLabel(preview)}` : "Dompe"}>
         {preview && <div className="space-y-3 font-body text-xs">
-          {preview.postal_prefix && <p className="text-muted-foreground">Secteur {preview.postal_prefix}</p>}
+          {preview.postal_prefix && <p className="text-muted-foreground">Secteur {preview.postal_prefix.toUpperCase()}</p>}
           <p>{leadMaterialKeys(preview).map(k => MATERIAL_COLORS[k].label).join(" · ")}</p>
           <p className="text-muted-foreground">{availabilityBadge(preview).label}</p>
           {(preview.tonnage || preview.quantity) && <p className="text-muted-foreground">{preview.tonnage || preview.quantity}</p>}
@@ -555,7 +559,7 @@ const Entrepreneur = () => {
                   ))}
                 </div>
                 <dl className="text-sm font-body divide-y divide-border/60 rounded-xl border border-border/70">
-                  <Row label="Secteur" value={detail.postal_prefix || "—"} />
+                  <Row label="Secteur" value={detail.postal_prefix?.toUpperCase() || "—"} />
                   <Row label="Type" value={detail.request_type || "—"} />
                   <Row label="Volume estimé" value={detail.tonnage || detail.quantity || "—"} />
                   <Row label="Accessibilité" value={(detail.accessibility || []).join(", ") || "—"} />
@@ -618,7 +622,7 @@ const buildPopupHtml = (l: EntLead) => {
       <span class="ent-pop-badge" style="background:${av.color}">${escapeHtml(av.label)}</span>
     </div>
     <div class="ent-pop-row"><b>Matériaux :</b><div class="ent-pop-mats">${matBadges || "—"}</div></div>
-    <div class="ent-pop-row"><b>Secteur :</b> ${escapeHtml(l.postal_prefix || "—")}</div>
+    <div class="ent-pop-row"><b>Secteur :</b> ${escapeHtml(l.postal_prefix?.toUpperCase() || "—")}</div>
     <div class="ent-pop-row"><b>Volume estimé :</b> ${escapeHtml(l.tonnage || l.quantity || "—")}</div>
   `;
 };

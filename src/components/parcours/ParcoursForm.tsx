@@ -129,6 +129,15 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
       return { ...saved, quantityUnit: unit === "inconnu" ? "voyages" : unit };
     } catch { return emptyDraft; }
   });
+  // Brouillon retrouvé au chargement : on l'annonce pour expliquer le retour à l'étape 1.
+  const [restoredDraft, setRestoredDraft] = useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return false;
+      const d = JSON.parse(raw) as Partial<Draft>;
+      return !!(d.address?.trim() || d.name?.trim() || d.phone?.trim() || d.email?.trim() || d.materials?.length);
+    } catch { return false; }
+  });
   const [uploading, setUploading] = useState(false);
   const [photoCategory, setPhotoCategory] = useState<PhotoCategoryKey>("materiau");
   const [loading, setLoading] = useState(false);
@@ -168,6 +177,23 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
           /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email.trim())
         );
       default: return true; // quantité, projet, camion, date, accès et photos restent facultatifs
+    }
+  };
+
+  /** Explique pourquoi « Continuer » / « Envoyer » est bloqué (null si rien ne bloque). */
+  const blockedReason = (): string | null => {
+    if (canContinue()) return null;
+    switch (step) {
+      case "address": return "Inscrivez l'adresse du chantier (au moins 5 caractères) pour continuer.";
+      case "material": return "Choisissez au moins un matériau pour continuer.";
+      case "contact": {
+        const miss: string[] = [];
+        if (data.name.trim().length <= 1) miss.push("votre nom");
+        if (data.phone.replace(/\D/g, "").length < 10) miss.push("un téléphone à 10 chiffres");
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email.trim())) miss.push("un courriel valide (ex. nom@domaine.ca)");
+        return `Pour envoyer, indiquez ${miss.join(", ")}.`;
+      }
+      default: return null;
     }
   };
 
@@ -636,7 +662,21 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
         {TITLES[step][variant]}
       </h2>
 
+      {restoredDraft && index === 0 && (
+        <div role="status" className="mt-3 rounded-lg border border-primary/40 bg-primary/5 p-3 font-body text-sm text-foreground">
+          Vos réponses précédentes ont été conservées. Vous reprenez à l'étape 1 pour les revoir : touchez « Continuer » pour avancer.
+          <button type="button" className="ml-2 font-semibold text-primary underline"
+            onClick={() => { try { localStorage.removeItem(storageKey); } catch { /* ignore */ } setData(emptyDraft); setRestoredDraft(false); }}>
+            Recommencer à neuf
+          </button>
+        </div>
+      )}
+
       <div className="mt-4">{renderStep()}</div>
+
+      {blockedReason() && (
+        <p role="status" className="mt-4 font-body text-sm text-destructive">{blockedReason()}</p>
+      )}
 
       <div className="mt-6 flex gap-2">
         {index > 0 && (

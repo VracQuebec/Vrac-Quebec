@@ -837,16 +837,8 @@ const TransportRequest = () => {
           </button>
 
           <nav className="flex items-center gap-1 sm:gap-2">
-            {step > 1 && step < 6 && (
-              <button
-                onClick={back}
-                className="flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-lg border border-border bg-card hover:border-primary/40 text-xs sm:text-sm font-display font-semibold"
-                aria-label="Étape précédente"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Retour</span>
-              </button>
-            )}
+            {/* Retour krok späť rieši kontextové tlačidlo „Étape précédente“ pri ovládaní krokov —
+                v hlavičke by na desktope duplikovalo globálne „Retour“ z bannera. */}
             {step < 6 && (
               <button
                 onClick={requestExit}
@@ -1700,19 +1692,21 @@ const TransportRequest = () => {
         {/* Navigation */}
         {step < 6 && (
           <div className="mt-8 pt-4 border-t border-border">
-            {missingFields.length > 0 && (
+            {missingFields.length > 0 && !(step === 4 && loadingResults) && (
               <p className="mb-3 text-xs font-body text-destructive">
                 Champs à compléter : {missingFields.join(", ")}
               </p>
             )}
             <div className="flex justify-between">
-            <button
-              onClick={back}
-              disabled={step === 1}
-              className="px-4 py-2.5 rounded-lg border border-border font-display font-semibold text-sm disabled:opacity-40 flex items-center gap-1.5"
-            >
-              <ChevronLeft className="w-4 h-4" /> Retour
-            </button>
+            {/* À l'étape 1, le bandeau global offre déjà « Retour » : pas de doublon inactif. */}
+            {step > 1 ? (
+              <button
+                onClick={back}
+                className="px-4 py-2.5 rounded-lg border border-border font-display font-semibold text-sm flex items-center gap-1.5"
+              >
+                <ChevronLeft className="w-4 h-4" /> Étape précédente
+              </button>
+            ) : <span />}
             <button
               onClick={next}
               disabled={!canNext || submitting}
