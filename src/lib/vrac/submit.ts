@@ -6,6 +6,7 @@
 import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { buildQuoteRequest, type QuoteContext } from "@/lib/vrac/estimate";
+import { interpretQuoteSubmit } from "@/lib/vrac/submitResult";
 import type { VracDraft } from "@/lib/vrac/catalog";
 
 export type SubmitAction = "submit" | "callback";
@@ -115,9 +116,14 @@ export function useQuoteSubmit() {
           contact: { name: draft.contact.name, phone: draft.contact.phone, email: draft.contact.email, comments: notes || null },
         },
       });
-      if (fnError || data?.ok === false) throw new Error(data?.error || "Envoi impossible pour le moment.");
+      const outcome = interpretQuoteSubmit(
+        data as Record<string, unknown> | null,
+        fnError ? await readErrorBody(fnError) : null,
+        fnError?.message ?? null,
+      );
+      if (outcome.kind === "failed") throw new Error(outcome.message);
       done.current = true;
-      setResult({ quote_number: null, request_number: data?.request_number ?? null, valid_until: null, emailed_to: data?.emailed_to ?? null, action: "submit" });
+      setResult({ quote_number: outcome.quote_number, request_number: outcome.request_number, valid_until: outcome.valid_until, emailed_to: outcome.emailed_to, action: "submit", email_sent: outcome.email_sent });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Envoi impossible pour le moment.");
     } finally { inFlight.current = false; setPending(null); }
