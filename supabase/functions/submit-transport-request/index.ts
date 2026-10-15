@@ -5,6 +5,7 @@
 // - toutes les erreurs sont capturées et journalisées dans transport_request_errors
 // - la réponse au client est toujours normalisée : { ok, request_number?, retry? }
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { fetchWithTimeout } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -456,7 +457,7 @@ Deno.serve(async (req) => {
           .eq("key", "admin_notification_email").eq("is_active", true).is("archived_at", null).maybeSingle();
         const adminEmail = (setting as { value?: string } | null)?.value;
         if (adminEmail) {
-          const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`, {
+          const res = await fetchWithTimeout(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
             body: JSON.stringify({

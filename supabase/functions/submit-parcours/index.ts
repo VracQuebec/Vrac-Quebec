@@ -11,6 +11,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { geocode } from '../_shared/vqos/runtime.ts';
 import { clientIp, GuardError, guardPublicRequest } from '../_shared/public-guard.ts';
 import { logEvent, logEventAsync } from '../_shared/observability.ts';
+import { fetchWithTimeout } from '../_shared/http.ts';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
