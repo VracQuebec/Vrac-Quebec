@@ -812,9 +812,9 @@ const TransportRequest = () => {
   const back = () => step > 1 && setStep((step - 1) as Step);
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background flex flex-col">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-background flex flex-col">
       <Helmet>
-        <title>Demande de transport | Vrac Québec</title>
+        <title>Trouver une dompe | Vrac Québec</title>
         <meta
           name="description"
           content="Formulaire de demande de transport de matériaux en vrac — étape opérationnelle du parcours Vrac Québec."
@@ -847,14 +847,6 @@ const TransportRequest = () => {
                 <span className="hidden sm:inline">Retour</span>
               </button>
             )}
-            <button
-              onClick={requestExit}
-              className="flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-lg border border-border bg-card hover:border-primary/40 text-xs sm:text-sm font-display font-semibold"
-              aria-label="Accueil"
-            >
-              <Home className="w-4 h-4" />
-              <span className="hidden sm:inline">Accueil</span>
-            </button>
             {step < 6 && (
               <button
                 onClick={requestExit}

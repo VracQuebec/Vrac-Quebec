@@ -202,6 +202,8 @@ export default function Blog() {
         <div className="container mx-auto px-6 text-center text-xs text-muted-foreground font-body">
           © 2026 VracQuébec. Tous droits réservés.
           {" · "}
+          <a href={`tel:${PUBLIC_PHONE_E164}`} className="font-semibold text-foreground hover:text-primary">{PUBLIC_PHONE}</a>
+          {" · "}
           <Link to="/" className="hover:text-foreground">Accueil</Link>
           {" · "}
           <Link to="/blog" className="hover:text-foreground">Blogue</Link>

@@ -19,7 +19,7 @@ const INTENTS = [
     key: "materiaux" as const,
     to: "/remblai",
     icon: Mountain,
-    title: "J'ai besoin de matériel de remblais",
+    title: "Je veux du remblai",
     text: "Faire une demande de remblais pour mon chantier",
     highlight: false,
   },

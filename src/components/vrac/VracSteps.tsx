@@ -343,7 +343,7 @@ export function StepContact({ draft, set }: { draft: VracDraft; set: Setter }) {
         hint="Pour confirmer la livraison avec vous."
         error={phoneDigits.length > 0 && phoneDigits.length < 10 ? "Entrez un numéro à 10 chiffres." : undefined}
       >
-        <Input value={c.phone} onChange={(e) => patch({ phone: e.target.value })} placeholder="(581) 000-0000" inputMode="tel" autoComplete="tel" />
+        <Input value={c.phone} onChange={(e) => patch({ phone: e.target.value })} placeholder="Votre numéro (10 chiffres)" inputMode="tel" autoComplete="tel" />
       </Field>
       <Field
         label="Courriel"

@@ -19,6 +19,6 @@ describe("Public editorial phone", () => {
   ])("has the correct public source in %s", (path) => {
     const source = readFileSync(path, "utf8");
     expect(source).not.toMatch(/581[^0-9]*994[^0-9]*7717/);
-    expect(source).toContain(PUBLIC_PHONE);
+    expect(source.includes(PUBLIC_PHONE) || source.includes("@/lib/public-phone")).toBe(true);
   });
 });

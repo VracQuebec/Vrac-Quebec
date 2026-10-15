@@ -10,6 +10,7 @@ import SessionKeeper from "./components/SessionKeeper";
 import { ReturnToTracker } from "./lib/navigation/returnTo";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 import UniversalNav from "./components/UniversalNav";
+import PublicContactFooter from "./components/PublicContactFooter";
 import { trackPageView } from "./lib/analytics/ga4";
 import { useAdminNotifications } from "./hooks/useAdminNotifications";
 import { EntrepreneurDataProvider } from "./lib/entrepreneur-app/EntrepreneurDataProvider";
@@ -385,6 +386,7 @@ const App = () => (
             <Route path="/:localSlug" element={<SeoLandingPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <PublicContactFooter />
           </EntrepreneurDataProvider>
           </Suspense>
         </BrowserRouter>
