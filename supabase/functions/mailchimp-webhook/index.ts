@@ -3,15 +3,24 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
+const sha256 = async (value: string) => {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const secret = Deno.env.get("MAILCHIMP_WEBHOOK_SECRET");
   const given = new URL(req.url).searchParams.get("secret");
-  if (!secret || given !== secret) return new Response("Refusé", { status: 403, headers: corsHeaders });
+  // Comparaison sur empreintes de longueur fixe : pas de fuite temporelle sur le secret.
+  if (!secret || !given || (await sha256(given)) !== (await sha256(secret))) {
+    return new Response("Refusé", { status: 403, headers: corsHeaders });
+  }
   if (req.method === "GET") return new Response("ok", { headers: corsHeaders }); // validation Mailchimp
   if (req.method !== "POST") return new Response("Méthode non permise", { status: 405, headers: corsHeaders });
 
-  const form = await req.formData();
+  try {
+    const form = await req.formData();
   const type = String(form.get("type") ?? "");
   const email = String(form.get("data[email]") ?? "").trim().toLowerCase();
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return new Response("ok", { headers: corsHeaders });
