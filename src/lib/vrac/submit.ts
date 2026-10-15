@@ -16,6 +16,17 @@ export interface SubmitResult {
   valid_until: string | null;
   emailed_to: string | null;
   action: SubmitAction;
+  /** false = demande enregistrée mais courriel de confirmation non envoyé. */
+  email_sent: boolean;
+}
+
+/** Lit le corps JSON d'une réponse non-2xx (502 « courriel échoué » inclus). */
+async function readErrorBody(fnError: unknown): Promise<Record<string, unknown> | null> {
+  const ctx = (fnError as { context?: Response } | null)?.context;
+  if (ctx && typeof ctx.clone === "function") {
+    try { return (await ctx.clone().json()) as Record<string, unknown>; } catch { /* non JSON */ }
+  }
+  return null;
 }
 
 export function useQuoteSubmit() {
@@ -52,24 +63,20 @@ export function useQuoteSubmit() {
           },
         },
       });
-      if (data && data.ok === false) {
-        throw new Error(data.error || "Envoi impossible pour le moment.");
-      }
-      if (fnError) {
-        const details = typeof (fnError as { context?: { text?: () => Promise<string> } }).context?.text === "function"
-          ? await (fnError as { context: { text: () => Promise<string> } }).context.text()
-          : fnError.message;
-        let message = details;
-        try { const parsed = JSON.parse(details); if (parsed?.error) message = parsed.error; } catch { /* non JSON */ }
-        throw new Error(message || "Envoi impossible pour le moment.");
-      }
+      const outcome = interpretQuoteSubmit(
+        data as Record<string, unknown> | null,
+        fnError ? await readErrorBody(fnError) : null,
+        fnError?.message ?? null,
+      );
+      if (outcome.kind === "failed") throw new Error(outcome.message);
       done.current = true;
       setResult({
-        quote_number: data?.quote_number ?? null,
-        request_number: data?.request_number ?? null,
-        valid_until: data?.valid_until ?? null,
-        emailed_to: data?.emailed_to ?? null,
+        quote_number: outcome.quote_number,
+        request_number: outcome.request_number,
+        valid_until: outcome.valid_until,
+        emailed_to: outcome.emailed_to,
         action,
+        email_sent: outcome.email_sent,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Envoi impossible pour le moment.");
