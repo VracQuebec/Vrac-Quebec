@@ -28,6 +28,8 @@ export default function PublicContactFooter() {
         <div className="flex gap-4 text-xs">
           <Link to="/espace-entrepreneur" className="hover:text-foreground">Je cherche une dompe</Link>
           <Link to="/remblai" className="hover:text-foreground">Je veux du remblai</Link>
+          <Link to="/contact" className="hover:text-foreground">Contact</Link>
+          <Link to="/confidentialite" className="hover:text-foreground">Confidentialité</Link>
         </div>
       </div>
     </footer>
