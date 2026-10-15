@@ -11,6 +11,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { geocode } from '../_shared/vqos/runtime.ts';
 import { clientIp, GuardError, guardPublicRequest } from '../_shared/public-guard.ts';
 import { logEvent, logEventAsync } from '../_shared/observability.ts';
+import { fetchWithTimeout } from '../_shared/http.ts';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -61,14 +62,14 @@ function db() {
 
 async function sendEmail(payload: Record<string, unknown>) {
   try {
-    await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
+    await fetchWithTimeout(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
       },
       body: JSON.stringify(payload),
-    });
+    }, 15_000);
   } catch (e) {
     logEventAsync({
       source: 'submit_parcours', event: 'email.failed', level: 'warn',

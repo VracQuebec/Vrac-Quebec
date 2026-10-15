@@ -3,6 +3,7 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { clientIp, enforceIpQuota, GuardError } from '../_shared/public-guard.ts';
+import { fetchWithTimeout } from '../_shared/http.ts';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
 const MAX_DESTINATIONS = 500;
@@ -74,7 +75,7 @@ Deno.serve(async (req) => {
         routingPreference: 'TRAFFIC_UNAWARE',
       };
 
-      const res = await fetch(`${GATEWAY_URL}/routes/distanceMatrix/v2:computeRouteMatrix`, {
+      const res = await fetchWithTimeout(`${GATEWAY_URL}/routes/distanceMatrix/v2:computeRouteMatrix`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -83,7 +84,7 @@ Deno.serve(async (req) => {
           'X-Goog-FieldMask': 'originIndex,destinationIndex,distanceMeters,duration,condition',
         },
         body: JSON.stringify(payload),
-      });
+      }, 15_000);
 
       if (!res.ok) {
         const err = await res.text();

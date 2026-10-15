@@ -465,6 +465,9 @@ function ManualRequest({ draft, submission }: { draft: VracDraft; submission: Re
       <div className="rounded-2xl border border-primary/40 bg-primary/5 p-5 text-sm">
         <p className="font-semibold text-foreground">Demande transmise {submission.result.request_number ?? ""}</p>
         <p className="mt-1 text-muted-foreground">Soumission à confirmer : notre équipe vous contactera avec un prix.</p>
+        {submission.result.email_sent === false && (
+          <p className="mt-1 text-muted-foreground">Le courriel de confirmation n'a pas pu être envoyé — notre équipe vous contactera directement.</p>
+        )}
       </div>
     );
   }

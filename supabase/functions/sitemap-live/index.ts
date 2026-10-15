@@ -9,7 +9,8 @@ function xmlEscape(s: string): string {
 }
 
 Deno.serve(async () => {
-  const supabase = createClient(
+  try {
+    const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false } },
@@ -75,13 +76,22 @@ Deno.serve(async () => {
     urls.map((u) => `  <url>\n    <loc>${xmlEscape(u.loc)}</loc>${u.lastmod ? `\n    <lastmod>${u.lastmod}</lastmod>` : ""}${u.changefreq ? `\n    <changefreq>${u.changefreq}</changefreq>` : ""}${u.priority ? `\n    <priority>${u.priority}</priority>` : ""}\n  </url>`).join("\n")
   }\n</urlset>\n`;
 
-  return new Response(body, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/xml; charset=utf-8",
-      "Cache-Control": "public, max-age=300, s-maxage=300",
-      "X-Sitemap-Count": String(urls.length),
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
+    return new Response(body, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/xml; charset=utf-8",
+        "Cache-Control": "public, max-age=300, s-maxage=300",
+        "X-Sitemap-Count": String(urls.length),
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  } catch (e) {
+    // Une base indisponible ne doit plus produire une 500 brute ni un XML vide
+    // mis en cache : 503 explicite, sans cache, pour que les robots réessaient.
+    console.error("sitemap-live failed:", e instanceof Error ? e.message : e);
+    return new Response("Sitemap temporairement indisponible", {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+    });
+  }
 });
