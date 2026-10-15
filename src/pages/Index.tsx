@@ -14,11 +14,17 @@ import LogoVracQuebec from "@/components/LogoVracQuebec";
 import { trackEvent } from "@/lib/analytics/ga4";
 const ParcoursForm = lazy(() => import("@/components/parcours/ParcoursForm"));
 const SiteAssistant = lazy(() => import("@/components/assistant/SiteAssistant"));
-import { ArrowDown, ClipboardList, HardHat, Sparkles } from "lucide-react";
+import { ArrowDown, ClipboardList, HardHat, MapPin, MessageCircle, Mountain, MoreHorizontal, Phone, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import { PUBLIC_PHONE, PUBLIC_PHONE_E164 } from "@/lib/public-phone";
+import { DOMPE_PATH, REMBLAI_PATH } from "@/lib/navigation/priority-paths";
+
+const SMS_BODY = "Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac.";
 
 const Index = () => {
   // Aucun parcours n'est ouvert par défaut : le visiteur choisit d'abord son intention.
   const [intent, setIntent] = useState<IntentKey | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const parcoursRef = useRef<HTMLDivElement | null>(null);
 
   const selectIntent = (key: IntentKey) => {
@@ -120,11 +126,16 @@ const Index = () => {
               Vrac Québec vous aide à trouver des matériaux, disposer de vos surplus, trouver une dompe
               ou coordonner le transport.
             </p>
-            <a
-              href="#choix"
-              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 font-display text-base font-bold uppercase tracking-wide text-primary-foreground shadow-xl transition-transform hover:scale-[1.02]"
-            >
-              Choisir mon besoin <ArrowDown className="h-5 w-5" aria-hidden />
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Link to={DOMPE_PATH} onClick={() => trackEvent("home_cta", { cta: "dompe" })} className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-4 font-display text-base font-bold uppercase tracking-wide text-primary-foreground shadow-xl transition-transform hover:scale-[1.02]">
+                <MapPin className="h-5 w-5" aria-hidden /> Je cherche une dompe
+              </Link>
+              <Link to={REMBLAI_PATH} onClick={() => trackEvent("home_cta", { cta: "remblai" })} className="inline-flex items-center gap-2 rounded-xl border-2 border-primary bg-background px-7 py-4 font-display text-base font-bold uppercase tracking-wide text-foreground shadow-xl transition-transform hover:scale-[1.02]">
+                <Mountain className="h-5 w-5 text-primary" aria-hidden /> Je veux du remblai
+              </Link>
+            </div>
+            <a href="#choix" className="mt-4 inline-flex items-center gap-1 font-body text-sm text-white/90 underline-offset-4 hover:underline">
+              Autres besoins <ArrowDown className="h-4 w-4" aria-hidden />
             </a>
           </div>
         </div>
@@ -145,11 +156,16 @@ const Index = () => {
               Vrac Québec vous aide à trouver des matériaux, disposer de vos surplus, trouver une dompe
               ou coordonner le transport.
             </p>
-            <a
-              href="#choix"
-              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 font-display text-sm font-bold uppercase tracking-wide text-primary-foreground shadow-lg"
-            >
-              Choisir mon besoin <ArrowDown className="h-4 w-4" aria-hidden />
+            <div className="mt-5 grid gap-2.5">
+              <Link to={DOMPE_PATH} onClick={() => trackEvent("home_cta", { cta: "dompe" })} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 font-display text-sm font-bold uppercase tracking-wide text-primary-foreground shadow-lg">
+                <MapPin className="h-4 w-4" aria-hidden /> Je cherche une dompe
+              </Link>
+              <Link to={REMBLAI_PATH} onClick={() => trackEvent("home_cta", { cta: "remblai" })} className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-primary bg-card px-6 py-3.5 font-display text-sm font-bold uppercase tracking-wide text-foreground shadow-lg">
+                <Mountain className="h-4 w-4 text-primary" aria-hidden /> Je veux du remblai
+              </Link>
+            </div>
+            <a href="#choix" className="mt-3 inline-flex items-center gap-1 font-body text-sm text-muted-foreground underline-offset-4 hover:underline">
+              Autres besoins <ArrowDown className="h-4 w-4" aria-hidden />
             </a>
           </div>
 
@@ -341,47 +357,31 @@ const Index = () => {
       </main>
       <Suspense fallback={null}><SiteAssistant /></Suspense>
 
-      {/* Floating mobile contact bar.
-          pointer-events-none on the wrapper + pointer-events-auto on each link
-          ensures only the buttons themselves capture taps — the surrounding gaps
-          let the user interact with the questionnaire underneath. */}
+      {/* Barre mobile : 4 boutons qui tiennent toujours à l'écran; Texto et WhatsApp dans « Plus ». */}
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 px-2 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md md:hidden">
-        <div className="no-scrollbar pointer-events-auto flex gap-1.5 overflow-x-auto">
-          <a
-            href="tel:+18195923495"
-            className="flex min-h-11 min-w-[6.5rem] shrink-0 flex-col items-center justify-center rounded-full bg-primary px-3 py-1.5 font-display text-[11px] font-semibold leading-tight text-primary-foreground shadow-lg"
-          >
-            <span>📞 Appeler</span>
-            <span className="text-[9px] opacity-90">Québec / Lévis</span>
+        {moreOpen && (
+          <div id="plus-contact" className="pointer-events-auto mb-2 grid grid-cols-2 gap-2">
+            <a href={`sms:${PUBLIC_PHONE_E164.slice(1)}?body=${SMS_BODY}`} className="flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-foreground px-3 font-display text-xs font-semibold text-background shadow-lg">
+              <MessageCircle className="h-4 w-4" aria-hidden /> Texto
+            </a>
+            <a href={`https://wa.me/${PUBLIC_PHONE_E164.slice(1)}?text=${SMS_BODY}`} target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-primary bg-card px-3 font-display text-xs font-semibold text-foreground shadow-lg">
+              <MessageCircle className="h-4 w-4 text-primary" aria-hidden /> WhatsApp
+            </a>
+          </div>
+        )}
+        <div className="pointer-events-auto grid grid-cols-4 gap-1.5">
+          <a href={`tel:${PUBLIC_PHONE_E164}`} aria-label={`Appeler Vrac Québec au ${PUBLIC_PHONE}`} className="flex min-h-11 flex-col items-center justify-center rounded-2xl bg-primary px-1 py-1.5 font-display text-[11px] font-semibold leading-tight text-primary-foreground shadow-lg">
+            <Phone className="h-4 w-4" aria-hidden /><span>Appeler</span>
           </a>
-          <a
-            href="sms:18195923495?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
-            className="flex min-h-11 min-w-[6.5rem] shrink-0 flex-col items-center justify-center rounded-full bg-foreground px-3 py-1.5 font-display text-[11px] font-semibold leading-tight text-background shadow-lg"
-          >
-            <span>💬 Texto</span>
-            <span className="text-[9px] opacity-80">Réponse rapide</span>
-          </a>
-          <a
-            href="#questionnaire"
-            className="flex min-h-11 min-w-[6.5rem] shrink-0 flex-col items-center justify-center rounded-full bg-primary px-3 py-1.5 font-display text-[11px] font-semibold leading-tight text-primary-foreground shadow-lg"
-          >
-            <span>📝 Demande</span>
-            <span className="text-[9px] opacity-90">En 60 secondes</span>
-          </a>
-        <a
-          href="tel:+18195923495"
-          className="flex min-h-11 min-w-[11rem] shrink-0 items-center justify-center gap-1 rounded-full border border-border bg-card px-3 py-2 font-display text-[11px] font-semibold text-foreground shadow-lg"
-        >
-          📞 Répartition · 819-592-3495
-        </a>
-        <a
-          href="https://wa.me/18195923495?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex min-h-11 min-w-[7rem] shrink-0 items-center justify-center gap-1 rounded-full bg-primary px-3 py-2 font-display text-xs font-semibold text-primary-foreground shadow-lg"
-        >
-          🟢 WhatsApp
-        </a>
+          <Link to={DOMPE_PATH} className="flex min-h-11 flex-col items-center justify-center rounded-2xl border border-border bg-card px-1 py-1.5 font-display text-[11px] font-semibold leading-tight text-foreground shadow-lg">
+            <MapPin className="h-4 w-4 text-primary" aria-hidden /><span>Dompe</span>
+          </Link>
+          <Link to={REMBLAI_PATH} className="flex min-h-11 flex-col items-center justify-center rounded-2xl border border-border bg-card px-1 py-1.5 font-display text-[11px] font-semibold leading-tight text-foreground shadow-lg">
+            <Mountain className="h-4 w-4 text-primary" aria-hidden /><span>Remblai</span>
+          </Link>
+          <button type="button" onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} aria-controls="plus-contact" className="flex min-h-11 flex-col items-center justify-center rounded-2xl border border-border bg-card px-1 py-1.5 font-display text-[11px] font-semibold leading-tight text-foreground shadow-lg">
+            <MoreHorizontal className="h-4 w-4" aria-hidden /><span>Plus</span>
+          </button>
         </div>
       </div>
 
@@ -390,6 +390,9 @@ const Index = () => {
         <div className="container mx-auto px-6 flex flex-col items-center gap-5 text-sm text-muted-foreground font-body">
           <div className="flex items-center justify-between w-full flex-wrap gap-2">
             <span>© 2026 VracQuébec. Tous droits réservés.</span>
+            <a href={`tel:${PUBLIC_PHONE_E164}`} className="inline-flex items-center gap-2 font-display font-semibold text-foreground hover:text-primary">
+              <Phone className="h-4 w-4 text-primary" aria-hidden /> {PUBLIC_PHONE}
+            </a>
             <div className="flex items-center gap-4">
               <a href="/blog" className="hover:text-foreground transition-colors text-xs">
                 Blogue

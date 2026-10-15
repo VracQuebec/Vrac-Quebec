@@ -1,3 +1,4 @@
+import { PUBLIC_PHONE, PUBLIC_PHONE_E164 } from "@/lib/public-phone";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -201,6 +202,8 @@ export default function Blog() {
       <footer className="border-t border-border py-8">
         <div className="container mx-auto px-6 text-center text-xs text-muted-foreground font-body">
           © 2026 VracQuébec. Tous droits réservés.
+          {" · "}
+          <a href={`tel:${PUBLIC_PHONE_E164}`} className="font-semibold text-foreground hover:text-primary">{PUBLIC_PHONE}</a>
           {" · "}
           <Link to="/" className="hover:text-foreground">Accueil</Link>
           {" · "}
