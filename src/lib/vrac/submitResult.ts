@@ -66,8 +66,10 @@ export function interpretQuoteSubmit(
         message: typeof data.error === "string" && data.error ? data.error : GENERIC_ERROR,
       };
     }
-    // ok:true, ou ok:false hérité avec numéros (ancien serveur) : enregistrée.
-    return asRecorded(data, data.email_sent !== false);
+    // ok:true, ou ok:false hérité avec numéros (ancien serveur, courriel
+    // en échec) : enregistrée. Un ok:false historique signifiait justement
+    // que le courriel n'était pas parti.
+    return asRecorded(data, data.ok === false ? false : data.email_sent !== false);
   }
 
   const detail = typeof errorBody?.error === "string" && errorBody.error ? errorBody.error : null;
