@@ -22,7 +22,7 @@ function serverDrop(message: string) {
   return {
     data: null,
     error: Object.assign(new Error("Edge Function returned a non-2xx status code"), {
-      context: { clone: () => ({ json: async () => ({ retry: false, message }) }) },
+      context: { json: async () => ({ retry: false, message }), clone: () => ({ json: async () => ({ retry: false, message }) }) },
     }),
   };
 }
