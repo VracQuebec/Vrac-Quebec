@@ -9,9 +9,9 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [x] Anti-doublon et conservation des saisies : déjà en place (idempotence, verrous), confirmés par les tests.
 
 ## Lot 2 — SEO technique
-- [ ] P1-3 Canonical du blogue pointe vers l'accueil (/blog, /blog/outils)
-- [ ] P2-5 JSON-LD dupliqués sur pages générées (Service, BreadcrumbList, FAQPage ×2)
-- [ ] P1-4 Soft 404 : dépend de l'hébergement (SPA) → documenter, noindex déjà en place
+- [x] P1-3 Canonical du blogue : déjà corrigée dans l'aperçu (lot précédent non publié) — vérifié sur /blog, /blog/outils, /blog/guides, /blog/faq, /blog/categorie/remblai : toutes auto-référencées. Le site EN LIGNE reste défectueux jusqu'à publication.
+- [x] P2-5 JSON-LD : déduplication des pages générées déjà présente dans l'aperçu (vérifié /gravier-quebec : chaque type une fois) ; doublon WebSite résiduel sur /blog retiré ce lot (Blog.tsx) — revérifié : plus aucun type en double sur 6 pages.
+- [~] P1-4 Soft 404 : bloqué par l'hébergement (SPA statique renvoie 200 pour toute route ; le code 404 ne peut pas être émis côté applicatif). Atténuation déjà en place et revérifiée : page 404 rendue avec noindex. Option réelle : migration vers le gabarit SSR — décision de l'utilisateur.
 
 ## Lot 3 — Intégrations et stabilité
 - [ ] P2-7 SiteAssistant : erreur réseau réinitialise silencieusement la conversation
