@@ -21,21 +21,31 @@ Deno.serve(async (req) => {
 
   try {
     const form = await req.formData();
-  const type = String(form.get("type") ?? "");
-  const email = String(form.get("data[email]") ?? "").trim().toLowerCase();
-  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return new Response("ok", { headers: corsHeaders });
-  const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const now = new Date().toISOString();
-  let detail = "ignoré";
-  if (type === "unsubscribe" || type === "cleaned") {
-    await db.from("mkt_consents").update({ withdrawn_at: now, withdrawn_source: "mailchimp_" + type, mc_status: "unsubscribed", mc_last_sync_at: now })
-      .eq("email", email).is("withdrawn_at", null);
-    detail = "retrait enregistré";
-  } else if (type === "subscribe") {
-    // Confirmation d'inscription : seulement si un consentement exprès documenté existe déjà.
-    const { data } = await db.from("mkt_consents").update({ mc_status: "subscribed", mc_last_sync_at: now }).eq("email", email).is("withdrawn_at", null).select("id");
-    detail = data?.length ? "confirmé" : "aucun consentement documenté : non marqué abonné";
+    const type = String(form.get("type") ?? "");
+    const email = String(form.get("data[email]") ?? "").trim().toLowerCase();
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return new Response("ok", { headers: corsHeaders });
+    const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const now = new Date().toISOString();
+    let detail = "ignoré";
+    if (type === "unsubscribe" || type === "cleaned") {
+      await db.from("mkt_consents").update({ withdrawn_at: now, withdrawn_source: "mailchimp_" + type, mc_status: "unsubscribed", mc_last_sync_at: now })
+        .eq("email", email).is("withdrawn_at", null);
+      detail = "retrait enregistré";
+    } else if (type === "subscribe") {
+      // Confirmation d'inscription : seulement si un consentement exprès documenté existe déjà.
+      const { data } = await db.from("mkt_consents").update({ mc_status: "subscribed", mc_last_sync_at: now }).eq("email", email).is("withdrawn_at", null).select("id");
+      detail = data?.length ? "confirmé" : "aucun consentement documenté : non marqué abonné";
+    }
+    await db.from("mkt_sync_log").insert({ direction: "entrant", action: type || "inconnu", email, ok: true, detail });
+    return new Response("ok", { headers: corsHeaders });
+  } catch (e) {
+    // Une erreur ne remonte plus en 500 brute sans trace : on journalise et
+    // on répond 500 pour que Mailchimp retente l'envoi plus tard.
+    console.error("mailchimp-webhook failed:", e instanceof Error ? e.message : e);
+    try {
+      const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await db.from("mkt_sync_log").insert({ direction: "entrant", action: "erreur", email: "", ok: false, detail: "exception interne" });
+    } catch { /* journal indisponible : ne pas masquer l'erreur d'origine */ }
+    return new Response("Erreur interne", { status: 500, headers: corsHeaders });
   }
-  await db.from("mkt_sync_log").insert({ direction: "entrant", action: type || "inconnu", email, ok: true, detail });
-  return new Response("ok", { headers: corsHeaders });
 });
