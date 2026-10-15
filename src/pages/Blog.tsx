@@ -31,18 +31,6 @@ export default function Blog() {
     queryFn: () => fetchPublishedPosts({ featured: true, limit: 6 }),
   });
 
-  const websiteLd = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "Centre de connaissances Vrac Québec",
-    url: `${SITE_URL}/blog`,
-    potentialAction: {
-      "@type": "SearchAction",
-      target: `${SITE_URL}/blog/recherche?q={search_term_string}`,
-      "query-input": "required name=search_term_string",
-    },
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
