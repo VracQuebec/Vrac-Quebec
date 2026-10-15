@@ -491,23 +491,30 @@ Deno.serve(async (req) => {
       valid_until: quote.valid_until,
     });
 
-    // Un échec d'envoi n'est jamais masqué par un ok:true.
+    // La soumission est ENREGISTRÉE : le courriel n'est jamais bloquant
+    // (aligné sur quote-assistant). On confirme avec les numéros et on
+    // signale honnêtement l'échec d'envoi ; l'équipe est alertée via le
+    // journal critique ci-dessous et peut retenter l'envoi sans recréer
+    // la demande (clé d'idempotence par soumission).
     if (!clientMail.ok) {
       await logEvent({
         source: 'email', event: 'submission.email_failed', level: 'critical',
         message: clientMail.error, refId: quote.quote_number ?? quote.id,
       });
       return json({
-        ok: false,
-        error: "Votre soumission a été enregistrée, mais l'envoi du courriel a échoué. Notre équipe vous contactera.",
-        email_error: clientMail.error,
+        ok: true,
+        email_sent: false,
+        notice: "confirmation_email_failed",
         quote_number: quote.quote_number,
         request_number: request.request_number,
-      }, 502);
+        valid_until: quote.valid_until,
+        emailed_to: null,
+      });
     }
 
     return json({
       ok: true,
+      email_sent: true,
       quote_number: quote.quote_number,
       request_number: request.request_number,
       valid_until: quote.valid_until,

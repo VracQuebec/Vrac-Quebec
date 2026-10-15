@@ -728,14 +728,22 @@ const TransportRequest = () => {
     });
 
       if (result.status === "rejected") {
+        // Refus définitif du serveur : rien n'a été enregistré et aucune
+        // relance n'aura lieu. Message honnête ; la saisie est conservée.
+        const known: Record<string, string> = {
+          site_non_valide: "Le site sélectionné n'a pas encore été validé par notre équipe.",
+          submission_introuvable: "La demande d'origine est introuvable.",
+          origin_submission_invalide: "Cette demande n'a pas pu être rattachée à votre dossier.",
+          "tarif de camion introuvable": "Le tarif de transport n'a pas pu être confirmé. Réessayez ou contactez-nous.",
+          "nombre de voyages invalide": "Le nombre de voyages indiqué est invalide. Corrigez-le et réessayez.",
+        };
+        const raw = (result.message ?? "").trim();
+        const looksHuman = /[a-zàâäéèêëîïôöùûüç]{3,}\s/i.test(raw);
         toast({
-          title: "Demande impossible",
+          title: "Demande non enregistrée",
           description:
-            result.message === "site_non_valide"
-              ? "Le site sélectionné n'a pas encore été validé par notre équipe."
-              : result.message === "submission_introuvable"
-                ? "La demande d'origine est introuvable."
-                : "Cette demande n'a pas pu être rattachée à votre dossier.",
+            known[raw] ??
+            (looksHuman ? raw : "Cette demande n'a pas pu être enregistrée. Vérifiez les informations saisies et réessayez."),
           variant: "destructive",
         });
         return;
