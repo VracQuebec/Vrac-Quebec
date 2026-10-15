@@ -8,6 +8,7 @@
 // ============================================================
 import type { DistanceProvider, EngineConfig } from './index.ts';
 import { logEvent, logEventAsync } from '../observability.ts';
+import { fetchWithTimeout } from '../http.ts';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
 
@@ -18,7 +19,9 @@ const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
  */
 async function fetchGoogle(url: string, init: RequestInit, attempts = 6): Promise<Response> {
   for (let i = 0; i < attempts; i++) {
-    const res = await fetch(url, init);
+    // Délai borné par tentative : une passerelle Google qui « pend » ne doit
+    // plus consommer tout le budget d'exécution de la fonction.
+    const res = await fetchWithTimeout(url, init, 15_000);
     if (res.ok || (res.status !== 429 && res.status < 500)) return res;
     const body = await res.text().catch(() => '');
     if (i === attempts - 1) {
