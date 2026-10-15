@@ -44,7 +44,6 @@ export default function Blog() {
         <meta property="og:title" content="Centre de connaissances Vrac Québec" />
         <meta property="og:description" content="La plus grande bibliothèque francophone sur le vrac, le remblai et le transport de matériaux au Québec." />
         <meta property="og:url" content={`${SITE_URL}/blog`} />
-        <script type="application/ld+json">{JSON.stringify(websiteLd)}</script>
       </Helmet>
 
       <BlogNav />
