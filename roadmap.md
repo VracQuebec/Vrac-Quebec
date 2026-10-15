@@ -20,25 +20,26 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [x] P2-8 fetchWithTimeout sur 8 chemins exposés; ~39 autres sans délai — Lot 6.
 
 ## Lot 4 — Sécurité et confidentialité
-- [ ] Audit RLS/policies : remblai, dompes, entrepreneurs, admin (requêtes lecture seule)
-- [ ] Isolation entrepreneur ↔ entrepreneur (vérification côté serveur)
-- [ ] Secrets/jetons exposés côté client ou journaux
-- [ ] En-têtes CSP / X-Frame-Options / frame-ancestors (hébergement → documenter)
-- [ ] Comparaison secret Mailchimp non en temps constant (faible) — vérifier correctif Lot 3
+- [x] Audit RLS/policies : RLS activé partout; anon = INSERT seulement sur submissions/transport_requests (voulu); aucun accès anon en lecture sur tables sensibles
+- [x] Isolation entrepreneur ↔ entrepreneur : policies user_id = auth.uid() + entcrm_role (SECURITY DEFINER, search_path fixé); aucune fonction SECURITY DEFINER sans search_path
+- [x] Secrets/jetons : aucune clé privée côté client, aucun secret dans les journaux (grep functions+src : 0)
+- [~] Grants anon larges (arwd) sur tables sensibles — couverts par RLS; resserrement = migration PRÉPARÉE, non appliquée
+- [x] En-têtes CSP / X-Frame-Options : absents, limité par l'hébergement — documenté
+- [x] Comparaison secret Mailchimp : empreinte SHA-256 en place (Lot 3, non déployé)
 
 ## Lot 5 — Données et logique métier
-- [ ] P2-11 28 groupes de doublons remblai : rapport lecture seule seulement
-- [ ] Prévention doubles soumissions nouvelles demandes (code + serveur)
-- [ ] P2-10 Divergence aperçu camion client/serveur : documenter
-- [ ] Vérifications parcours dompe/remblai : filtres, distances, cohérence (lecture seule)
+- [x] P2-11 Doublons remblai : 29 groupes au 15 oct. — 7 <1h (doublons probables), 8 même jour, 14 >1 jour (légitimes probables). AUCUNE fusion/suppression.
+- [x] Prévention doubles soumissions : verdict duplicate respecté dans submit-parcours (PRÉPARÉ, non déployé) + 5 tests ciblés (fenêtre 30 min, légitime >30 min/90 jours, limite 5/h, course simultanée documentée)
+- [x] P2-10 Divergence aperçu camion : FAUX POSITIF — jsc_public_trucks exige capacité>0 ET tarif>0, liste identique au serveur; aucune correction.
+- [x] Vérifications parcours dompe/remblai (lecture seule, tours précédents) : filtres 477 dompes, distances, cohérence OK.
 
 ## Lot 6 — Accessibilité, compatibilité, régression
-- [ ] P3 champ sans libellé /soumission et /materiaux
-- [ ] P3 cibles tactiles < 24 px (ciblé)
-- [ ] P3 numéro public en dur ~7 fichiers → public-phone.ts
-- [ ] ~39 appels externes sans délai d'expiration : protection si approprié (PRÉPARÉ, non déployé)
-- [ ] Régression lots 1–5 : tests automatisés + navigateur (360/768/1280)
-- [ ] Routes valides/inexistantes, canoniques, JSON-LD revérifiés
+- [x] P3 libellés /soumission et /materiaux : déjà présents (constat obsolète); aria-label ajouté à l'input file masqué d'ObtenirSoumissions.
+- [x] P3 cibles tactiles : pieds de page (PublicContactFooter, Index) + « Autres besoins » à min-h-11; reste = liens inline du bandeau défilant (exception WCAG 2.5.8 liens dans le texte).
+- [x] P3 numéro public : déjà centralisé via public-phone.ts (constat obsolète; reste = fichiers de tests uniquement).
+- [x] Appels externes sans délai : fetchWithTimeout ajouté aux 5 modules partagés (_shared/gbp, ai-cache, observability, stripe, vqos-intel) — couvre la majorité des fonctions; les appels directs restants dans les fonctions cron SEO/feuilles sont documentés (PRÉPARÉ, non déployé).
+- [x] Régression lots 1–5 : 2 105 tests réussis (0 échec); navigateur 360/768/1280 sur 6 routes : aucun débordement, aucune erreur JS.
+- [x] Routes/canoniques/JSON-LD revérifiés : 6 routes OK, 404 avec noindex, JSON-LD valides, /acces-dompe + /demande-transport noindex (voulu).
 
 ## Rapport final
 - [ ] Bilan des six lots : statuts, fichiers, tests, limites, dépendances, déploiements en attente

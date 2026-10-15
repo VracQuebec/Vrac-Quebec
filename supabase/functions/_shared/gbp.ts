@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
+import { fetchWithTimeout } from "./http.ts";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,7 +45,7 @@ export async function refreshAccessToken(refresh_token: string): Promise<string>
     refresh_token,
     grant_type: "refresh_token",
   });
-  const res = await fetch("https://oauth2.googleapis.com/token", {
+  const res = await fetchWithTimeout("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
@@ -64,14 +65,14 @@ export async function getConfigWithToken() {
 }
 
 export async function gapi(url: string, accessToken: string, init: RequestInit = {}) {
-  const attempt = async () => fetch(url, {
+  const attempt = async () => fetchWithTimeout(url, {
     ...init,
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
       ...(init.headers || {}),
     },
-  });
+  }, 20_000);
   let res = await attempt();
   if (res.status === 429 || res.status >= 500) {
     await new Promise((r) => setTimeout(r, 1500));

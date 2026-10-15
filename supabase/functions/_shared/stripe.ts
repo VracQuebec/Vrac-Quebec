@@ -1,5 +1,6 @@
 import { encode } from "https://deno.land/std@0.168.0/encoding/hex.ts";
 import Stripe from "https://esm.sh/stripe@22.0.2";
+import { fetchWithTimeout } from "./http.ts";
 
 const getEnv = (key: string): string => {
   const value = Deno.env.get(key);
@@ -26,7 +27,7 @@ export function createStripeClient(env: StripeEnv): Stripe {
     httpClient: Stripe.createFetchHttpClient((input, init) => {
       const stripeUrl = input instanceof Request ? input.url : input.toString();
       const gatewayUrl = stripeUrl.replace('https://api.stripe.com', GATEWAY_STRIPE_BASE);
-      return fetch(gatewayUrl, {
+      return fetchWithTimeout(gatewayUrl, {
         ...init,
         headers: {
           ...Object.fromEntries(
@@ -35,7 +36,7 @@ export function createStripeClient(env: StripeEnv): Stripe {
           'X-Connection-Api-Key': connectionApiKey,
           'Lovable-API-Key': lovableApiKey,
         },
-      });
+      }, 30_000);
     }),
   });
 }

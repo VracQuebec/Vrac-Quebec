@@ -17,6 +17,7 @@
 
 // deno-lint-ignore-file no-explicit-any
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { fetchWithTimeout } from "./http.ts";
 
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
@@ -137,7 +138,7 @@ export async function callAIChatCached(opts: CachedAIOptions): Promise<CachedAIR
 
   const p = (async (): Promise<CachedAIResult> => {
     const started = Date.now();
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
       body: JSON.stringify({
@@ -145,7 +146,7 @@ export async function callAIChatCached(opts: CachedAIOptions): Promise<CachedAIR
         messages: opts.messages,
         ...(opts.response_format ? { response_format: opts.response_format } : {}),
       }),
-    });
+    }, 60_000);
     const durationMs = Date.now() - started;
     if (!resp.ok) {
       const text = await resp.text();
