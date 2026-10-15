@@ -43,8 +43,33 @@ function statefulDb(seed: Array<Record<string, any>> = []) {
       };
       return chain;
     },
+    // Simulation du RPC guard_check_and_log de la migration préparée :
+    // verrou consultatif par empreinte (file d'attente = sérialisation),
+    // lecture de la fenêtre puis insertion dans la même « transaction ».
+    rpc(name: string, args: any) {
+      if (name !== "guard_check_and_log") return Promise.resolve({ data: null, error: { message: "inconnu" } });
+      const key = `${args.p_scope}|${args.p_fingerprint}`;
+      locks.set(key, (locks.get(key) ?? Promise.resolve()).then(async () => {
+        const cutoff = new Date(Date.now() - (args.p_dedupe_minutes ?? 30) * MIN).toISOString();
+        const prev = rows
+          .filter((r) => r.scope === args.p_scope && r.fingerprint === args.p_fingerprint && r.created_at >= cutoff)
+          .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+        rows.push({
+          scope: args.p_scope, identity: args.p_identity, fingerprint: args.p_fingerprint,
+          payload: args.p_payload ?? {}, created_at: new Date().toISOString(),
+        });
+        return {
+          data: { duplicate: Boolean(prev), previous: prev?.payload ?? {}, previous_at: prev?.created_at ?? null },
+          error: null,
+        };
+      }));
+      return locks.get(key)!;
+    },
   };
 }
+
+// File de sérialisation par empreinte : simule pg_advisory_xact_lock.
+const locks = new Map<string, Promise<any>>();
 
 const req = { scope: "parcours-reception", identity: "client@exemple.ca", fingerprint: "fp-identique", ip: "1.2.3.4" };
 
@@ -85,17 +110,35 @@ describe("déduplication des demandes de remblai", () => {
     await expect(guardPublicRequest(db as any, req)).rejects.toThrow(/Trop de demandes/);
   });
 
-  it("RISQUE CONNU — deux envois simultanés identiques passent tous deux", async () => {
-    // La vérification (étape 5) précède la journalisation (étape 6) :
-    // deux requêtes concurrentes lisent avant que l'autre n'écrive.
-    // Ce test documente le comportement actuel; il devra être inversé
-    // après l'ajout d'une contrainte d'unicité côté base (PRÉPARÉ, non appliqué).
+  it("deux envois simultanés identiques : un seul crée, l'autre est doublon (RPC transactionnel)", async () => {
+    // Avec le RPC guard_check_and_log (verrou consultatif), la seconde
+    // requête attend la fin de la « transaction » de la première et voit sa
+    // ligne : exactement une création, même en concurrence parfaite.
     const db = statefulDb();
     const [a, b] = await Promise.all([
       guardPublicRequest(db as any, req),
       guardPublicRequest(db as any, req),
     ]);
-    expect(a.duplicate).toBe(false);
-    expect(b.duplicate).toBe(false); // les deux passent : course constatée
+    expect([a.duplicate, b.duplicate].sort()).toEqual([false, true]);
+    const created = db.rows.filter((r) => r.scope === req.scope && r.fingerprint === req.fingerprint);
+    expect(created).toHaveLength(2); // 2 lignes de journal, mais 1 seul verdict « création »
+  });
+
+  it("cinq envois simultanés identiques : un seul verdict « création »", async () => {
+    const db = statefulDb();
+    const verdicts = await Promise.all(Array.from({ length: 5 }, () => guardPublicRequest(db as any, req)));
+    expect(verdicts.filter((v) => !v.duplicate)).toHaveLength(1);
+    expect(verdicts.filter((v) => v.duplicate)).toHaveLength(4);
+  });
+
+  it("idempotence : la répétition bloquée retourne le contenu précédent sans nouvelle décision", async () => {
+    const db = statefulDb();
+    const first = await guardPublicRequest(db as any, req);
+    expect(first.duplicate).toBe(false);
+    const second = await guardPublicRequest(db as any, req);
+    expect(second.duplicate).toBe(true);
+    expect(second.previous).toBeTruthy(); // l'appelant retrouve la référence existante
+    const third = await guardPublicRequest(db as any, req);
+    expect(third.duplicate).toBe(true);
   });
 });

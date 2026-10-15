@@ -42,4 +42,10 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [x] Routes/canoniques/JSON-LD revérifiés : 6 routes OK, 404 avec noindex, JSON-LD valides, /acces-dompe + /demande-transport noindex (voulu).
 
 ## Rapport final
-- [ ] Bilan des six lots : statuts, fichiers, tests, limites, dépendances, déploiements en attente
+- [x] Bilan des six lots : /mnt/documents/bilan-corrections-audit-2026-10-15.md
+
+## Phase finale — préparation au déploiement (terminée, en attente d'autorisation)
+- [x] Migration anti-doublon transactionnelle rédigée : prepared/deploiement/migration-anti-doublon-transactionnel-NON-APPLIQUEE.sql (RPC guard_check_and_log + verrou consultatif); public-guard.ts appelle le RPC avec repli; 3 tests de concurrence/idempotence ajoutés (15/15, suite complète 2 107 réussis)
+- [x] Migration resserrement grants anon rédigée : prepared/deploiement/migration-resserrement-grants-anon-NON-APPLIQUEE.sql (liste blanche déduite des politiques RLS réelles)
+- [x] Plan de mise en production : /mnt/documents/plan-deploiement-2026-10-15.md (ordre, fumées, retours arrière, liste de contrôle)
+- [ ] EN ATTENTE D'AUTORISATION : appliquer migrations, déployer fonctions, publier aperçu
