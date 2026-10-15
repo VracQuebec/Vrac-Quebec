@@ -121,12 +121,6 @@ export async function guardPublicRequest(sb: any, o: GuardOptions): Promise<Guar
     p_dedupe_minutes: dedupeMinutes,
   })
     : { data: null, error: { message: "rpc indisponible" } };
-    p_scope: o.scope,
-    p_identity: o.identity,
-    p_fingerprint: o.fingerprint,
-    p_payload: { ip: o.ip },
-    p_dedupe_minutes: dedupeMinutes,
-  });
   if (!rpcError && verdict) {
     return {
       duplicate: Boolean(verdict.duplicate),
