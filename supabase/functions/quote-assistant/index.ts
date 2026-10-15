@@ -37,14 +37,14 @@ function db() {
 // Courriels transactionnels : jamais bloquants pour la confirmation client.
 async function sendEmail(payload: Record<string, unknown>) {
   try {
-    await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
+    await fetchWithTimeout(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
       },
       body: JSON.stringify(payload),
-    });
+    }, 15_000);
   } catch (e) {
     console.error('assistant email failed', e instanceof Error ? e.message : e);
   }
@@ -89,7 +89,7 @@ async function advise(sb: any, answers: Record<string, string>) {
 
   if (key) {
     try {
-      const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      const res = await fetchWithTimeout('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({

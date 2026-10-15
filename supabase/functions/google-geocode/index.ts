@@ -1,5 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { fetchWithTimeout } from '../_shared/http.ts';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
 
@@ -27,12 +28,12 @@ async function googleGeocode(query: string, components?: string) {
   params.set('region', 'ca');
   params.set('language', 'fr');
 
-  const res = await fetch(`${GATEWAY_URL}/maps/api/geocode/json?${params.toString()}`, {
+  const res = await fetchWithTimeout(`${GATEWAY_URL}/maps/api/geocode/json?${params.toString()}`, {
     headers: {
       'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'X-Connection-Api-Key': GOOGLE_MAPS_API_KEY,
+    'X-Connection-Api-Key': GOOGLE_MAPS_API_KEY,
     },
-  });
+  }, 10_000);
   const data = await res.json();
   if (!res.ok) throw new Error(`Geocoding gateway failed [${res.status}]: ${JSON.stringify(data)}`);
   return data;

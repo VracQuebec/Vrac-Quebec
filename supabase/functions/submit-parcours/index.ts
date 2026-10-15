@@ -61,14 +61,14 @@ function db() {
 
 async function sendEmail(payload: Record<string, unknown>) {
   try {
-    await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
+    await fetchWithTimeout(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
       },
       body: JSON.stringify(payload),
-    });
+    }, 15_000);
   } catch (e) {
     logEventAsync({
       source: 'submit_parcours', event: 'email.failed', level: 'warn',
