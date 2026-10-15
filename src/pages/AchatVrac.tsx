@@ -25,6 +25,7 @@ import CatalogPicker from "@/components/vrac/CatalogPicker";
 import { buildQuoteRequest, useVracEstimate } from "@/lib/vrac/estimate";
 import { useQuoteSubmit } from "@/lib/vrac/submit";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
+import { PUBLIC_PHONE } from "@/lib/public-phone";
 import {
   recommendedTruckId, unitLabel, unitsForSlug, useMaterialUnits, usePublicTrucks, useTruckCapacity,
 } from "@/lib/vrac/units";
@@ -415,7 +416,7 @@ function Recap({ draft, loading, error, manualReview, blockedReason, onFix }: {
             <br />
             {blockedReason ?? "Une information essentielle est manquante."}
             <br />
-            Corrigez cette information pour obtenir votre prix instantané, ou appelez-nous au 819-592-3495.
+            Corrigez cette information pour obtenir votre prix instantané, ou appelez-nous au {PUBLIC_PHONE}.
           </Notice>
           {onFix && (
             <Button onClick={onFix} className="w-full sm:w-auto">

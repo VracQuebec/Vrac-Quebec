@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
           }))
       : [];
 
-    await guardPublicRequest(sb, {
+    const guard = await guardPublicRequest(sb, {
       scope: `parcours-${variant}`,
       identity: email.toLowerCase(),
       fingerprint: [email.toLowerCase(), variant, address.toLowerCase(), quantityLabel, materials.join('/')].join('|'),
@@ -138,6 +138,20 @@ Deno.serve(async (req) => {
       freeText: [notes, name, otherMaterial].filter(Boolean).join(' '),
       ip: clientIp(req),
     });
+    if (guard.duplicate) {
+      // Demande identique déjà envoyée récemment : on renvoie la demande
+      // existante au lieu d'en créer une seconde (cause historique des
+      // doublons remblai). Aucun nouvel enregistrement, aucun courriel.
+      logEventAsync({ source: 'submit_parcours', event: 'submission.duplicate', level: 'warn', context: { variant } });
+      const { data: existing } = await sb.from('submissions')
+        .select('id, submission_number')
+        .ilike('email', email.toLowerCase())
+        .eq('request_type', 'remblai')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return json({ ok: true, duplicate: true, submission_id: existing?.id ?? null });
+    }
 
     // ---------- Adresse validée côté serveur (Google) ----------
     let geo: { lat: number; lng: number; address: string; city: string | null; postal_code: string | null } | null = null;

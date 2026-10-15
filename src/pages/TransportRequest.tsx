@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
+import { PUBLIC_PHONE, PUBLIC_PHONE_E164, PUBLIC_PHONE_WA } from "@/lib/public-phone";
 import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import { buildTransportPrefill, type TransportPrefillSource } from "@/lib/parcours/validation";
@@ -1413,8 +1414,8 @@ const TransportRequest = () => {
             ) : dumps.length === 0 ? (
               <div className="p-6 bg-card border border-border rounded-lg text-center">
                 <p className="text-sm font-semibold mb-2">Aucune dompe en attente de livraison ne correspond actuellement à votre recherche.</p>
-                <a href="tel:+18195923495" className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
-                  <Phone className="w-4 h-4" /> 819-592-3495
+                <a href={`tel:${PUBLIC_PHONE_E164}`} className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
+                  <Phone className="w-4 h-4" /> {PUBLIC_PHONE}
                 </a>
               </div>
             ) : (
@@ -1802,7 +1803,7 @@ const ConfirmationView = ({
       `Dompe          : ${dump || "—"}`,
       "",
       "SUIVI",
-      "Vrac Québec — 819-592-3495",
+      `Vrac Québec — ${PUBLIC_PHONE}`,
     ];
     const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -1871,11 +1872,11 @@ const ConfirmationView = ({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
-        <a href="tel:+18195923495" className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
+        <a href={`tel:${PUBLIC_PHONE_E164}`} className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
           <Phone className="w-4 h-4" /> Appeler maintenant
         </a>
         <a
-          href="https://wa.me/18195923495?text=Bonjour%2C%20je%20fais%20suite%20%C3%A0%20ma%20demande%20sur%20Vrac%20Qu%C3%A9bec."
+          href={`https://wa.me/${PUBLIC_PHONE_WA}?text=Bonjour%2C%20je%20fais%20suite%20%C3%A0%20ma%20demande%20sur%20Vrac%20Qu%C3%A9bec.`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[#25D366] text-white font-display font-bold text-sm"

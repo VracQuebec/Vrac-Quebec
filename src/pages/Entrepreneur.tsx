@@ -21,6 +21,7 @@ import {
   type ActiveChantier,
 } from "@/lib/entrepreneur-app/chantier-context";
 import FullPageState from "@/components/FullPageState";
+import { PUBLIC_PHONE_DIGITS } from "@/lib/public-phone";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -30,7 +31,7 @@ import {
   type MaterialColorKey,
 } from "@/lib/material-colors";
 
-const PHONE_PRIMARY = "8195923495";
+const PHONE_PRIMARY = PUBLIC_PHONE_DIGITS;
 
 interface EntLead {
   id: string;

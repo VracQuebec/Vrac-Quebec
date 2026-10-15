@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/vrac/estimate";
 import type { PublicQuote } from "@/lib/jsc/engine";
 import type { SubmitAction, SubmitResult } from "@/lib/vrac/submit";
+import { PUBLIC_PHONE } from "@/lib/public-phone";
 
-const PHONE = "819-592-3495";
+const PHONE = PUBLIC_PHONE;
 
 /** Camion recommandé, sans jamais exposer d'information interne. */
 function truckLabel(quote: PublicQuote): string {
