@@ -91,7 +91,7 @@ export const template = {
   displayName: 'Notification de nouveau lead',
   previewData: {
     name: 'Jean Tremblay',
-    phone: '418-000-0000',
+    phone: 'Numéro du client',
     email: 'jean@example.com',
     address: '123 rue Exemple, Québec',
     postalCode: 'G1A 1A1',
