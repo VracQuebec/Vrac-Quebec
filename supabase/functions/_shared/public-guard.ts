@@ -112,7 +112,15 @@ export async function guardPublicRequest(sb: any, o: GuardOptions): Promise<Guar
   // parfaitement simultanées ne peuvent plus créer deux demandes, quelle que
   // soit l'instance serveur. Repli sur l'ancien chemin si la fonction n'est
   // pas encore déployée (migration en attente d'autorisation).
-  const { data: verdict, error: rpcError } = await sb.rpc("guard_check_and_log", {
+  const { data: verdict, error: rpcError } = typeof sb.rpc === "function"
+    ? await sb.rpc("guard_check_and_log", {
+    p_scope: o.scope,
+    p_identity: o.identity,
+    p_fingerprint: o.fingerprint,
+    p_payload: { ip: o.ip },
+    p_dedupe_minutes: dedupeMinutes,
+  })
+    : { data: null, error: { message: "rpc indisponible" } };
     p_scope: o.scope,
     p_identity: o.identity,
     p_fingerprint: o.fingerprint,
