@@ -22,14 +22,14 @@ export default function PublicContactFooter() {
     <footer className="border-t border-border bg-card py-6 safe-x" aria-label="Coordonnées Vrac Québec">
       <div className="container mx-auto flex flex-col items-center justify-between gap-3 px-6 text-sm text-muted-foreground font-body sm:flex-row">
         <span>© 2026 Vrac Québec</span>
-        <a href={`tel:${PUBLIC_PHONE_E164}`} className="inline-flex items-center gap-2 font-display font-semibold text-foreground hover:text-primary">
+        <a href={`tel:${PUBLIC_PHONE_E164}`} className="inline-flex min-h-11 items-center gap-2 font-display font-semibold text-foreground hover:text-primary">
           <Phone className="h-4 w-4 text-primary" aria-hidden /> {PUBLIC_PHONE}
         </a>
         <div className="flex gap-4 text-xs">
-          <Link to="/espace-entrepreneur" className="hover:text-foreground">Je cherche une dompe</Link>
-          <Link to="/remblai" className="hover:text-foreground">Je veux du remblai</Link>
-          <Link to="/contact" className="hover:text-foreground">Contact</Link>
-          <Link to="/confidentialite" className="hover:text-foreground">Confidentialité</Link>
+          <Link to="/espace-entrepreneur" className="inline-flex min-h-11 items-center hover:text-foreground">Je cherche une dompe</Link>
+          <Link to="/remblai" className="inline-flex min-h-11 items-center hover:text-foreground">Je veux du remblai</Link>
+          <Link to="/contact" className="inline-flex min-h-11 items-center hover:text-foreground">Contact</Link>
+          <Link to="/confidentialite" className="inline-flex min-h-11 items-center hover:text-foreground">Confidentialité</Link>
         </div>
       </div>
     </footer>

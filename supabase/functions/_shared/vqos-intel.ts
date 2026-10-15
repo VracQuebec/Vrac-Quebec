@@ -2,6 +2,7 @@
 // Aucune donnée d'affaires codée en dur : tout provient de la base.
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import { fetchWithTimeout } from './http.ts';
 
 export { corsHeaders };
 
@@ -50,7 +51,7 @@ export async function callAI(
   const key = Deno.env.get('LOVABLE_API_KEY');
   if (!key) return { ok: false, status: 500, error: 'Clé IA manquante' };
 
-  const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+  const res = await fetchWithTimeout('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Lovable-API-Key': key },
     body: JSON.stringify({
@@ -59,7 +60,7 @@ export async function callAI(
       messages,
       ...(opts.jsonMode ? { response_format: { type: 'json_object' } } : {}),
     }),
-  });
+  }, 60_000);
 
   if (!res.ok) {
     const detail = await res.text();

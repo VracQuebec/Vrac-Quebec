@@ -52,7 +52,8 @@ export async function logEvent(entry: LogEntry): Promise<void> {
   if (!env) return;
 
   try {
-    await fetch(`${env.url}/rest/v1/rpc/platform_log_event`, {
+    const { fetchWithTimeout } = await import('./http.ts');
+    await fetchWithTimeout(`${env.url}/rest/v1/rpc/platform_log_event`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -69,7 +70,7 @@ export async function logEvent(entry: LogEntry): Promise<void> {
         _ref_id: entry.refId ?? null,
         _context: entry.context ?? {},
       }),
-    });
+    }, 10_000);
   } catch (e) {
     console.error('[observability] journalisation impossible:', e instanceof Error ? e.message : String(e));
   }
