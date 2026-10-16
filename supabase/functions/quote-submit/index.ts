@@ -14,7 +14,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { type Unit } from '../_shared/vqos/index.ts';
 import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
-import { clientIp, GuardError, guardPublicRequest, rememberResult } from '../_shared/public-guard.ts';
+import { clientIp, GuardError } from '../_shared/public-guard.ts';
+import { claimQuote, completeQuote, quoteFingerprint, releaseQuote, SCOPE } from './dedupe.ts';
 import { fetchWithTimeout } from '../_shared/http.ts';
 import { logEvent, logEventAsync } from '../_shared/observability.ts';
 
@@ -113,8 +114,12 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Méthode non supportée' }, 405);
 
   const startedAt = Date.now();
+  // Réservation anti-doublon : libérée si la création échoue, confirmée
+  // (avec la référence exacte) dès que la demande existe réellement.
+  let claimId: string | null = null;
+  let recorded: { request_number: unknown; quote_number: unknown; valid_until: unknown } | null = null;
+  const sb = db();
   try {
-    const sb = db();
     const body = await req.json().catch(() => null);
     const action = body?.action === 'callback' ? 'callback' : 'submit';
 
@@ -145,32 +150,31 @@ Deno.serve(async (req) => {
     if (!address || address.length < 5) throw new Error('Adresse de livraison requise.');
 
     // ---------- Protection : robots, pourriel, débit, doublons ----------
-    const fingerprint = [
-      email.toLowerCase(), body?.material_slug ?? body?.material_id ?? catalogId ?? customMaterial ?? '',
-      quantity, unit, address.toLowerCase(), action,
-    ].join('|');
-    const guard = await guardPublicRequest(sb, {
-      scope: 'quote-submit',
-      identity: email.toLowerCase(),
-      fingerprint,
-      honeypot: body?.website,
-      formStartedAt: body?.form_started_at,
-      freeText: [comments, name, company].filter(Boolean).join(' '),
-      ip: clientIp(req),
+    // Mécanisme partagé avec submit-parcours (guard_claim/complete/release).
+    const fingerprint = await quoteFingerprint({
+      email, action, quantity, unit, address,
+      material: String(body?.material_id ?? body?.material_slug ?? ''),
+      catalogId, variantId, granulometryId, customMaterial,
     });
-    if (guard.duplicate) {
-      // Demande identique déjà traitée : on renvoie la soumission existante
-      // sans recalculer, sans créer de doublon CRM et sans réexpédier de courriel.
+    const claim = await claimQuote(sb, {
+      identity: email.toLowerCase(), fingerprint,
+      honeypot: body?.website, formStartedAt: body?.form_started_at,
+      freeText: [comments, name, company].filter(Boolean).join(' '), ip: clientIp(req),
+    });
+    if (claim.kind === 'duplicate') {
+      // Référence EXACTE mémorisée à la création : aucun recalcul, aucune
+      // écriture CRM et aucun courriel.
       logEventAsync({ source: 'quote_submit', event: 'submission.duplicate', level: 'warn' });
-      return json({
-        ok: true,
-        duplicate: true,
-        quote_number: (guard.previous as any)?.quote_number ?? null,
-        request_number: (guard.previous as any)?.request_number ?? null,
-        valid_until: (guard.previous as any)?.valid_until ?? null,
-        emailed_to: email,
-      });
+      return json({ ok: true, duplicate: true, ...claim.ref, emailed_to: null, email_sent: true });
     }
+    if (claim.kind === 'in_progress') {
+      logEventAsync({ source: 'quote_submit', event: 'submission.in_progress', level: 'warn' });
+      return json({
+        ok: false, code: 'in_progress', retryable: true,
+        error: "Votre demande est en cours d'enregistrement. Patientez quelques secondes avant de vérifier votre courriel ou de réessayer.",
+      }, 409);
+    }
+    claimId = claim.claimId;
 
     // ---------- Recalcul serveur (source unique de vérité) ----------
     const delivery = await geocode(address);
@@ -223,6 +227,8 @@ Deno.serve(async (req) => {
         notes: [`Soumission à confirmer — ${manualReason}`, comments ?? '', accessNotes ? `Accès : ${accessNotes}` : ''].filter(Boolean).join('\n'),
       }).select('id,request_number').single();
       if (requestError) throw new Error(requestError.message);
+      recorded = { request_number: request.request_number, quote_number: null, valid_until: null };
+      await completeQuote(sb, claimId!, { submission_id: request.id, ...recorded });
       try {
         const { error: leadErr } = await sb.from('submissions').insert({
           materials: [materialLabel], property_type: 'Non spécifié', quantity: `${quantity} ${unit}`,
@@ -242,7 +248,6 @@ Deno.serve(async (req) => {
         _body: `${name} — ${materialLabel}, ${quantity} ${unit}. Motif : ${manualReason}`,
         _audience: 'admin', _user_id: null, _entity_type: 'request', _entity_id: request.id,
       });
-      await rememberResult(sb, 'quote-submit', fingerprint, { request_number: request.request_number, quote_number: null, valid_until: null });
       return json({ ok: true, manual: true, request_number: request.request_number, quote_number: null, valid_until: null, emailed_to: email });
     }
     const pub = result.public;
@@ -341,6 +346,9 @@ Deno.serve(async (req) => {
       sent_at: new Date().toISOString(),
     }).select('id,quote_number,valid_until').single();
     if (quoteError) throw new Error(quoteError.message);
+    // La soumission EXISTE : on mémorise sa référence avant tout envoi.
+    recorded = { request_number: request.request_number, quote_number: quote.quote_number, valid_until: quote.valid_until };
+    await completeQuote(sb, claimId!, { submission_id: quote.id, request_id: request.id, ...recorded });
 
     // ---------- Courriels : client + administration ----------
     // Le courriel doit afficher exactement la même information que la page.
@@ -441,7 +449,7 @@ Deno.serve(async (req) => {
 
     const adminEmail = await readSetting(sb, 'admin_notification_email');
     if (adminEmail) {
-      await sendEmail({
+      const adminMail = await sendEmail({
         templateName: 'soumission-interne',
         recipientEmail: adminEmail,
         idempotencyKey: `soumission-interne-${quote.id}`,
@@ -451,6 +459,14 @@ Deno.serve(async (req) => {
           crmLink: 'https://vracquebec.ca/admin/soumissions',
         },
       });
+      // Courriel interne en échec : la demande reste enregistrée et visible
+      // dans l'administration (notification ci-dessous) ; alerte journalisée.
+      if (!adminMail.ok) {
+        await logEvent({
+          source: 'email', event: 'submission.internal_email_failed', level: 'critical',
+          message: adminMail.error, refId: quote.quote_number ?? quote.id,
+        });
+      }
     }
 
     // ---------- Notifications internes + historique ----------
@@ -484,14 +500,6 @@ Deno.serve(async (req) => {
       },
     });
 
-    // La soumission est enregistrée : on mémorise le résultat pour que
-    // tout renvoi du même formulaire soit reconnu comme un doublon.
-    await rememberResult(sb, 'quote-submit', fingerprint, {
-      quote_number: quote.quote_number,
-      request_number: request.request_number,
-      valid_until: quote.valid_until,
-    });
-
     // La soumission est ENREGISTRÉE : le courriel n'est jamais bloquant
     // (aligné sur quote-assistant). On confirme avec les numéros et on
     // signale honnêtement l'échec d'envoi ; l'équipe est alertée via le
@@ -522,6 +530,13 @@ Deno.serve(async (req) => {
       emailed_to: email,
     });
   } catch (e) {
+    if (recorded) {
+      // La demande est enregistrée : une erreur d'après-traitement ne doit
+      // jamais la faire passer pour perdue (le visiteur renverrait).
+      await logEvent({ source: 'quote_submit', event: 'post_record.failed', level: 'critical', message: e instanceof Error ? e.message : String(e) });
+      return json({ ok: true, ...recorded, email_sent: false, notice: 'confirmation_email_failed', emailed_to: null });
+    }
+    if (claimId) await releaseQuote(sb, claimId, 'create_failed');
     if (e instanceof GuardError) {
       logEventAsync({
         source: 'quote_submit', event: `guard.${e.code}`, level: 'warn',

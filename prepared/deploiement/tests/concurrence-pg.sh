@@ -66,7 +66,7 @@ done
 # production (claim → création lente → complete), une connexion par appel.
 worker() { # $1 = empreinte, $2 = délai de création (s), $3 = échouer (0/1)
   local out st id sid
-  out=$(q "select public.guard_claim('parcours-reception','client','$1','{}',30,120)")
+  out=$(q "select public.guard_claim('${WS:-parcours-reception}','client','$1','{}',30,${WP:-120})")
   st=$(python3 -c "import json,sys;print(json.loads(sys.argv[1])['state'])" "$out")
   id=$(python3 -c "import json,sys;print(json.loads(sys.argv[1])['claim_id'])" "$out")
   if [ "$st" = "new" ]; then
@@ -106,6 +106,22 @@ q "update public_request_guard set created_at = now() - interval '31 minutes' wh
 check "après 31 min : nouvelle demande" "$(worker fpA 0 0 | cut -d: -f1)" created
 q "update public_request_guard set created_at = now() - interval '5 days' where fingerprint='fpB'"
 check "après 5 jours : nouvelle demande" "$(worker fpB 0 0 | cut -d: -f1)" created
+
+echo "== quote-submit (achat de vrac) : même mécanisme, portée distincte"
+export WS=quote-submit WP=180
+R=$( (worker qA 1 0 & worker qA 1 0 & wait) | sort | tr '\n' ' ')
+check "vrac : 1 création + 1 en cours" "$(echo "$R" | grep -o 'created' | wc -l)/$(echo "$R" | grep -o 'in_progress' | wc -l)" "1/1"
+R=$( (for _ in 1 2 3 4 5; do worker qB 1 0 & done; wait) | sort | tr '\n' ' ')
+check "vrac : 1 création + 4 en cours" "$(echo "$R" | grep -o 'created' | wc -l)/$(echo "$R" | grep -o 'in_progress' | wc -l)" "1/4"
+check "vrac : 1 seule soumission qB" "$(q "select count(*) from submissions_test where fp='qB'")" 1
+QSID=$(q "select id from submissions_test where fp='qA'")
+check "vrac : répétition → référence exacte" "$(worker qA 0 0)" "duplicate:$QSID"
+check "vrac : échec" "$(worker qD 0 1)" failed
+check "vrac : nouvelle tentative créée" "$(worker qD 0 0 | cut -d: -f1)" created
+check "vrac : empreinte du remblai sans effet (portée isolée)" "$(worker fpD 0 0 | cut -d: -f1)" created
+q "update public_request_guard set created_at = now() - interval '31 minutes' where scope='quote-submit' and fingerprint='qA'"
+check "vrac : après 31 min nouvelle demande" "$(worker qA 0 0 | cut -d: -f1)" created
+unset WS WP
 
 echo "== guard_complete : réservation exacte uniquement"
 if q "select public.guard_complete(gen_random_uuid(), '{\"submission_id\":\"x\"}')" >/dev/null 2>&1; then check "réservation inconnue refusée" accepté refusé; else check "réservation inconnue refusée" refusé refusé; fi
