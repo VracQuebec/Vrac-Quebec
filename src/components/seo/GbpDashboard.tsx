@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { toast } from "sonner";
-import { Loader2, LinkIcon, Unlink, RefreshCw, Phone, Navigation, MousePointerClick, Eye, Search, Compass, Star, Image as ImageIcon, MessageSquare, Send, ExternalLink, Plus, AlertTriangle } from "lucide-react";
+import { Loader2, LinkIcon, Unlink, RefreshCw, Phone, Navigation, MousePointerClick, Eye, Search, Compass, Star, Image as ImageIcon, MessageSquare, Send, ExternalLink, Plus, AlertTriangle, X } from "lucide-react";
 
 type Config = {
   id: string;
@@ -215,8 +215,14 @@ export default function GbpDashboard() {
 
       {picker && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setPicker(null)}>
-          <div className="bg-card border border-border rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-display font-bold text-lg mb-3">Sélectionner votre établissement</h3>
+          <div role="dialog" aria-modal="true" aria-label="Sélectionner votre établissement" className="bg-card border border-border rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 className="font-display font-bold text-lg">Sélectionner votre établissement</h3>
+              <button onClick={() => setPicker(null)} aria-label="Fermer la fenêtre de sélection"
+                className="rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             {picker.length === 0 && <p className="text-sm text-muted-foreground">Aucun compte Google Business trouvé sur ce compte.</p>}
             {picker.map((entry) => (
               <div key={entry.account.name} className="mb-4">
