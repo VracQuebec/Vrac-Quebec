@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindexOnly, generateReasonWithCatalog, catalogActionLine } from "@/lib/seo/cityActions";
 import UnknownDecisionDialog from "@/components/seo/UnknownDecisionDialog";
 import RefusedTasksPanel from "@/components/seo/RefusedTasksPanel";
@@ -11,7 +11,7 @@ import { loadDecisions, saveDecisions, availabilityOf, decisionKey, type Decisio
 import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
 import { buildCatInput, classify, summarizeCatalog, mergeSummaries, CAT_STATE_LABEL, estimateCredits, type CatState, type CatSummary } from "@/lib/seo/catalogStatus";
 import { publishCityDrafts, publishOutcomeMessage, publishPrecheck, precheckReason, loadAllDraftsForPrecheck, type PublishPrecheck } from "@/lib/seo/cityPublish";
-import { repairCity, repairOutcomeMessage, type RepairSlot } from "@/lib/seo/cityRepair";
+import { repairCity, planRepair, repairOutcomeMessage, type RepairSlot } from "@/lib/seo/cityRepair";
 import { coverageLabel, coveragePct, computeCoverage, splitAll, coverageFlags, catalogBreakdown, COVERAGE_BADGE_LABEL, type Coverage, type CoverageAllRaw } from "@/lib/seo/cityCoverage";
 import { useSeoControlCenter, type ControlCityRow, type ControlProblem } from "@/lib/seo/useSeoControlCenter";
 import { useSeoPipelineV2 } from "@/lib/seo/useSeoPipelineV2";
@@ -430,11 +430,27 @@ export default function PipelineControlCenter() {
     [state],
   );
 
+  const actLock = useRef(false);
   async function act(key: string, fn: () => Promise<void | string>, okMsg: string) {
+    // Verrou synchrone : un double clic ne lance jamais deux traitements.
+    if (actLock.current) return;
+    actLock.current = true;
     setBusy(key);
     try { const detail = await fn(); await reload(); toast({ title: okMsg, description: detail || undefined }); }
     catch (e) { toast({ title: "Erreur", description: e instanceof Error ? e.message : "Action impossible", variant: "destructive" }); }
-    finally { setBusy(null); }
+    finally { setBusy(null); actLock.current = false; }
+  }
+
+  function startCityRepair(c: { slug: string; name: string }) {
+    const slots = ((state?.problems ?? []) as ControlProblem[]).filter((p) => p.city_slug === c.slug).map(toRepairSlot);
+    const n = planRepair(slots).targets.length;
+    if (n === 0) { toast({ title: "Rien à régénérer", description: `Aucun brouillon en erreur admissible pour ${c.name}.` }); return; }
+    if (!window.confirm(`Régénérer ${n} brouillon(s) en erreur de ${c.name} ? Les pages en ligne ne seront pas remplacées.`)) return;
+    void act(`retry-${c.slug}`, async () => {
+      const o = await repairCity(slots);
+      if (o.done.length === 0 && o.failed.length > 0) throw new Error(`${repairOutcomeMessage(o)} Raison : ${o.failed[0].error}`);
+      return repairOutcomeMessage(o);
+    }, `Régénération — ${c.name}`);
   }
 
   async function openLogs(slug: string) {
@@ -447,16 +463,15 @@ export default function PipelineControlCenter() {
 
   return (
     <div className="space-y-4">
-      <AutopilotPanel />
       {/* ── En-tête + contrôles globaux ─────────────────────────── */}
       <Card className="p-4 md:p-6 space-y-4">
         <header className="flex flex-wrap items-start gap-3 justify-between">
           <div className="min-w-0">
             <h2 className="text-lg font-display font-bold flex items-center gap-2">
-              <Rocket className="w-5 h-5 text-primary" /> Centre de pilotage SEO
+              <Rocket className="w-5 h-5 text-primary" /> Gestion des villes
             </h2>
             <p className="text-xs text-muted-foreground">
-              Chiffres calculés en direct depuis la base (pages, villes, tâches). Aucune estimation.
+              État SEO de chaque ville et actions par ville. Chiffres calculés en direct depuis la base, aucune estimation.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -491,7 +506,13 @@ export default function PipelineControlCenter() {
         {totals && (
           <>
             {/* ── COUVERTURE SEO — source officielle : seo_control_center() (même logique que le Générateur) ── */}
-            <section className="rounded-xl border border-border p-4 md:p-5 space-y-4">
+            <details className="group rounded-xl border border-border">
+              <summary className="cursor-pointer select-none list-none px-4 py-3 text-sm font-display font-bold flex items-center justify-between gap-2">
+                <span>Détail de la couverture SEO</span>
+                <span className="text-xs font-normal text-muted-foreground group-open:hidden">Afficher</span>
+                <span className="text-xs font-normal text-muted-foreground hidden group-open:inline">Masquer</span>
+              </summary>
+            <section className="border-t border-border p-4 md:p-5 space-y-4">
               <div>
                 <h3 className="text-sm font-display font-bold tracking-wide">COUVERTURE SEO</h3>
                 <p className="text-xs text-muted-foreground">
@@ -584,6 +605,7 @@ export default function PipelineControlCenter() {
                 )}
               </div>
             </section>
+            </details>
 
             <div className="rounded-lg border border-border bg-background/50 p-3 text-sm">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -678,42 +700,6 @@ export default function PipelineControlCenter() {
           </>
         )}
       </Card>
-
-      {cov.size > 0 && (
-        <Card className="p-4 md:p-6 space-y-2">
-          <h3 className="text-base font-display font-bold">Bilan de couverture — {nf(bilan.cities)} villes actives</h3>
-          {catalogTotal && <CatalogTotals s={catalogTotal} complete={catalogComplete} cities={catalogBySlug.size} />}
-          <div className="text-xs font-semibold pt-1">File du générateur (opportunités pertinentes seulement)</div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-            <div><div className="text-lg font-bold">{nf(bilan.planned)}</div>pages attendues (opportunités pertinentes)</div>
-            <div><div className="text-lg font-bold">{nf(bilan.published)}</div>publiées</div>
-            <div><div className="text-lg font-bold">{nf(bilan.drafts)}</div>en brouillon</div>
-            <div><div className="text-lg font-bold">{nf(bilan.toDevelop)}</div>manquantes (dans la file)</div>
-            <div><div className="text-lg font-bold">{nf(bilan.errDraft)}</div>brouillons en erreur (régénérables)</div>
-            <div><div className="text-lg font-bold">{nf(bilan.errPub)}</div>pages en ligne à corriger (protégées)</div>
-            <div><div className="text-lg font-bold">{nf(bilan.pending + bilan.failed)}</div>tâches en attente ou échouées</div>
-            <div><div className="text-lg font-bold">{nf(bilan.noindex)}</div>non indexées volontairement (pas une erreur)</div>
-          </div>
-          <p className="text-xs text-muted-foreground">Exclues : {nf(bilan.offCriteria)} page(s) existante(s) hors critères — aucune demande ni service configuré ne les justifie; elles sont conservées mais ne comptent pas dans les pages attendues.</p>
-        </Card>
-      )}
-
-      {/* ── Tâches refusées (consultation seule) ────────────────── */}
-      <RefusedTasksPanel
-        cityName={(s) => (state?.cities ?? []).find((c) => c.slug === s)?.name ?? cityNames.get(s) ?? null}
-        comboLabel={(city, t) => {
-          const kind = t.material_slug ? "material" : t.service_slug ? "service" : "hub";
-          const sl = t.material_slug ?? t.service_slug ?? null;
-          return (cov.get(city)?.items ?? []).find((x) => x.kind === kind && (x.slug ?? null) === sl)?.label ?? sl;
-        }}
-        availability={(city, t) => {
-          const kind = t.material_slug ? "material" : t.service_slug ? "service" : "hub";
-          const sl = t.material_slug ?? t.service_slug ?? null;
-          if (kind !== "hub" && exclusionsFor(city).has(`${kind}|${sl}`)) return "exclue";
-          const it = (cov.get(city)?.items ?? []).find((x) => x.kind === kind && (x.slug ?? null) === sl);
-          return it ? (availabilityOf(it, decisions.get(decisionKey(city, kind, sl))?.decision, srvOf(city, kind, sl)) as "confirmee" | "exclue" | "inconnue") : null;
-        }}
-        onOpenCity={(slug, name) => { setWbCity({ slug, name }); void verifyWb(); }} />
 
       {/* ── État des villes ─────────────────────────────────────── */}
       <Card className="p-4 md:p-6 space-y-4">
@@ -853,10 +839,14 @@ export default function PipelineControlCenter() {
                     onClick={() => openWb(c, null)}>
                     <CheckCircle2 className="w-3 h-3" /> Vérifier et gérer la ville
                   </Button>
-                  {/* Ouvrent la fenêtre de la ville sur la section visée : sélection page par page, raisons chiffrées si rien n'est admissible. */}
-                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" disabled={isRunning}
-                    title={retryReason ?? undefined} onClick={() => openWb(c, "repair")}>
-                    <ListRestart className="w-3 h-3" /> Régénérer les erreurs ({plan.invalidDrafts})
+                  {/* Lancement direct (comportement d'origine) : brouillons en erreur de la ville via repairCity
+                      (sélection stricte partagée, pages en ligne protégées). Un seul traitement à la fois. */}
+                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
+                    title={retryReason ?? undefined}
+                    disabled={isRunning || !!retryReason || busy !== null}
+                    onClick={() => startCityRepair(c)}>
+                    {busy === `retry-${c.slug}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <ListRestart className="w-3 h-3" />}
+                    {busy === `retry-${c.slug}` ? "Régénération en cours…" : `Régénérer les erreurs (${plan.invalidDrafts})`}
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" disabled={isRunning}
                     title={publishReason ?? undefined} onClick={() => openWb(c, "publish")}>
@@ -905,6 +895,52 @@ export default function PipelineControlCenter() {
           </div>
         )}
       </Card>
+
+      {/* ── Outils secondaires : repliés pour garder la liste des villes accessible ── */}
+      <details className="group rounded-lg border border-border bg-card">
+        <summary className="cursor-pointer select-none list-none p-4 text-sm font-display font-bold flex items-center justify-between gap-2">
+          <span>Génération automatique START, bilan et tâches refusées</span>
+          <span className="text-xs font-normal text-muted-foreground group-open:hidden">Afficher</span>
+          <span className="text-xs font-normal text-muted-foreground hidden group-open:inline">Masquer</span>
+        </summary>
+        <div className="space-y-4 border-t border-border p-2 md:p-4">
+        <AutopilotPanel />
+        {cov.size > 0 && (
+          <Card className="p-4 md:p-6 space-y-2">
+            <h3 className="text-base font-display font-bold">Bilan de couverture — {nf(bilan.cities)} villes actives</h3>
+            {catalogTotal && <CatalogTotals s={catalogTotal} complete={catalogComplete} cities={catalogBySlug.size} />}
+            <div className="text-xs font-semibold pt-1">File du générateur (opportunités pertinentes seulement)</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div><div className="text-lg font-bold">{nf(bilan.planned)}</div>pages attendues (opportunités pertinentes)</div>
+              <div><div className="text-lg font-bold">{nf(bilan.published)}</div>publiées</div>
+              <div><div className="text-lg font-bold">{nf(bilan.drafts)}</div>en brouillon</div>
+              <div><div className="text-lg font-bold">{nf(bilan.toDevelop)}</div>manquantes (dans la file)</div>
+              <div><div className="text-lg font-bold">{nf(bilan.errDraft)}</div>brouillons en erreur (régénérables)</div>
+              <div><div className="text-lg font-bold">{nf(bilan.errPub)}</div>pages en ligne à corriger (protégées)</div>
+              <div><div className="text-lg font-bold">{nf(bilan.pending + bilan.failed)}</div>tâches en attente ou échouées</div>
+              <div><div className="text-lg font-bold">{nf(bilan.noindex)}</div>non indexées volontairement (pas une erreur)</div>
+            </div>
+            <p className="text-xs text-muted-foreground">Exclues : {nf(bilan.offCriteria)} page(s) existante(s) hors critères — aucune demande ni service configuré ne les justifie; elles sont conservées mais ne comptent pas dans les pages attendues.</p>
+          </Card>
+        )}
+        {/* ── Tâches refusées (consultation seule) ────────────────── */}
+        <RefusedTasksPanel
+          cityName={(s) => (state?.cities ?? []).find((c) => c.slug === s)?.name ?? cityNames.get(s) ?? null}
+          comboLabel={(city, t) => {
+            const kind = t.material_slug ? "material" : t.service_slug ? "service" : "hub";
+            const sl = t.material_slug ?? t.service_slug ?? null;
+            return (cov.get(city)?.items ?? []).find((x) => x.kind === kind && (x.slug ?? null) === sl)?.label ?? sl;
+          }}
+          availability={(city, t) => {
+            const kind = t.material_slug ? "material" : t.service_slug ? "service" : "hub";
+            const sl = t.material_slug ?? t.service_slug ?? null;
+            if (kind !== "hub" && exclusionsFor(city).has(`${kind}|${sl}`)) return "exclue";
+            const it = (cov.get(city)?.items ?? []).find((x) => x.kind === kind && (x.slug ?? null) === sl);
+            return it ? (availabilityOf(it, decisions.get(decisionKey(city, kind, sl))?.decision, srvOf(city, kind, sl)) as "confirmee" | "exclue" | "inconnue") : null;
+          }}
+          onOpenCity={(slug, name) => { setWbCity({ slug, name }); void verifyWb(); }} />
+        </div>
+      </details>
 
       {/* ── Audits secondaires : lectures massives (contenu de toutes les pages) chargées sur demande seulement,
            sinon elles saturent la base au chargement et font échouer la liste des villes et la fiche de ville. ── */}
