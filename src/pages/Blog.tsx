@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { PUBLIC_PHONE, PUBLIC_PHONE_E164 } from "@/lib/public-phone";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Calculator, BookOpen, HelpCircle, Sparkles, Flame, Clock as ClockIcon, Star } from "lucide-react";
