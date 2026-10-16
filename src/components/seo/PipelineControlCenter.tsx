@@ -481,6 +481,9 @@ export default function PipelineControlCenter() {
             <Button size="sm" variant="outline" onClick={() => void reload()} className="gap-2">
               <RefreshCw className="w-4 h-4" /> Rafraîchir
             </Button>
+            <Button size="sm" variant="outline" onClick={openStart} className="gap-2" title="Ouvre le panneau START (génération automatique) sans le lancer">
+              <Rocket className="w-4 h-4" /> START (génération automatique)
+            </Button>
             {!run && (
               <Button size="sm" className="gap-2" disabled={!!globalLock || !startable.allowed || global.starting || global.loading}
                 title={globalLock ?? (startable.allowed ? "Génère uniquement les pages pertinentes manquantes" : startable.reason)}
@@ -708,13 +711,13 @@ export default function PipelineControlCenter() {
       <Card className="p-4 md:p-6 space-y-4">
         <div className="flex flex-wrap items-center gap-3 justify-between">
           <h3 className="text-base font-display font-bold">État des villes ({state?.cities.length ?? 0})</h3>
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher une ville…" className="h-9 w-full sm:w-56" />
+          <Input value={search} onChange={(e) => { setSearch(e.target.value); setVisible(12); }} placeholder="Rechercher une ville…" className="h-9 w-full sm:w-56" />
         </div>
 
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((f) => (
             <Button key={f.key} size="sm" variant={filter === f.key ? "default" : "outline"}
-              className="h-8 text-xs" onClick={() => { setFilter(f.key); setVisible(24); }}>
+              className="h-8 text-xs" onClick={() => { setFilter(f.key); setVisible(12); }}>
               {f.label}
             </Button>
           ))}
@@ -918,13 +921,13 @@ export default function PipelineControlCenter() {
         )}
         {cities.length > visible && (
           <div className="text-center">
-            <Button variant="outline" size="sm" onClick={() => setVisible((v) => v + 24)}>Afficher plus ({cities.length - visible})</Button>
+            <Button variant="outline" size="sm" onClick={() => setVisible((v) => v + 12)}>Afficher 12 villes de plus ({cities.length - visible} restantes)</Button>
           </div>
         )}
       </Card>
 
       {/* ── Outils secondaires : repliés pour garder la liste des villes accessible ── */}
-      <details className="group rounded-lg border border-border bg-card">
+      <details ref={startRef} id="outils-start" className="group rounded-lg border border-border bg-card">
         <summary className="cursor-pointer select-none list-none p-4 text-sm font-display font-bold flex items-center justify-between gap-2">
           <span>Génération automatique START, bilan et tâches refusées</span>
           <span className="text-xs font-normal text-muted-foreground group-open:hidden">Afficher</span>
