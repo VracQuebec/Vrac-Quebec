@@ -448,7 +448,7 @@ export default function PipelineControlCenter() {
     if (!window.confirm(`Régénérer ${n} brouillon(s) en erreur de ${c.name} ? Les pages en ligne ne seront pas remplacées.`)) return;
     void act(`retry-${c.slug}`, async () => {
       const o = await repairCity(slots);
-      if (o.done.length === 0 && o.failed.length > 0) throw new Error(repairOutcomeMessage(o));
+      if (o.done.length === 0 && o.failed.length > 0) throw new Error(`${repairOutcomeMessage(o)} Raison : ${o.failed[0].error}`);
       return repairOutcomeMessage(o);
     }, `Régénération — ${c.name}`);
   }
