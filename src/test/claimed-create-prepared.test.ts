@@ -40,7 +40,7 @@ function fakeDb() {
   });
   return { sb, guard, rows, mails, handlers, age: (s: number) => guard.forEach((g) => (g.at = new Date(Date.parse(g.at) - s * 1000).toISOString())) };
 }
-const G = { scope: "s", identity: "x@exemple.invalid", fingerprint: "fp" };
+const G = { scope: "s", identity: "x@exemple.invalid", fingerprint: "fp", ip: null as string | null };
 
 // L'appelant n'envoie un courriel QUE sur « created » (règle reproduite ici).
 async function submit(db: ReturnType<typeof fakeDb>, opts = {}) {

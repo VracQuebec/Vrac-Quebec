@@ -1,0 +1,5 @@
+{
+  "_note": "Déclaration manuelle. Passer à true SEULEMENT après application vérifiée en production, sur autorisation écrite. Le test src/test/prepared-integration-order.test.ts bloque tout usage de guard_claim_id dans supabase/functions/ tant que ces valeurs sont false.",
+  "migration-anti-doublon-transactionnel": false,
+  "migration-guard-claim-id": false
+}

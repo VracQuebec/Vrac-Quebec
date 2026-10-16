@@ -9,13 +9,42 @@
 
 -- 1. seo_sync_cities_from_territories : écrit geo_territories et seo_cities,
 --    aucun contrôle d'identité. Seul appelant : src/pages/AdminSeoManager.tsx (admin connecté).
+--    Mécanisme d'autorisation existant confirmé : public.has_role(uuid, app_role)
+--    (SECURITY DEFINER, table user_roles; 323 usages has_role(auth.uid(),'admin')
+--    dans supabase/migrations; Login.tsx envoie le rôle 'admin' vers /admin).
+--    La définition actuelle n'existe dans aucun fichier du dépôt : on ne la recopie
+--    pas. On renomme la version en production (corps inchangé, octet pour octet)
+--    et on place devant elle une enveloppe qui exige le rôle admin CÔTÉ SERVEUR.
+--    L'appel .rpc("seo_sync_cities_from_territories") de l'interface reste identique.
+ALTER FUNCTION public.seo_sync_cities_from_territories()
+  RENAME TO seo_sync_cities_from_territories_impl;
+REVOKE EXECUTE ON FUNCTION public.seo_sync_cities_from_territories_impl()
+  FROM PUBLIC, anon, authenticated, service_role;
+COMMENT ON FUNCTION public.seo_sync_cities_from_territories_impl() IS
+  'Corps d''origine — appelable uniquement via seo_sync_cities_from_territories() (garde admin).';
+
+CREATE FUNCTION public.seo_sync_cities_from_territories()
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- auth.uid() est NULL pour anon et service_role : seuls les admins connectés passent.
+  IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin'::public.app_role) THEN
+    RAISE EXCEPTION 'Accès refusé : réservé aux administrateurs' USING ERRCODE = '42501';
+  END IF;
+  RETURN public.seo_sync_cities_from_territories_impl();
+END;
+$$;
 REVOKE EXECUTE ON FUNCTION public.seo_sync_cities_from_territories() FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION public.seo_sync_cities_from_territories() TO authenticated, service_role;
--- + contrôle admin dans le corps (même logique, garde ajoutée en tête) :
---   IF NOT public.has_role(auth.uid(), 'admin') THEN
---     RAISE EXCEPTION 'Accès refusé' USING ERRCODE = '42501'; END IF;
---   (à intégrer en recopiant la définition actuelle mot pour mot — non fait ici
---    pour éviter toute divergence avec la version en production)
+-- Prérequis à vérifier juste avant application (non vérifiés ici) :
+--   a) propriétaire de la fonction d'origine = postgres (l'enveloppe, créée par
+--      le même rôle, peut alors appeler _impl malgré le REVOKE);
+--   b) type de retour = jsonb (relevé inventaire 16 oct.);
+--   c) aucune autre fonction SQL ne l'appelle (inventaire : aucun appelant SQL).
+-- Test attendu : anon → 42501 ; connecté non admin → 42501 ; admin → même jsonb qu'avant.
 
 -- 2. mkt_compute_commission : crée/modifie mkt_commissions pour tout _award_id.
 --    Seul appelant : déclencheur mkt_award_commission_trg (SECURITY DEFINER,
@@ -39,12 +68,29 @@ GRANT  EXECUTE ON FUNCTION public.seo_optimization_candidates(text, integer, int
 -- has_role sert à 7 politiques ouvertes à anon/public (seo_pages, submissions…).
 
 -- ---------------- Retour arrière exact (ACL relevées le 16 oct.) ----------------
--- seo_sync_cities_from_territories : {postgres, anon, authenticated, service_role}
---   GRANT EXECUTE ON FUNCTION public.seo_sync_cities_from_territories() TO anon;
+-- seo_sync_cities_from_territories : ACL d'origine
+--   {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+--   (aucune entrée PUBLIC « =X/postgres »). Retour arrière : retirer l'enveloppe
+--   et redonner son nom et ses droits au corps d'origine :
+--   DROP FUNCTION public.seo_sync_cities_from_territories();
+--   ALTER FUNCTION public.seo_sync_cities_from_territories_impl()
+--     RENAME TO seo_sync_cities_from_territories;
+--   COMMENT ON FUNCTION public.seo_sync_cities_from_territories() IS NULL;
+--   GRANT EXECUTE ON FUNCTION public.seo_sync_cities_from_territories()
+--     TO anon, authenticated, service_role;   -- postgres garde le droit propriétaire
 -- mkt_compute_commission : {=X (PUBLIC), postgres, service_role}
 --   GRANT EXECUTE ON FUNCTION public.mkt_compute_commission(uuid) TO PUBLIC;
 --   REVOKE EXECUTE ON FUNCTION public.mkt_compute_commission(uuid) FROM authenticated; -- n'avait pas de droit direct
 -- blog_increment_view : {postgres, anon, authenticated, service_role}
 --   GRANT EXECUTE ON FUNCTION public.blog_increment_view(uuid) TO anon, authenticated;
--- seo_optimization_counts / _candidates : relever leur ACL juste avant application
---   (inventaire-privileges-LECTURE-SEULE.sql) et restaurer à l'identique.
+-- seo_optimization_counts() : ACL d'origine relevée le 16 oct. (inventaire-fonctions-anon-2026-10-16.csv, l.122)
+--   {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+--   Aucune entrée PUBLIC : le REVOKE FROM PUBLIC ne retire rien, rien à rétablir pour PUBLIC.
+--   authenticated et service_role restent accordés par la proposition.
+--   GRANT EXECUTE ON FUNCTION public.seo_optimization_counts() TO anon;
+-- seo_optimization_candidates(text, integer, integer) : même relevé (l.121), ACL identique
+--   {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+--   GRANT EXECUTE ON FUNCTION public.seo_optimization_candidates(text, integer, integer) TO anon;
+-- Contrôle après retour arrière : proacl de chaque fonction doit être égal,
+--   à l'ordre près, aux valeurs ci-dessus (inventaire-privileges-LECTURE-SEULE.sql).
+--   Le relevé date du 16 oct. : le refaire juste avant application; tout écart = arrêt.
