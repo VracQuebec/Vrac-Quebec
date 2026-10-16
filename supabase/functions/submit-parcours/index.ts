@@ -206,7 +206,9 @@ Deno.serve(async (req) => {
     if (error || !lead?.id) throw new Error(error?.message ?? 'création sans référence');
 
     // Le déclencheur public neutralise les coordonnées : on les réapplique.
-    if (lead?.id && geo) {
+    // Erreur ici = demande DÉJÀ créée : on journalise sans faire échouer
+    // (sinon la réservation serait libérée et un renvoi créerait un double).
+    if (lead?.id && geo) try {
       await sb.from('submissions').update({
         latitude: geo.lat,
         longitude: geo.lng,
@@ -214,6 +216,8 @@ Deno.serve(async (req) => {
         geocoding_status: 'ok',
         geocoding_provider: 'google',
       }).eq('id', lead.id);
+    } catch (e) {
+      logEventAsync({ source: 'submit_parcours', event: 'geocode.apply_failed', level: 'warn', refId: String(lead.id), message: e instanceof Error ? e.message : String(e) });
     }
 
       return { submissionId: String(lead.id), data: { geo } };
