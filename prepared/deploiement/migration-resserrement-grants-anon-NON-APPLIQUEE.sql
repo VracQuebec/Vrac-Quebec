@@ -83,13 +83,15 @@ INSERT INTO acl_backup_20261016.relations (relname, relkind, relacl)
 SELECT c.relname, c.relkind, c.relacl
   FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
  WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
-ON CONFLICT (relname) DO NOTHING;
+   -- Relevé pris UNE SEULE FOIS : une ré-exécution n'y ajoute jamais
+   -- l'état déjà resserré ni les objets créés ensuite.
+   AND NOT EXISTS (SELECT 1 FROM acl_backup_20261016.relations);
 
 INSERT INTO acl_backup_20261016.default_acls (owner_role, objtype, defaclacl)
 SELECT d.defaclrole::regrole::text, d.defaclobjtype, d.defaclacl
   FROM pg_default_acl d
  WHERE d.defaclnamespace = 'public'::regnamespace
-ON CONFLICT (owner_role, objtype) DO NOTHING;
+   AND NOT EXISTS (SELECT 1 FROM acl_backup_20261016.default_acls);
 
 -- B. Tables et vues ----------------------------------------------------------
 DO $$

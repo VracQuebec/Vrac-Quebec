@@ -31,7 +31,7 @@ q "CREATE TABLE public.submissions (id int, submission_number serial);
    CREATE VIEW public.mkt_partners_public WITH (security_invoker=on) AS SELECT * FROM public.mkt_partners;
    CREATE SEQUENCE public.dompe_number_seq;
    REVOKE INSERT ON public.blog_tags FROM anon;"  # un état initial non uniforme
-BEFORE=$(q "select string_agg(relname||'='||coalesce(relacl::text,''), ';' order by relname) from pg_class where relnamespace='public'::regnamespace and relkind in ('r','v','S')")
+BEFORE=$(q "select string_agg(c.relname||':'||coalesce(r.rolname,'public')||':'||e.privilege_type, ';' order by c.relname||':'||coalesce(r.rolname,'public')||':'||e.privilege_type) from pg_class c cross join lateral aclexplode(coalesce(c.relacl,'{}')) e left join pg_roles r on r.oid=e.grantee where c.relnamespace='public'::regnamespace and c.relkind in ('r','v','S')")
 DEF_BEFORE=$(q "select string_agg(defaclobjtype::text||'='||defaclacl::text, ';' order by defaclobjtype) from pg_default_acl")
 
 psql -X -v ON_ERROR_STOP=1 -q -f "$MIG"
@@ -55,7 +55,7 @@ echo "== Restauration exacte"
 OUT=$(psql -X -v ON_ERROR_STOP=1 -f "$REST" 2>&1) || { echo "$OUT"; exit 1; }
 check "objet créé après le relevé signalé et non modifié" "$(echo "$OUT" | grep -c 'nouvelle_table')" 1
 q "DROP TABLE public.nouvelle_table"
-AFTER=$(q "select string_agg(relname||'='||coalesce(relacl::text,''), ';' order by relname) from pg_class where relnamespace='public'::regnamespace and relkind in ('r','v','S')")
+AFTER=$(q "select string_agg(c.relname||':'||coalesce(r.rolname,'public')||':'||e.privilege_type, ';' order by c.relname||':'||coalesce(r.rolname,'public')||':'||e.privilege_type) from pg_class c cross join lateral aclexplode(coalesce(c.relacl,'{}')) e left join pg_roles r on r.oid=e.grantee where c.relnamespace='public'::regnamespace and c.relkind in ('r','v','S')")
 DEF_AFTER=$(q "select string_agg(defaclobjtype::text||'='||defaclacl::text, ';' order by defaclobjtype) from pg_default_acl")
 echo "$BEFORE" | tr ";" "\n" > /tmp/b.txt; echo "$AFTER" | tr ";" "\n" > /tmp/a.txt; echo "$OUT" > /tmp/out.txt
 check "ACL de tous les objets identiques à l'état initial" "$([ "$BEFORE" = "$AFTER" ] && echo identique || echo différent)" identique
