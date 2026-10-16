@@ -447,7 +447,6 @@ export default function PipelineControlCenter() {
 
   return (
     <div className="space-y-4">
-      <AutopilotPanel />
       {/* ── En-tête + contrôles globaux ─────────────────────────── */}
       <Card className="p-4 md:p-6 space-y-4">
         <header className="flex flex-wrap items-start gap-3 justify-between">
@@ -491,7 +490,13 @@ export default function PipelineControlCenter() {
         {totals && (
           <>
             {/* ── COUVERTURE SEO — source officielle : seo_control_center() (même logique que le Générateur) ── */}
-            <section className="rounded-xl border border-border p-4 md:p-5 space-y-4">
+            <details className="group rounded-xl border border-border">
+              <summary className="cursor-pointer select-none list-none px-4 py-3 text-sm font-display font-bold flex items-center justify-between gap-2">
+                <span>Détail de la couverture SEO</span>
+                <span className="text-xs font-normal text-muted-foreground group-open:hidden">Afficher</span>
+                <span className="text-xs font-normal text-muted-foreground hidden group-open:inline">Masquer</span>
+              </summary>
+            <section className="border-t border-border p-4 md:p-5 space-y-4">
               <div>
                 <h3 className="text-sm font-display font-bold tracking-wide">COUVERTURE SEO</h3>
                 <p className="text-xs text-muted-foreground">
@@ -584,6 +589,7 @@ export default function PipelineControlCenter() {
                 )}
               </div>
             </section>
+            </details>
 
             <div className="rounded-lg border border-border bg-background/50 p-3 text-sm">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -678,42 +684,6 @@ export default function PipelineControlCenter() {
           </>
         )}
       </Card>
-
-      {cov.size > 0 && (
-        <Card className="p-4 md:p-6 space-y-2">
-          <h3 className="text-base font-display font-bold">Bilan de couverture — {nf(bilan.cities)} villes actives</h3>
-          {catalogTotal && <CatalogTotals s={catalogTotal} complete={catalogComplete} cities={catalogBySlug.size} />}
-          <div className="text-xs font-semibold pt-1">File du générateur (opportunités pertinentes seulement)</div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-            <div><div className="text-lg font-bold">{nf(bilan.planned)}</div>pages attendues (opportunités pertinentes)</div>
-            <div><div className="text-lg font-bold">{nf(bilan.published)}</div>publiées</div>
-            <div><div className="text-lg font-bold">{nf(bilan.drafts)}</div>en brouillon</div>
-            <div><div className="text-lg font-bold">{nf(bilan.toDevelop)}</div>manquantes (dans la file)</div>
-            <div><div className="text-lg font-bold">{nf(bilan.errDraft)}</div>brouillons en erreur (régénérables)</div>
-            <div><div className="text-lg font-bold">{nf(bilan.errPub)}</div>pages en ligne à corriger (protégées)</div>
-            <div><div className="text-lg font-bold">{nf(bilan.pending + bilan.failed)}</div>tâches en attente ou échouées</div>
-            <div><div className="text-lg font-bold">{nf(bilan.noindex)}</div>non indexées volontairement (pas une erreur)</div>
-          </div>
-          <p className="text-xs text-muted-foreground">Exclues : {nf(bilan.offCriteria)} page(s) existante(s) hors critères — aucune demande ni service configuré ne les justifie; elles sont conservées mais ne comptent pas dans les pages attendues.</p>
-        </Card>
-      )}
-
-      {/* ── Tâches refusées (consultation seule) ────────────────── */}
-      <RefusedTasksPanel
-        cityName={(s) => (state?.cities ?? []).find((c) => c.slug === s)?.name ?? cityNames.get(s) ?? null}
-        comboLabel={(city, t) => {
-          const kind = t.material_slug ? "material" : t.service_slug ? "service" : "hub";
-          const sl = t.material_slug ?? t.service_slug ?? null;
-          return (cov.get(city)?.items ?? []).find((x) => x.kind === kind && (x.slug ?? null) === sl)?.label ?? sl;
-        }}
-        availability={(city, t) => {
-          const kind = t.material_slug ? "material" : t.service_slug ? "service" : "hub";
-          const sl = t.material_slug ?? t.service_slug ?? null;
-          if (kind !== "hub" && exclusionsFor(city).has(`${kind}|${sl}`)) return "exclue";
-          const it = (cov.get(city)?.items ?? []).find((x) => x.kind === kind && (x.slug ?? null) === sl);
-          return it ? (availabilityOf(it, decisions.get(decisionKey(city, kind, sl))?.decision, srvOf(city, kind, sl)) as "confirmee" | "exclue" | "inconnue") : null;
-        }}
-        onOpenCity={(slug, name) => { setWbCity({ slug, name }); void verifyWb(); }} />
 
       {/* ── État des villes ─────────────────────────────────────── */}
       <Card className="p-4 md:p-6 space-y-4">
@@ -905,6 +875,52 @@ export default function PipelineControlCenter() {
           </div>
         )}
       </Card>
+
+      {/* ── Outils secondaires : repliés pour garder la liste des villes accessible ── */}
+      <details className="group rounded-lg border border-border bg-card">
+        <summary className="cursor-pointer select-none list-none p-4 text-sm font-display font-bold flex items-center justify-between gap-2">
+          <span>Génération automatique START, bilan et tâches refusées</span>
+          <span className="text-xs font-normal text-muted-foreground group-open:hidden">Afficher</span>
+          <span className="text-xs font-normal text-muted-foreground hidden group-open:inline">Masquer</span>
+        </summary>
+        <div className="space-y-4 border-t border-border p-2 md:p-4">
+        <AutopilotPanel />
+        {cov.size > 0 && (
+          <Card className="p-4 md:p-6 space-y-2">
+            <h3 className="text-base font-display font-bold">Bilan de couverture — {nf(bilan.cities)} villes actives</h3>
+            {catalogTotal && <CatalogTotals s={catalogTotal} complete={catalogComplete} cities={catalogBySlug.size} />}
+            <div className="text-xs font-semibold pt-1">File du générateur (opportunités pertinentes seulement)</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div><div className="text-lg font-bold">{nf(bilan.planned)}</div>pages attendues (opportunités pertinentes)</div>
+              <div><div className="text-lg font-bold">{nf(bilan.published)}</div>publiées</div>
+              <div><div className="text-lg font-bold">{nf(bilan.drafts)}</div>en brouillon</div>
+              <div><div className="text-lg font-bold">{nf(bilan.toDevelop)}</div>manquantes (dans la file)</div>
+              <div><div className="text-lg font-bold">{nf(bilan.errDraft)}</div>brouillons en erreur (régénérables)</div>
+              <div><div className="text-lg font-bold">{nf(bilan.errPub)}</div>pages en ligne à corriger (protégées)</div>
+              <div><div className="text-lg font-bold">{nf(bilan.pending + bilan.failed)}</div>tâches en attente ou échouées</div>
+              <div><div className="text-lg font-bold">{nf(bilan.noindex)}</div>non indexées volontairement (pas une erreur)</div>
+            </div>
+            <p className="text-xs text-muted-foreground">Exclues : {nf(bilan.offCriteria)} page(s) existante(s) hors critères — aucune demande ni service configuré ne les justifie; elles sont conservées mais ne comptent pas dans les pages attendues.</p>
+          </Card>
+        )}
+        {/* ── Tâches refusées (consultation seule) ────────────────── */}
+        <RefusedTasksPanel
+          cityName={(s) => (state?.cities ?? []).find((c) => c.slug === s)?.name ?? cityNames.get(s) ?? null}
+          comboLabel={(city, t) => {
+            const kind = t.material_slug ? "material" : t.service_slug ? "service" : "hub";
+            const sl = t.material_slug ?? t.service_slug ?? null;
+            return (cov.get(city)?.items ?? []).find((x) => x.kind === kind && (x.slug ?? null) === sl)?.label ?? sl;
+          }}
+          availability={(city, t) => {
+            const kind = t.material_slug ? "material" : t.service_slug ? "service" : "hub";
+            const sl = t.material_slug ?? t.service_slug ?? null;
+            if (kind !== "hub" && exclusionsFor(city).has(`${kind}|${sl}`)) return "exclue";
+            const it = (cov.get(city)?.items ?? []).find((x) => x.kind === kind && (x.slug ?? null) === sl);
+            return it ? (availabilityOf(it, decisions.get(decisionKey(city, kind, sl))?.decision, srvOf(city, kind, sl)) as "confirmee" | "exclue" | "inconnue") : null;
+          }}
+          onOpenCity={(slug, name) => { setWbCity({ slug, name }); void verifyWb(); }} />
+        </div>
+      </details>
 
       {/* ── Audits secondaires : lectures massives (contenu de toutes les pages) chargées sur demande seulement,
            sinon elles saturent la base au chargement et font échouer la liste des villes et la fiche de ville. ── */}
