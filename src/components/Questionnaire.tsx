@@ -12,7 +12,6 @@ import { logSeoEvent } from "@/lib/seo/tracking";
 import { trackEvent } from "@/lib/analytics/ga4";
 import { getAttribution } from "@/lib/analytics/attribution";
 import { ChevronLeft, ChevronRight, Send, Check, Loader2, Facebook } from "lucide-react";
-import { PUBLIC_PHONE, PUBLIC_PHONE_E164, PUBLIC_PHONE_WA } from "@/lib/public-phone";
 
 const STEPS = [
   { label: "Matériel", number: 1 },
@@ -318,25 +317,25 @@ const Questionnaire = ({
           <p className="text-sm text-muted-foreground mb-4">Passez en priorité 👇</p>
           <div className="grid grid-cols-1 gap-3">
             <a
-              href={`tel:${PUBLIC_PHONE_E164}`}
+              href="tel:+18195923495"
               className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 transition-opacity"
             >
-              📞 Appeler — {PUBLIC_PHONE}
+              📞 Appeler — 819-592-3495
             </a>
             <a
-              href={`tel:${PUBLIC_PHONE_E164}`}
+              href="tel:+18195923495"
               className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 transition-opacity"
             >
-              📞 Appeler — {PUBLIC_PHONE}
+              📞 Appeler — 819-592-3495
             </a>
             <a
-              href={`sms:${PUBLIC_PHONE_WA}?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac.`}
+              href="sms:18195923495?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
               className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 border-foreground text-foreground font-display font-semibold text-sm hover:bg-foreground/5 transition-colors"
             >
               💬 Envoyer un texto
             </a>
             <a
-              href={`https://wa.me/${PUBLIC_PHONE_WA}?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac.`}
+              href="https://wa.me/18195923495?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-[#25D366] text-white font-display font-semibold text-sm hover:opacity-90 transition-opacity"

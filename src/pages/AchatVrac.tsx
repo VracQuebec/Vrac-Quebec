@@ -25,7 +25,6 @@ import CatalogPicker from "@/components/vrac/CatalogPicker";
 import { buildQuoteRequest, useVracEstimate } from "@/lib/vrac/estimate";
 import { useQuoteSubmit } from "@/lib/vrac/submit";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
-import { PUBLIC_PHONE } from "@/lib/public-phone";
 import {
   recommendedTruckId, unitLabel, unitsForSlug, useMaterialUnits, usePublicTrucks, useTruckCapacity,
 } from "@/lib/vrac/units";
@@ -416,7 +415,7 @@ function Recap({ draft, loading, error, manualReview, blockedReason, onFix }: {
             <br />
             {blockedReason ?? "Une information essentielle est manquante."}
             <br />
-            Corrigez cette information pour obtenir votre prix instantané, ou appelez-nous au {PUBLIC_PHONE}.
+            Corrigez cette information pour obtenir votre prix instantané, ou appelez-nous au 819-592-3495.
           </Notice>
           {onFix && (
             <Button onClick={onFix} className="w-full sm:w-auto">
@@ -466,9 +465,6 @@ function ManualRequest({ draft, submission }: { draft: VracDraft; submission: Re
       <div className="rounded-2xl border border-primary/40 bg-primary/5 p-5 text-sm">
         <p className="font-semibold text-foreground">Demande transmise {submission.result.request_number ?? ""}</p>
         <p className="mt-1 text-muted-foreground">Soumission à confirmer : notre équipe vous contactera avec un prix.</p>
-        {submission.result.email_sent === false && (
-          <p className="mt-1 text-muted-foreground">Le courriel de confirmation n'a pas pu être envoyé — notre équipe vous contactera directement.</p>
-        )}
       </div>
     );
   }

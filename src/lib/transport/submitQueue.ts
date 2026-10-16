@@ -280,13 +280,18 @@ export async function submitTransportRequest(
   }
 
   if (result.kind === "drop") {
-    // Refus définitif du serveur (validation) : aucune relance n'aura lieu.
-    // Honnêteté obligatoire : jamais de confirmation « en attente » sans
-    // enregistrement. L'utilisateur voit l'erreur, corrige sa saisie et
-    // peut renvoyer — le formulaire conserve ses réponses.
-    remove(key);
+    upsert(key, { attempts, last_error: `drop:${result.reason}` });
     notify();
-    return { status: "rejected", idempotency_key: key, message: result.reason };
+    // Parcours rattaché à une demande existante : jamais de fausse
+    // confirmation. Le refus est explicite et rien n'a été créé.
+    if (payload.origin_submission_id) {
+      remove(key);
+      notify();
+      return { status: "rejected", idempotency_key: key, message: result.reason };
+    }
+    // Even on a "drop" we don't scare the user. From their point of view the
+    // demand is queued; the admin will see the log and act.
+    return { status: "queued", idempotency_key: key };
   }
 
   upsert(key, { attempts, last_error: result.reason });

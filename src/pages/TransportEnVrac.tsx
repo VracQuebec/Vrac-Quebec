@@ -8,7 +8,6 @@ import { Link } from "react-router-dom";
 import { ChevronRight, Home, MapPin, Truck, Calculator, FileText } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import { supabase } from "@/integrations/supabase/client";
-import { materialFicheHref } from "@/lib/catalogue/material-links";
 
 const SITE = "https://vracquebec.ca";
 const URL = `${SITE}/transport-en-vrac`;
@@ -18,11 +17,10 @@ type CityLink = { slug: string; title: string };
 export default function TransportEnVrac() {
   const [cities, setCities] = useState<CityLink[]>([]);
   const [materials, setMaterials] = useState<{ slug: string; name: string }[]>([]);
-  const [fiches, setFiches] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     void (async () => {
-      const [pages, mats, cat] = await Promise.all([
+      const [pages, mats] = await Promise.all([
         supabase
           .from("seo_pages")
           .select("slug,title,city_slug")
@@ -30,9 +28,7 @@ export default function TransportEnVrac() {
           .like("slug", "transport-vrac-%")
           .order("slug"),
         supabase.from("seo_materials").select("slug,name").order("name"),
-        supabase.rpc("jsc_public_catalog"),
       ]);
-      setFiches(new Set(((cat.data ?? []) as { slug: string }[]).map((m) => m.slug)));
       setCities(((pages.data ?? []) as CityLink[]).map((p) => ({ slug: p.slug, title: p.title })));
       setMaterials((mats.data ?? []) as { slug: string; name: string }[]);
     })();
@@ -127,22 +123,13 @@ export default function TransportEnVrac() {
         <section>
           <h2 className="text-2xl font-display font-bold text-foreground mb-3">Matériaux transportés</h2>
           <ul className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {materials.map((m) => {
-              const href = materialFicheHref(m.slug, fiches);
-              return (
-                <li key={m.slug}>
-                  {href ? (
-                    <Link to={href} className="block rounded-lg border border-border bg-card p-3 hover:border-primary font-body text-foreground">
-                      {m.name}
-                    </Link>
-                  ) : (
-                    <span className="block rounded-lg border border-dashed border-border p-3 font-body text-muted-foreground" title="Fiche détaillée à venir">
-                      {m.name}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
+            {materials.map((m) => (
+              <li key={m.slug}>
+                <Link to={`/materiaux/${m.slug}`} className="block rounded-lg border border-border bg-card p-3 hover:border-primary font-body text-foreground">
+                  {m.name}
+                </Link>
+              </li>
+            ))}
           </ul>
           <Link to="/materiaux" className="mt-3 inline-flex items-center gap-2 text-primary font-display font-semibold hover:underline">
             Tous les matériaux <ChevronRight className="w-4 h-4" />

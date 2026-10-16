@@ -8,7 +8,6 @@ import { useEntrepreneurNotifications } from "@/hooks/useEntrepreneurNotificatio
 import { Button } from "@/components/ui/button";
 import FullPageState from "@/components/FullPageState";
 import InstallAppCard from "@/components/entrepreneur-app/InstallAppCard";
-import { PUBLIC_PHONE_E164 } from "@/lib/public-phone";
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -221,7 +220,7 @@ export default function EntrepreneurAppShell({
             <p className="px-3 py-2 font-body text-[11px] font-medium uppercase text-muted-foreground">{section.title}</p>
             {section.items.map(navigationLink)}
           </div>)}
-          <Button asChild variant="ghost" className="min-h-11 w-full justify-start gap-3 hover:bg-secondary hover:text-foreground"><a href={`tel:${PUBLIC_PHONE_E164}`}><LifeBuoy />Aide</a></Button>
+          <Button asChild variant="ghost" className="min-h-11 w-full justify-start gap-3 hover:bg-secondary hover:text-foreground"><a href="tel:+18195923495"><LifeBuoy />Aide</a></Button>
         </nav>
         <div className="shrink-0 border-t border-border p-3">
           <Button variant="ghost" onClick={handleLogout} className="min-h-11 w-full justify-start text-muted-foreground hover:bg-secondary hover:text-foreground"><LogOut />Déconnexion</Button>
@@ -279,7 +278,7 @@ export default function EntrepreneurAppShell({
                 </Button>;
               })}
               {section.title === "Compte" && <>
-                <Button asChild variant="ghost" className="min-h-11 w-full justify-start gap-3 px-2 font-body text-[13px] hover:bg-secondary hover:text-foreground"><a href={`tel:${PUBLIC_PHONE_E164}`} onClick={() => setMoreOpen(false)}><LifeBuoy className="text-muted-foreground" strokeWidth={1.6} /><span>Aide</span></a></Button>
+                <Button asChild variant="ghost" className="min-h-11 w-full justify-start gap-3 px-2 font-body text-[13px] hover:bg-secondary hover:text-foreground"><a href="tel:+18195923495" onClick={() => setMoreOpen(false)}><LifeBuoy className="text-muted-foreground" strokeWidth={1.6} /><span>Aide</span></a></Button>
                 <Button variant="ghost" onClick={handleLogout} className="min-h-11 w-full justify-start gap-3 px-2 font-body text-[13px] text-muted-foreground hover:bg-secondary hover:text-foreground"><LogOut strokeWidth={1.6} />Déconnexion</Button>
               </>}
               </div>}

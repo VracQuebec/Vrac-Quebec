@@ -6,7 +6,6 @@ import Questionnaire from "@/components/Questionnaire";
 import TransportBanner from "@/components/TransportBanner";
 import { supabase } from "@/integrations/supabase/client";
 import InternalLinksBlock, { type InternalLink } from "@/components/seo/InternalLinksBlock";
-import { PUBLIC_PHONE, PUBLIC_PHONE_E164, PUBLIC_PHONE_SCHEMA, PUBLIC_PHONE_WA } from "@/lib/public-phone";
 import { logSeoEvent, logSeoViewOnce } from "@/lib/seo/tracking";
 import { sanitizeHtml } from "@/lib/blog/utils";
 import {
@@ -210,7 +209,7 @@ export default function SeoLandingPage() {
       "@type": "Organization",
       name: "Vrac Québec",
       url: SITE,
-      telephone: PUBLIC_PHONE_SCHEMA,
+      telephone: "+1-819-592-3495",
     },
   };
   const jsonLdBreadcrumb = {
@@ -296,14 +295,14 @@ export default function SeoLandingPage() {
             <Truck className="w-4 h-4" /> Obtenir une soumission gratuite
           </a>
           <a
-            href={`tel:${PUBLIC_PHONE_E164}`}
+            href="tel:+18195923495"
             onClick={() => logSeoEvent(page.slug, "phone_click")}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-border bg-card text-foreground font-display font-bold hover:border-primary transition-colors"
           >
-            <Phone className="w-4 h-4" /> {PUBLIC_PHONE}
+            <Phone className="w-4 h-4" /> 819-592-3495
           </a>
           <a
-            href={`https://wa.me/${PUBLIC_PHONE_WA}`}
+            href="https://wa.me/18195923495"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => logSeoEvent(page.slug, "whatsapp_click")}
