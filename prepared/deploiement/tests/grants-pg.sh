@@ -57,6 +57,7 @@ check "objet créé après le relevé signalé et non modifié" "$(echo "$OUT" |
 q "DROP TABLE public.nouvelle_table"
 AFTER=$(q "select string_agg(relname||'='||coalesce(relacl::text,''), ';' order by relname) from pg_class where relnamespace='public'::regnamespace and relkind in ('r','v','S')")
 DEF_AFTER=$(q "select string_agg(defaclobjtype::text||'='||defaclacl::text, ';' order by defaclobjtype) from pg_default_acl")
+echo "$BEFORE" | tr ";" "\n" > /tmp/b.txt; echo "$AFTER" | tr ";" "\n" > /tmp/a.txt; echo "$OUT" > /tmp/out.txt
 check "ACL de tous les objets identiques à l'état initial" "$([ "$BEFORE" = "$AFTER" ] && echo identique || echo différent)" identique
 check "privilèges par défaut identiques" "$([ "$DEF_BEFORE" = "$DEF_AFTER" ] && echo identique || echo différent)" identique
 check "blog_tags sans INSERT anon (pas plus large qu'avant)" "$(q "select has_table_privilege('anon','public.blog_tags','INSERT')")" f
