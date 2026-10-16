@@ -241,7 +241,7 @@ export default function UniversalNav() {
       <nav
         ref={navRef}
         aria-label="Navigation universelle"
-        className="app-universal-nav safe-top safe-x w-full border-b border-border bg-background0"
+        className="app-universal-nav safe-top safe-x w-full border-b border-border bg-background"
       >
 
         <div className="no-scrollbar mx-auto flex w-full max-w-7xl items-center gap-1 overflow-x-auto px-2 py-2 sm:gap-2 sm:px-4">
