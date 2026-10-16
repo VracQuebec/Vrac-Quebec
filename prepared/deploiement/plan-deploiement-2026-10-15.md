@@ -96,3 +96,8 @@ Substitut réalisé : bases PostgreSQL jetables locales (connexions distinctes) 
 - [ ] Relevé des privilèges archivé
 - [ ] E1 → E2 → observation → E3 → E4, chacune autorisée séparément
 - [ ] Décision : resserrer EXECUTE des fonctions pour anon (194) — inventaire requis
+
+## Ajout du 16 oct. 2026 — quote-submit
+- `quote-submit` utilise désormais guard_claim/guard_complete/guard_release (module `quote-submit/dedupe.ts`). Il dépend donc de la migration anti-doublon v2 : la déployer **après** la migration (sinon mode de secours non atomique, journalisé `guard.fallback_active`).
+- Arrêt si, après déploiement, une réponse 200 sans `quote_number` ni `request_number` apparaît, ou si `guard.done_without_reference` est journalisé.
+- Staging et sauvegardes : voir `staging-et-sauvegardes-2026-10-16.md`. Inventaire des fonctions anon : `inventaire-fonctions-anon-2026-10-16.csv`.

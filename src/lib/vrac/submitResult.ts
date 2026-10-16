@@ -66,6 +66,8 @@ export function interpretQuoteSubmit(
         message: typeof data.error === "string" && data.error ? data.error : GENERIC_ERROR,
       };
     }
+    // Aucun numéro = aucune preuve d'enregistrement : jamais de succès.
+    if (!hasRef) return { kind: "failed", message: GENERIC_ERROR };
     // ok:true, ou ok:false hérité avec numéros (ancien serveur, courriel
     // en échec) : enregistrée. Un ok:false historique signifiait justement
     // que le courriel n'était pas parti.

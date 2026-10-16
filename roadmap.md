@@ -58,3 +58,10 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [x] mailchimp-webhook : erreurs base non ignorées
 - [x] Plan : prepared/deploiement/plan-deploiement-2026-10-15.md
 - [ ] EN ATTENTE : staging isolé, migrations, déploiement, publication (autorisation)
+
+## quote-submit + préparation staging (16 oct.) — aperçu seulement
+- [x] quote-submit sur le mécanisme guard_claim/complete/release (quote-submit/dedupe.ts); succès seulement avec numéro
+- [x] Tests simulés du gestionnaire réel 12/12; PostgreSQL jetable 55/55
+- [x] Staging/sauvegardes documentés : prepared/deploiement/staging-et-sauvegardes-2026-10-16.md
+- [x] Inventaire 194 fonctions anon : prepared/deploiement/inventaire-fonctions-anon-2026-10-16.csv
+- [ ] EN ATTENTE : création staging, revue des 130 « à examiner » et 3 « dangereuses », révocations (autorisation)
