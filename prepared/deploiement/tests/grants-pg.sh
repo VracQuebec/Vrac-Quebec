@@ -32,7 +32,7 @@ q "CREATE TABLE public.submissions (id int, submission_number serial);
    CREATE SEQUENCE public.dompe_number_seq;
    REVOKE INSERT ON public.blog_tags FROM anon;"  # un état initial non uniforme
 BEFORE=$(q "select string_agg(relname||'='||coalesce(relacl::text,''), ';' order by relname) from pg_class where relnamespace='public'::regnamespace and relkind in ('r','v','S')")
-DEF_BEFORE=$(q "select string_agg(defaclobjtype||'='||defaclacl::text, ';' order by defaclobjtype) from pg_default_acl")
+DEF_BEFORE=$(q "select string_agg(defaclobjtype::text||'='||defaclacl::text, ';' order by defaclobjtype) from pg_default_acl")
 
 psql -X -v ON_ERROR_STOP=1 -q -f "$MIG"
 check "anon ne lit plus une table privée" "$(q "select has_table_privilege('anon','public.clients_prives','SELECT')")" f
@@ -55,7 +55,7 @@ echo "== Restauration exacte"
 psql -X -v ON_ERROR_STOP=1 -q -f "$REST" 2>&1 | grep -c "créé après" | xargs -I{} echo "  (objets créés après signalés : {})"
 q "DROP TABLE public.nouvelle_table"
 AFTER=$(q "select string_agg(relname||'='||coalesce(relacl::text,''), ';' order by relname) from pg_class where relnamespace='public'::regnamespace and relkind in ('r','v','S')")
-DEF_AFTER=$(q "select string_agg(defaclobjtype||'='||defaclacl::text, ';' order by defaclobjtype) from pg_default_acl")
+DEF_AFTER=$(q "select string_agg(defaclobjtype::text||'='||defaclacl::text, ';' order by defaclobjtype) from pg_default_acl")
 check "ACL de tous les objets identiques à l'état initial" "$([ "$BEFORE" = "$AFTER" ] && echo identique || echo différent)" identique
 check "privilèges par défaut identiques" "$([ "$DEF_BEFORE" = "$DEF_AFTER" ] && echo identique || echo différent)" identique
 check "blog_tags sans INSERT anon (pas plus large qu'avant)" "$(q "select has_table_privilege('anon','public.blog_tags','INSERT')")" f
