@@ -1,5 +1,0 @@
-# Modules base de données
-
-- Agenda : agd_events/agd_attendees/agd_event_log/agd_deliveries par entreprise (distinct de calendar_events admin); récurrence = agd_occurrences (miroir src/lib/agenda/occurrences.ts); rappels générés par agd_reminders_sweep appelé dans crm_notifications_sweep, unicité (événement, occurrence, délai, destinataire, canal), courriel/texto « simule » — aucun envoi réel; cloche via agd_my_bell.
-- Obligations et renouvellements : obl_* écrits seulement par RPC obl_*; obl_reminders_sweep dans crm_notifications_sweep envoie seulement le dernier seuil atteint (unicité par obligation/période/échéance/rappel/destinataire/canal); échéances miroir dans agd_events, cloche obl_my_bell — moteur commun réutilisable.
-- Assurances entreprise (ASSUR-01) : tables asr_*, lecture via asr_can_read (chauffeur/mécanicien exclus, preuves via asr_driver_proofs), confirmation/non-renouvellement/suspension par RPC seulement; super admin non membre = accès au contenu seulement après asr_support_open (motif, 4 h, journalisé); rappels asr_sweep dans crm_notifications_sweep (unicité entreprise/période/occurrence/destinataire/canal).

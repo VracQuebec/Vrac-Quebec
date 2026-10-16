@@ -300,7 +300,7 @@ export default function ObtenirSoumissions() {
             <p className="text-sm text-muted-foreground">
               Des photos aident beaucoup les entreprises à évaluer votre projet. Formats acceptés : JPG, PNG, WEBP.
             </p>
-            <input ref={fileInput} type="file" accept="image/*" multiple className="hidden" aria-label="Ajouter des photos"
+            <input ref={fileInput} type="file" accept="image/*" multiple className="hidden"
               onChange={(e) => setFiles((prev) => [...prev, ...Array.from(e.target.files ?? [])].slice(0, 8))} />
             <Button type="button" variant="outline" onClick={() => fileInput.current?.click()}>
               <Paperclip className="mr-2 h-4 w-4" /> Ajouter des photos

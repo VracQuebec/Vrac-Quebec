@@ -134,7 +134,7 @@ const Index = () => {
                 <Mountain className="h-5 w-5 text-primary" aria-hidden /> Je veux du remblai
               </Link>
             </div>
-            <a href="#choix" className="mt-4 inline-flex min-h-11 items-center gap-1 font-body text-sm text-white/90 underline-offset-4 hover:underline">
+            <a href="#choix" className="mt-4 inline-flex items-center gap-1 font-body text-sm text-white/90 underline-offset-4 hover:underline">
               Autres besoins <ArrowDown className="h-4 w-4" aria-hidden />
             </a>
           </div>
@@ -164,7 +164,7 @@ const Index = () => {
                 <Mountain className="h-4 w-4 text-primary" aria-hidden /> Je veux du remblai
               </Link>
             </div>
-            <a href="#choix" className="mt-3 inline-flex min-h-11 items-center gap-1 font-body text-sm text-muted-foreground underline-offset-4 hover:underline">
+            <a href="#choix" className="mt-3 inline-flex items-center gap-1 font-body text-sm text-muted-foreground underline-offset-4 hover:underline">
               Autres besoins <ArrowDown className="h-4 w-4" aria-hidden />
             </a>
           </div>
@@ -390,14 +390,14 @@ const Index = () => {
         <div className="container mx-auto px-6 flex flex-col items-center gap-5 text-sm text-muted-foreground font-body">
           <div className="flex items-center justify-between w-full flex-wrap gap-2">
             <span>© 2026 VracQuébec. Tous droits réservés.</span>
-            <a href={`tel:${PUBLIC_PHONE_E164}`} className="inline-flex min-h-11 items-center gap-2 font-display font-semibold text-foreground hover:text-primary">
+            <a href={`tel:${PUBLIC_PHONE_E164}`} className="inline-flex items-center gap-2 font-display font-semibold text-foreground hover:text-primary">
               <Phone className="h-4 w-4 text-primary" aria-hidden /> {PUBLIC_PHONE}
             </a>
             <div className="flex items-center gap-4">
-              <a href="/blog" className="inline-flex min-h-11 items-center hover:text-foreground transition-colors text-xs">
+              <a href="/blog" className="hover:text-foreground transition-colors text-xs">
                 Blogue
               </a>
-              <a href="/login" className="inline-flex min-h-11 items-center hover:text-foreground transition-colors text-xs">
+              <a href="/login" className="hover:text-foreground transition-colors text-xs">
                 Administration
               </a>
             </div>

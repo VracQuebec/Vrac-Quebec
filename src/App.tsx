@@ -115,8 +115,6 @@ const DepotMateriaux = lazy(() => import("./pages/DepotMateriaux"));
 const Calculateur = lazy(() => import("./pages/Calculateur"));
 const TypesCamions = lazy(() => import("./pages/TypesCamions"));
 const TransportEnVrac = lazy(() => import("./pages/TransportEnVrac"));
-const Contact = lazy(() => import("./pages/Contact"));
-const Confidentialite = lazy(() => import("./pages/Confidentialite"));
 const EntrepreneurComparateur = lazy(() => import("./pages/EntrepreneurComparateur"));
 const CatalogueMateriau = lazy(() => import("./pages/CatalogueMateriau"));
 const EntrepreneurAnnuaire = lazy(() => import("./pages/EntrepreneurAnnuaire"));
@@ -319,8 +317,6 @@ const App = () => (
             <Route path="/calculateur" element={<Calculateur />} />
             <Route path="/types-de-camions" element={<TypesCamions />} />
             <Route path="/transport-en-vrac" element={<TransportEnVrac />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/confidentialite" element={<Confidentialite />} />
             <Route path="/entrepreneur/comparateur" element={<EntrepreneurComparateur />} />
             <Route path="/materiaux/:slug" element={<CatalogueMateriau />} />
             <Route path="/reseau" element={<Reseau />} />

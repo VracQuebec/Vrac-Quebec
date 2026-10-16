@@ -1,4 +1,3 @@
-import { PUBLIC_PHONE, PUBLIC_PHONE_E164 } from "@/lib/public-phone";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -31,6 +30,18 @@ export default function Blog() {
     queryFn: () => fetchPublishedPosts({ featured: true, limit: 6 }),
   });
 
+  const websiteLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Centre de connaissances Vrac Québec",
+    url: `${SITE_URL}/blog`,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${SITE_URL}/blog/recherche?q={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -44,6 +55,7 @@ export default function Blog() {
         <meta property="og:title" content="Centre de connaissances Vrac Québec" />
         <meta property="og:description" content="La plus grande bibliothèque francophone sur le vrac, le remblai et le transport de matériaux au Québec." />
         <meta property="og:url" content={`${SITE_URL}/blog`} />
+        <script type="application/ld+json">{JSON.stringify(websiteLd)}</script>
       </Helmet>
 
       <BlogNav />

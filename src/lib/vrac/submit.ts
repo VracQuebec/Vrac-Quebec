@@ -6,7 +6,6 @@
 import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { buildQuoteRequest, type QuoteContext } from "@/lib/vrac/estimate";
-import { interpretQuoteSubmit } from "@/lib/vrac/submitResult";
 import type { VracDraft } from "@/lib/vrac/catalog";
 
 export type SubmitAction = "submit" | "callback";
@@ -17,17 +16,6 @@ export interface SubmitResult {
   valid_until: string | null;
   emailed_to: string | null;
   action: SubmitAction;
-  /** false = demande enregistrée mais courriel de confirmation non envoyé. */
-  email_sent: boolean;
-}
-
-/** Lit le corps JSON d'une réponse non-2xx (502 « courriel échoué » inclus). */
-async function readErrorBody(fnError: unknown): Promise<Record<string, unknown> | null> {
-  const ctx = (fnError as { context?: Response } | null)?.context;
-  if (ctx && typeof ctx.clone === "function") {
-    try { return (await ctx.clone().json()) as Record<string, unknown>; } catch { /* non JSON */ }
-  }
-  return null;
 }
 
 export function useQuoteSubmit() {
@@ -64,20 +52,24 @@ export function useQuoteSubmit() {
           },
         },
       });
-      const outcome = interpretQuoteSubmit(
-        data as Record<string, unknown> | null,
-        fnError ? await readErrorBody(fnError) : null,
-        fnError?.message ?? null,
-      );
-      if (outcome.kind === "failed") throw new Error(outcome.message);
+      if (data && data.ok === false) {
+        throw new Error(data.error || "Envoi impossible pour le moment.");
+      }
+      if (fnError) {
+        const details = typeof (fnError as { context?: { text?: () => Promise<string> } }).context?.text === "function"
+          ? await (fnError as { context: { text: () => Promise<string> } }).context.text()
+          : fnError.message;
+        let message = details;
+        try { const parsed = JSON.parse(details); if (parsed?.error) message = parsed.error; } catch { /* non JSON */ }
+        throw new Error(message || "Envoi impossible pour le moment.");
+      }
       done.current = true;
       setResult({
-        quote_number: outcome.quote_number,
-        request_number: outcome.request_number,
-        valid_until: outcome.valid_until,
-        emailed_to: outcome.emailed_to,
+        quote_number: data?.quote_number ?? null,
+        request_number: data?.request_number ?? null,
+        valid_until: data?.valid_until ?? null,
+        emailed_to: data?.emailed_to ?? null,
         action,
-        email_sent: outcome.email_sent,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Envoi impossible pour le moment.");
@@ -116,14 +108,9 @@ export function useQuoteSubmit() {
           contact: { name: draft.contact.name, phone: draft.contact.phone, email: draft.contact.email, comments: notes || null },
         },
       });
-      const outcome = interpretQuoteSubmit(
-        data as Record<string, unknown> | null,
-        fnError ? await readErrorBody(fnError) : null,
-        fnError?.message ?? null,
-      );
-      if (outcome.kind === "failed") throw new Error(outcome.message);
+      if (fnError || data?.ok === false) throw new Error(data?.error || "Envoi impossible pour le moment.");
       done.current = true;
-      setResult({ quote_number: outcome.quote_number, request_number: outcome.request_number, valid_until: outcome.valid_until, emailed_to: outcome.emailed_to, action: "submit", email_sent: outcome.email_sent });
+      setResult({ quote_number: null, request_number: data?.request_number ?? null, valid_until: null, emailed_to: data?.emailed_to ?? null, action: "submit" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Envoi impossible pour le moment.");
     } finally { inFlight.current = false; setPending(null); }

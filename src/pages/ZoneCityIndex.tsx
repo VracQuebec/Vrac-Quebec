@@ -3,7 +3,6 @@ import { Helmet } from "react-helmet-async";
 import { Link, useParams, Navigate } from "react-router-dom";
 import { ChevronRight, Home, MapPin, Truck, Loader2 } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
-import { PUBLIC_PHONE_SCHEMA } from "@/lib/public-phone";
 import { supabase } from "@/integrations/supabase/client";
 import type { SeoCity, SeoMaterial } from "@/lib/seo/manager";
 
@@ -80,7 +79,7 @@ export default function ZoneCityIndex() {
     name: `Livraison de matériaux en vrac à ${city.name}`,
     serviceType: "Livraison de terre, gravier, pierre concassée et remblai",
     areaServed: { "@type": "City", name: city.name, addressRegion: "QC", addressCountry: "CA" },
-    provider: { "@type": "Organization", name: "Vrac Québec", url: SITE, telephone: PUBLIC_PHONE_SCHEMA },
+    provider: { "@type": "Organization", name: "Vrac Québec", url: SITE, telephone: "+1-819-592-3495" },
     url,
   };
 

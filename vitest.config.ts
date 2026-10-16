@@ -11,11 +11,6 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },
   resolve: {
-    // Spécificateurs Deno « npm: » des fonctions serveur → stubs de test.
-    alias: [
-      { find: /^npm:@supabase\/supabase-js@2\/cors$/, replacement: path.resolve(__dirname, "./src/test/stubs/supabase-cors.ts") },
-      { find: /^npm:@supabase\/supabase-js@2$/, replacement: path.resolve(__dirname, "./src/test/stubs/supabase-js.ts") },
-      { find: "@", replacement: path.resolve(__dirname, "./src") },
-    ],
+    alias: { "@": path.resolve(__dirname, "./src") },
   },
 });
