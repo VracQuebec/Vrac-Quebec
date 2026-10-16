@@ -11,7 +11,7 @@ import { loadDecisions, saveDecisions, availabilityOf, decisionKey, type Decisio
 import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
 import { buildCatInput, classify, summarizeCatalog, mergeSummaries, CAT_STATE_LABEL, estimateCredits, type CatState, type CatSummary } from "@/lib/seo/catalogStatus";
 import { publishCityDrafts, publishOutcomeMessage, publishPrecheck, precheckReason, loadAllDraftsForPrecheck, type PublishPrecheck } from "@/lib/seo/cityPublish";
-import { repairCity, repairOutcomeMessage, type RepairSlot } from "@/lib/seo/cityRepair";
+import { repairCity, planRepair, repairOutcomeMessage, type RepairSlot } from "@/lib/seo/cityRepair";
 import { coverageLabel, coveragePct, computeCoverage, splitAll, coverageFlags, catalogBreakdown, COVERAGE_BADGE_LABEL, type Coverage, type CoverageAllRaw } from "@/lib/seo/cityCoverage";
 import { useSeoControlCenter, type ControlCityRow, type ControlProblem } from "@/lib/seo/useSeoControlCenter";
 import { useSeoPipelineV2 } from "@/lib/seo/useSeoPipelineV2";
@@ -430,11 +430,27 @@ export default function PipelineControlCenter() {
     [state],
   );
 
+  const actLock = useRef(false);
   async function act(key: string, fn: () => Promise<void | string>, okMsg: string) {
+    // Verrou synchrone : un double clic ne lance jamais deux traitements.
+    if (actLock.current) return;
+    actLock.current = true;
     setBusy(key);
     try { const detail = await fn(); await reload(); toast({ title: okMsg, description: detail || undefined }); }
     catch (e) { toast({ title: "Erreur", description: e instanceof Error ? e.message : "Action impossible", variant: "destructive" }); }
-    finally { setBusy(null); }
+    finally { setBusy(null); actLock.current = false; }
+  }
+
+  function startCityRepair(c: { slug: string; name: string }) {
+    const slots = ((state?.problems ?? []) as ControlProblem[]).filter((p) => p.city_slug === c.slug).map(toRepairSlot);
+    const n = planRepair(slots).targets.length;
+    if (n === 0) { toast({ title: "Rien à régénérer", description: `Aucun brouillon en erreur admissible pour ${c.name}.` }); return; }
+    if (!window.confirm(`Régénérer ${n} brouillon(s) en erreur de ${c.name} ? Les pages en ligne ne seront pas remplacées.`)) return;
+    void act(`retry-${c.slug}`, async () => {
+      const o = await repairCity(slots);
+      if (o.done.length === 0 && o.failed.length > 0) throw new Error(repairOutcomeMessage(o));
+      return repairOutcomeMessage(o);
+    }, `Régénération — ${c.name}`);
   }
 
   async function openLogs(slug: string) {
@@ -452,10 +468,10 @@ export default function PipelineControlCenter() {
         <header className="flex flex-wrap items-start gap-3 justify-between">
           <div className="min-w-0">
             <h2 className="text-lg font-display font-bold flex items-center gap-2">
-              <Rocket className="w-5 h-5 text-primary" /> Centre de pilotage SEO
+              <Rocket className="w-5 h-5 text-primary" /> Gestion des villes
             </h2>
             <p className="text-xs text-muted-foreground">
-              Chiffres calculés en direct depuis la base (pages, villes, tâches). Aucune estimation.
+              État SEO de chaque ville et actions par ville. Chiffres calculés en direct depuis la base, aucune estimation.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -823,10 +839,14 @@ export default function PipelineControlCenter() {
                     onClick={() => openWb(c, null)}>
                     <CheckCircle2 className="w-3 h-3" /> Vérifier et gérer la ville
                   </Button>
-                  {/* Ouvrent la fenêtre de la ville sur la section visée : sélection page par page, raisons chiffrées si rien n'est admissible. */}
-                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" disabled={isRunning}
-                    title={retryReason ?? undefined} onClick={() => openWb(c, "repair")}>
-                    <ListRestart className="w-3 h-3" /> Régénérer les erreurs ({plan.invalidDrafts})
+                  {/* Lancement direct (comportement d'origine) : brouillons en erreur de la ville via repairCity
+                      (sélection stricte partagée, pages en ligne protégées). Un seul traitement à la fois. */}
+                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
+                    title={retryReason ?? undefined}
+                    disabled={isRunning || !!retryReason || busy !== null}
+                    onClick={() => startCityRepair(c)}>
+                    {busy === `retry-${c.slug}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <ListRestart className="w-3 h-3" />}
+                    {busy === `retry-${c.slug}` ? "Régénération en cours…" : `Régénérer les erreurs (${plan.invalidDrafts})`}
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" disabled={isRunning}
                     title={publishReason ?? undefined} onClick={() => openWb(c, "publish")}>
