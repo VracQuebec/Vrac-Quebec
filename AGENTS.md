@@ -13,7 +13,7 @@
 - Ronde de sécurité : référentiel rds_categories/rds_codes (lecture seule, listes 1-3); rds_reports/rds_defects écrits seulement par les RPC rds_* (rapport figé, correction = nouvelle version liée); classement mineur/majeur séparé du statut de circulation (48 h depuis le premier constat, jamais remis à zéro); chaque défaut crée une fleet_repairs — blocage levé seulement après validation.
 - Obligations et renouvellements : obl_* écrits seulement par RPC obl_*; obl_reminders_sweep dans crm_notifications_sweep envoie seulement le dernier seuil atteint (unicité par obligation/période/échéance/rappel/destinataire/canal); échéances miroir dans agd_events, cloche obl_my_bell — moteur commun réutilisable.
 - Assurances entreprise (ASSUR-01) : tables asr_*, lecture via asr_can_read (chauffeur/mécanicien exclus, preuves via asr_driver_proofs), confirmation/non-renouvellement/suspension par RPC seulement; super admin non membre = accès au contenu seulement après asr_support_open (motif, 4 h, journalisé); rappels asr_sweep dans crm_notifications_sweep (unicité entreprise/période/occurrence/destinataire/canal).
-- Règles par dossier : src/lib/{logbook,seo (dont SEO START),parcours,ops (voyages, OPS-02, CPN-01)}/AGENTS.md.
+- Règles par dossier : supabase/functions/AGENTS.md ; src/lib/{logbook,seo (dont SEO START),parcours,ops (voyages, OPS-02, CPN-01)}/AGENTS.md.
 - PWA : `push-sw.js` unique, enregistré au chargement, sans cache métier.
 <!-- LOVABLE:BEGIN -->
 - Entrepreneur UI uses the existing shell to own safe areas and measured header/navigation heights; one owner prevents duplicate offsets without changing backend behavior.
@@ -25,4 +25,3 @@
 <!-- LOVABLE:END -->
 - Access request numbering (transport_requests.request_number): single-row counter transport_request_number_counter bumped by trigger zz_tr_assign_number, named to run after validation triggers — rejected or failed inserts consume no number (transport_requests_number_seq is deprecated).
 - Parcours prioritaires : les destinations « Je cherche une dompe » / « Je veux du remblai » viennent de src/lib/navigation/priority-paths.ts ; pied de page public commun PublicContactFooter (numéro via src/lib/public-phone.ts) — une seule source pour éviter les entrées divergentes.
-- Anti-doublon public : réservation guard_claim → guard_complete (après création réelle) / guard_release (échec), par id exact; seul l'état « done » vaut doublon — un échec ne bloque jamais une nouvelle tentative.
