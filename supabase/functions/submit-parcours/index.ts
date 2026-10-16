@@ -9,7 +9,8 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { geocode } from '../_shared/vqos/runtime.ts';
-import { clientIp, GuardError, guardPublicRequest } from '../_shared/public-guard.ts';
+import { clientIp, GuardError } from '../_shared/public-guard.ts';
+import { runDedupedCreate } from './dedupe-flow.ts';
 import { logEvent, logEventAsync } from '../_shared/observability.ts';
 import { fetchWithTimeout } from '../_shared/http.ts';
 
@@ -129,32 +130,17 @@ Deno.serve(async (req) => {
           }))
       : [];
 
-    const guard = await guardPublicRequest(sb, {
+    type Geo = { lat: number; lng: number; address: string; city: string | null; postal_code: string | null };
+    const outcome = await runDedupedCreate<{ geo: Geo | null }>(sb, {
       scope: `parcours-${variant}`,
       identity: email.toLowerCase(),
-      fingerprint: [email.toLowerCase(), variant, address.toLowerCase(), quantityLabel, materials.join('/')].join('|'),
       honeypot: body?.website,
       formStartedAt: body?.form_started_at,
       freeText: [notes, name, otherMaterial].filter(Boolean).join(' '),
       ip: clientIp(req),
-    });
-    if (guard.duplicate) {
-      // Demande identique déjà envoyée récemment : on renvoie la demande
-      // existante au lieu d'en créer une seconde (cause historique des
-      // doublons remblai). Aucun nouvel enregistrement, aucun courriel.
-      logEventAsync({ source: 'submit_parcours', event: 'submission.duplicate', level: 'warn', context: { variant } });
-      const { data: existing } = await sb.from('submissions')
-        .select('id, submission_number')
-        .ilike('email', email.toLowerCase())
-        .eq('request_type', 'remblai')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return json({ ok: true, duplicate: true, submission_id: existing?.id ?? null });
-    }
-
+    }, { email, address, variant, quantityLabel, materials }, async () => {
     // ---------- Adresse validée côté serveur (Google) ----------
-    let geo: { lat: number; lng: number; address: string; city: string | null; postal_code: string | null } | null = null;
+    let geo: Geo | null = null;
     try {
       geo = await geocode(address);
     } catch (e) {
@@ -217,7 +203,7 @@ Deno.serve(async (req) => {
       ...attribution,
     }).select('id').single();
 
-    if (error) throw new Error(error.message);
+    if (error || !lead?.id) throw new Error(error?.message ?? 'création sans référence');
 
     // Le déclencheur public neutralise les coordonnées : on les réapplique.
     if (lead?.id && geo) {
@@ -229,6 +215,27 @@ Deno.serve(async (req) => {
         geocoding_provider: 'google',
       }).eq('id', lead.id);
     }
+
+      return { submissionId: String(lead.id), data: { geo } };
+    });
+
+    if (outcome.kind === 'in_progress') {
+      // Une demande identique est en cours d'enregistrement (autre onglet,
+      // double clic, autre instance) : jamais de faux succès ni de référence.
+      logEventAsync({ source: 'submit_parcours', event: 'submission.in_progress', level: 'warn', context: { variant } });
+      return json({ ok: false, retry: true, message: "Votre demande est en cours d'enregistrement. Patientez quelques secondes puis réessayez." });
+    }
+    if (outcome.kind === 'duplicate') {
+      // Référence EXACTE mémorisée lors de la création initiale.
+      // Aucun nouvel enregistrement, aucun courriel.
+      logEventAsync({ source: 'submit_parcours', event: 'submission.duplicate', level: 'warn', refId: outcome.submissionId, context: { variant } });
+      return json({ ok: true, duplicate: true, submission_id: outcome.submissionId });
+    }
+    if (!outcome.remembered) {
+      logEventAsync({ source: 'submit_parcours', event: 'guard.complete_failed', level: 'critical', refId: outcome.submissionId, context: { variant } });
+    }
+    const geo = outcome.data.geo;
+    const lead = { id: outcome.submissionId };
 
     logEventAsync({ source: 'submit_parcours', event: 'lead.created', refId: String(lead?.id ?? ''), context: { variant } });
 
