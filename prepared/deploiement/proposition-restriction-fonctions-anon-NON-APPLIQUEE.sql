@@ -68,12 +68,29 @@ GRANT  EXECUTE ON FUNCTION public.seo_optimization_candidates(text, integer, int
 -- has_role sert à 7 politiques ouvertes à anon/public (seo_pages, submissions…).
 
 -- ---------------- Retour arrière exact (ACL relevées le 16 oct.) ----------------
--- seo_sync_cities_from_territories : {postgres, anon, authenticated, service_role}
---   GRANT EXECUTE ON FUNCTION public.seo_sync_cities_from_territories() TO anon;
+-- seo_sync_cities_from_territories : ACL d'origine
+--   {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+--   (aucune entrée PUBLIC « =X/postgres »). Retour arrière : retirer l'enveloppe
+--   et redonner son nom et ses droits au corps d'origine :
+--   DROP FUNCTION public.seo_sync_cities_from_territories();
+--   ALTER FUNCTION public.seo_sync_cities_from_territories_impl()
+--     RENAME TO seo_sync_cities_from_territories;
+--   COMMENT ON FUNCTION public.seo_sync_cities_from_territories() IS NULL;
+--   GRANT EXECUTE ON FUNCTION public.seo_sync_cities_from_territories()
+--     TO anon, authenticated, service_role;   -- postgres garde le droit propriétaire
 -- mkt_compute_commission : {=X (PUBLIC), postgres, service_role}
 --   GRANT EXECUTE ON FUNCTION public.mkt_compute_commission(uuid) TO PUBLIC;
 --   REVOKE EXECUTE ON FUNCTION public.mkt_compute_commission(uuid) FROM authenticated; -- n'avait pas de droit direct
 -- blog_increment_view : {postgres, anon, authenticated, service_role}
 --   GRANT EXECUTE ON FUNCTION public.blog_increment_view(uuid) TO anon, authenticated;
--- seo_optimization_counts / _candidates : relever leur ACL juste avant application
---   (inventaire-privileges-LECTURE-SEULE.sql) et restaurer à l'identique.
+-- seo_optimization_counts() : ACL d'origine relevée le 16 oct. (inventaire-fonctions-anon-2026-10-16.csv, l.122)
+--   {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+--   Aucune entrée PUBLIC : le REVOKE FROM PUBLIC ne retire rien, rien à rétablir pour PUBLIC.
+--   authenticated et service_role restent accordés par la proposition.
+--   GRANT EXECUTE ON FUNCTION public.seo_optimization_counts() TO anon;
+-- seo_optimization_candidates(text, integer, integer) : même relevé (l.121), ACL identique
+--   {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+--   GRANT EXECUTE ON FUNCTION public.seo_optimization_candidates(text, integer, integer) TO anon;
+-- Contrôle après retour arrière : proacl de chaque fonction doit être égal,
+--   à l'ordre près, aux valeurs ci-dessus (inventaire-privileges-LECTURE-SEULE.sql).
+--   Le relevé date du 16 oct. : le refaire juste avant application; tout écart = arrêt.
