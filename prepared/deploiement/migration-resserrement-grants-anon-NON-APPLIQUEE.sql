@@ -9,9 +9,7 @@
 --     la RLS des tables sous-jacentes, aucune vue matérialisée.
 --   * 18 séquences : anon = rwU (lecture, setval, nextval).
 --   * Privilèges PAR DÉFAUT dans public :
---       postgres       → tables : (aucun défaut tables relevé pour postgres
---                        hors ligne r ci-dessous) r = arwdDxtm à anon,
---                        séquences S = rwU à anon, fonctions f = X à anon ;
+--       postgres       → tables r = arwdDxtm, séquences S = rwU, fonctions f = X à anon ;
 --       supabase_admin → mêmes défauts (r, S, f) à anon.
 --   * Fonctions : 805 SECURITY DEFINER, 194 exécutables par anon, 0 sans
 --     search_path. NON modifiées ici (voir section D, décision requise).
