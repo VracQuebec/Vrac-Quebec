@@ -9,13 +9,42 @@
 
 -- 1. seo_sync_cities_from_territories : écrit geo_territories et seo_cities,
 --    aucun contrôle d'identité. Seul appelant : src/pages/AdminSeoManager.tsx (admin connecté).
+--    Mécanisme d'autorisation existant confirmé : public.has_role(uuid, app_role)
+--    (SECURITY DEFINER, table user_roles; 323 usages has_role(auth.uid(),'admin')
+--    dans supabase/migrations; Login.tsx envoie le rôle 'admin' vers /admin).
+--    La définition actuelle n'existe dans aucun fichier du dépôt : on ne la recopie
+--    pas. On renomme la version en production (corps inchangé, octet pour octet)
+--    et on place devant elle une enveloppe qui exige le rôle admin CÔTÉ SERVEUR.
+--    L'appel .rpc("seo_sync_cities_from_territories") de l'interface reste identique.
+ALTER FUNCTION public.seo_sync_cities_from_territories()
+  RENAME TO seo_sync_cities_from_territories_impl;
+REVOKE EXECUTE ON FUNCTION public.seo_sync_cities_from_territories_impl()
+  FROM PUBLIC, anon, authenticated, service_role;
+COMMENT ON FUNCTION public.seo_sync_cities_from_territories_impl() IS
+  'Corps d''origine — appelable uniquement via seo_sync_cities_from_territories() (garde admin).';
+
+CREATE FUNCTION public.seo_sync_cities_from_territories()
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- auth.uid() est NULL pour anon et service_role : seuls les admins connectés passent.
+  IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin'::public.app_role) THEN
+    RAISE EXCEPTION 'Accès refusé : réservé aux administrateurs' USING ERRCODE = '42501';
+  END IF;
+  RETURN public.seo_sync_cities_from_territories_impl();
+END;
+$$;
 REVOKE EXECUTE ON FUNCTION public.seo_sync_cities_from_territories() FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION public.seo_sync_cities_from_territories() TO authenticated, service_role;
--- + contrôle admin dans le corps (même logique, garde ajoutée en tête) :
---   IF NOT public.has_role(auth.uid(), 'admin') THEN
---     RAISE EXCEPTION 'Accès refusé' USING ERRCODE = '42501'; END IF;
---   (à intégrer en recopiant la définition actuelle mot pour mot — non fait ici
---    pour éviter toute divergence avec la version en production)
+-- Prérequis à vérifier juste avant application (non vérifiés ici) :
+--   a) propriétaire de la fonction d'origine = postgres (l'enveloppe, créée par
+--      le même rôle, peut alors appeler _impl malgré le REVOKE);
+--   b) type de retour = jsonb (relevé inventaire 16 oct.);
+--   c) aucune autre fonction SQL ne l'appelle (inventaire : aucun appelant SQL).
+-- Test attendu : anon → 42501 ; connecté non admin → 42501 ; admin → même jsonb qu'avant.
 
 -- 2. mkt_compute_commission : crée/modifie mkt_commissions pour tout _award_id.
 --    Seul appelant : déclencheur mkt_award_commission_trg (SECURITY DEFINER,
