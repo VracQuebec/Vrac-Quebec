@@ -97,10 +97,13 @@ check "aucun courriel envoyé à la reprise" "$(mails B)" 0
 check "réservation d'origine confirmée → répétition = doublon exact" "$(worker B)" "duplicate:$SB"
 
 echo "== 3. Création plus longue que l'ancien délai (130 s)"
-check "réservation en cours" "$( (SLOW=2 worker C &) ; sleep 0.5; age C 130; worker C)" in_progress
-sleep 2
-check "1 seule demande (fenêtre 600 s)" "$(rows C)" 1
-check "contrôle : avec l'ancienne fenêtre 120 s ce cas aurait été accepté" "$(PEND=120 bash -c 'true'; q "select (now() - created_at > interval '120 seconds')::text from public_request_guard where fingerprint='C' limit 1")" true
+SLOW=3 worker C > "$DIR/c1" & sleep 1; age C 130
+check "fenêtre 600 s : 2e requête « en cours »" "$(worker C)" in_progress
+wait; check "1re requête créée" "$(cut -d: -f1 "$DIR/c1")" created
+check "1 seule demande" "$(rows C)" 1
+SLOW=3 worker C2 > "$DIR/c2" & sleep 1; age C2 130
+check "contrôle ancienne fenêtre 120 s : 2e requête acceptée (risque démontré)" "$(PEND=120 worker C2 | cut -d: -f1)" created
+wait; check "contrôle : 2 demandes créées avec 120 s" "$(rows C2)" 2
 
 echo "== 4. Cinq requêtes identiques simultanées (connexions distinctes)"
 R=$( (for _ in 1 2 3 4 5; do SLOW=1 worker D & done; wait) | sort | tr '\n' ' ')
