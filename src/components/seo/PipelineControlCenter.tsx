@@ -762,62 +762,25 @@ export default function PipelineControlCenter() {
                   : { label: COVERAGE_BADGE_LABEL.to_develop, className: "bg-amber-500/15 text-amber-700 border-amber-500/30", dot: "bg-amber-500" };
             const liveDone = gen.run?.citySlug === c.slug ? gen.run.done : gen.dbActive?.city_slug === c.slug ? gen.dbActive.done : null;
             const liveTotal = gen.run?.citySlug === c.slug ? gen.run.total : gen.dbActive?.city_slug === c.slug ? gen.dbActive.total : null;
+            const isOpen = expanded.has(c.slug);
+            const missingCount = catSum ? catSum.missing_confirmed + catSum.missing_unknown + catSum.failed + catSum.stalled : null;
             return (
-              <div key={c.slug} onClick={() => setWorkSlug(c.slug)}
-                className="rounded-xl border border-border bg-card p-3 space-y-2.5 cursor-pointer hover:border-primary/40 transition-colors">
+              <div key={c.slug} data-testid="city-card"
+                className="rounded-xl border border-border bg-card p-3 space-y-2 hover:border-primary/40 transition-colors">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="font-semibold truncate flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full shrink-0 ${meta.dot}`} />{c.name}
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">{c.slug}</div>
+                    <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-2">
+                      <span>{c.published} publiée{c.published > 1 ? "s" : ""}</span>
+                      <span>{c.drafts} brouillon{c.drafts > 1 ? "s" : ""}</span>
+                      {missingCount !== null && <span>{missingCount} manquante(s)</span>}
+                      <span className={split.realErrors > 0 ? "text-destructive font-medium" : ""}>{split.realErrors} erreur{split.realErrors > 1 ? "s" : ""}</span>
+                      {catSum && <span>{catSum.coveredPct} % couvert</span>}
+                    </div>
                   </div>
                   <Badge variant="outline" className={`text-[10px] shrink-0 ${meta.className}`}>{meta.label}</Badge>
-                </div>
-
-                {flags && (flags.toValidate || flags.toConfigure || flags.offCriteria) && (
-                  <div className="flex flex-wrap gap-1">
-                    {flags.toValidate && <Badge variant="outline" className="text-[10px]">À VALIDER</Badge>}
-                    {flags.toConfigure && <Badge variant="outline" className="text-[10px]">À CONFIGURER</Badge>}
-                    {flags.offCriteria && <Badge variant="outline" className="text-[10px]">{cv!.offCriteria} HORS CRITÈRES</Badge>}
-                  </div>
-                )}
-                <div className="space-y-1 text-[11px]">
-                  <div className="flex justify-between"><span>File du générateur</span><span>{c.generated} / {c.planned} ({queuePct} %)</span></div>
-                  <Progress value={queuePct} className="h-1.5" />
-                  <div className="flex justify-between font-medium"><span>Couverture réelle du catalogue</span><span>{catSum ? `${catSum.published_indexable + catSum.published_noindex} / ${catSum.total - catSum.excluded_missing} (${catSum.coveredPct} %)` : "…"}</span></div>
-                  <Progress value={catSum?.coveredPct ?? 0} className="h-2" />
-                  {catSum && <CatStateLine s={catSum} />}
-                </div>
-                {gaps.length > 0 && (
-                  <div className="rounded-md border border-border p-2 text-[11px] space-y-1" onClick={(e) => e.stopPropagation()}>
-                    <div className="font-semibold">Sans page publiée ({gaps.reduce((n, g) => n + g.items.length, 0)})</div>
-                    {gaps.map((g) => (
-                      <div key={g.title}><span className="font-medium">{g.title} — </span><span className="text-muted-foreground">{g.reason}</span>
-                        <div>{g.items.join(", ")}</div></div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-xs">
-                  <span>{c.generated} page{c.generated > 1 ? "s" : ""} existante{c.generated > 1 ? "s" : ""}</span>
-                  <span>{c.published} publiée{c.published > 1 ? "s" : ""}</span>
-                  <span>{c.drafts} en brouillon</span>
-                  <span>{catSum ? catSum.missing_confirmed + catSum.missing_unknown + catSum.failed + catSum.stalled : "…"} manquante(s) sur 28{catSum ? ` (${catSum.missing_unknown} inconnue(s), ${catSum.excluded_missing} exclue(s) à part)` : ""}</span>
-                  {plan.pending > 0 && <span>{plan.pending} en file d'attente</span>}
-                  <span className={split.realErrors > 0 ? "text-destructive font-medium" : ""}>{split.realErrors} erreur{split.realErrors > 1 ? "s" : ""}{plan.invalidPublished > 0 ? ` (dont ${plan.invalidPublished} en ligne)` : ""}</span>
-                  {split.noindex > 0 && <span className="text-muted-foreground">{split.noindex} publiée(s) non indexée(s) volontairement</span>}
-                  <span className="text-muted-foreground">File du générateur (secondaire) : {cv ? coverageLabel(cv.plannedCovered, cv.planned) : "…"}</span>
-                  <span className="text-muted-foreground">Potentiel théorique : {state?.totals.per_city ?? "—"}</span>
-                  {cat && (
-                    <span className="col-span-full text-muted-foreground">
-                      Catalogue complet : {cat.catalogPublished} / {cat.catalogTarget} publiées
-                      {" · "}{cat.relevant} pertinente(s){" · "}{cat.unknownMissing} sans page, disponibilité inconnue
-                      {cat.excluded > 0 ? ` · ${cat.excluded} exclue(s) temporairement` : ""}
-                      {cat.offCriteriaPages > 0 ? ` · ${cat.offCriteriaPages} page(s) hors critères` : ""}
-                    </span>
-                  )}
-                  {cv && cv.toDevelop > 0 && <span className="text-amber-700">{cv.toDevelop} opportunité(s) sans page — dans la file du générateur</span>}
                 </div>
 
                 {isRunning && liveTotal ? (
@@ -827,13 +790,8 @@ export default function PipelineControlCenter() {
                   </div>
                 ) : null}
 
-                <div className="flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
-                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" onClick={() => setPagesCity({ slug: c.slug, name: c.name })}>
-                    <FileText className="w-3 h-3" /> Voir les pages
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" onClick={() => setCoverageCity({ slug: c.slug, name: c.name })}>
-                    <FileText className="w-3 h-3" /> Couverture
-                  </Button>
+                {/* Actions principales — toujours visibles */}
+                <div className="flex flex-wrap gap-1.5">
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
                     disabled={gen.verifying === c.slug || isRunning}
                     onClick={() => openWb(c, null)}>
@@ -850,14 +808,8 @@ export default function PipelineControlCenter() {
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" disabled={isRunning}
                     title={publishReason ?? undefined} onClick={() => openWb(c, "publish")}>
-                    <Send className="w-3 h-3" /> Publier les non publiées ({pre?.eligible.length ?? 0})
+                    <Send className="w-3 h-3" /> Publier ({pre?.eligible.length ?? 0})
                   </Button>
-                  <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => openLogs(c.slug)}>Voir les logs</Button>
-                  {catSum && catSum.missing_unknown > 0 && (
-                    <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs" onClick={() => openWb(c, "decide")}>
-                      Décider les inconnues ({catSum.missing_unknown})
-                    </Button>
-                  )}
                   <Button size="sm" className="h-8 px-2.5 text-xs gap-1"
                     title={genReason ?? undefined}
                     disabled={!plan.generate.enabled && wbGen === 0}
@@ -867,7 +819,77 @@ export default function PipelineControlCenter() {
                     {Math.max(plan.generate.count, wbGen) > 0 ? ` (${Math.max(plan.generate.count, wbGen)})` : ""}
                   </Button>
                 </div>
-                <div className="text-[10px] text-muted-foreground space-y-0.5" onClick={(e) => e.stopPropagation()}>
+
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs w-full justify-between"
+                  aria-expanded={isOpen} aria-controls={`city-details-${c.slug}`}
+                  onClick={() => setExpanded((s) => { const n = new Set(s); if (n.has(c.slug)) n.delete(c.slug); else n.add(c.slug); return n; })}>
+                  <span>{isOpen ? "Masquer les détails" : "Afficher les détails"}</span>
+                  <span aria-hidden>{isOpen ? "▲" : "▼"}</span>
+                </Button>
+
+                {/* Détails : montés seulement lorsque la carte est ouverte */}
+                {isOpen && (
+                <div id={`city-details-${c.slug}`} className="space-y-2.5 border-t border-border pt-2.5">
+                <div className="text-xs text-muted-foreground truncate">{c.slug}</div>
+                {flags && (flags.toValidate || flags.toConfigure || flags.offCriteria) && (
+                  <div className="flex flex-wrap gap-1">
+                    {flags.toValidate && <Badge variant="outline" className="text-[10px]">À VALIDER</Badge>}
+                    {flags.toConfigure && <Badge variant="outline" className="text-[10px]">À CONFIGURER</Badge>}
+                    {flags.offCriteria && <Badge variant="outline" className="text-[10px]">{cv!.offCriteria} HORS CRITÈRES</Badge>}
+                  </div>
+                )}
+                <div className="space-y-1 text-[11px]">
+                  <div className="flex justify-between"><span>File du générateur</span><span>{c.generated} / {c.planned} ({queuePct} %)</span></div>
+                  <Progress value={queuePct} className="h-1.5" />
+                  <div className="flex justify-between font-medium"><span>Couverture réelle du catalogue</span><span>{catSum ? `${catSum.published_indexable + catSum.published_noindex} / ${catSum.total - catSum.excluded_missing} (${catSum.coveredPct} %)` : "…"}</span></div>
+                  <Progress value={catSum?.coveredPct ?? 0} className="h-2" />
+                  {catSum && <CatStateLine s={catSum} />}
+                </div>
+                {gaps.length > 0 && (
+                  <div className="rounded-md border border-border p-2 text-[11px] space-y-1">
+                    <div className="font-semibold">Sans page publiée ({gaps.reduce((n, g) => n + g.items.length, 0)})</div>
+                    {gaps.map((g) => (
+                      <div key={g.title}><span className="font-medium">{g.title} — </span><span className="text-muted-foreground">{g.reason}</span>
+                        <div>{g.items.join(", ")}</div></div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-xs">
+                  <span>{c.generated} page{c.generated > 1 ? "s" : ""} existante{c.generated > 1 ? "s" : ""}</span>
+                  <span>{catSum ? `${missingCount} manquante(s) sur 28 (${catSum.missing_unknown} inconnue(s), ${catSum.excluded_missing} exclue(s) à part)` : "…"}</span>
+                  {plan.pending > 0 && <span>{plan.pending} en file d'attente</span>}
+                  {plan.invalidPublished > 0 && <span className="text-destructive">dont {plan.invalidPublished} erreur(s) en ligne</span>}
+                  {split.noindex > 0 && <span className="text-muted-foreground">{split.noindex} publiée(s) non indexée(s) volontairement</span>}
+                  <span className="text-muted-foreground">File du générateur (secondaire) : {cv ? coverageLabel(cv.plannedCovered, cv.planned) : "…"}</span>
+                  <span className="text-muted-foreground">Potentiel théorique : {state?.totals.per_city ?? "—"}</span>
+                  {cat && (
+                    <span className="col-span-full text-muted-foreground">
+                      Catalogue complet : {cat.catalogPublished} / {cat.catalogTarget} publiées
+                      {" · "}{cat.relevant} pertinente(s){" · "}{cat.unknownMissing} sans page, disponibilité inconnue
+                      {cat.excluded > 0 ? ` · ${cat.excluded} exclue(s) temporairement` : ""}
+                      {cat.offCriteriaPages > 0 ? ` · ${cat.offCriteriaPages} page(s) hors critères` : ""}
+                    </span>
+                  )}
+                  {cv && cv.toDevelop > 0 && <span className="text-amber-700">{cv.toDevelop} opportunité(s) sans page — dans la file du générateur</span>}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" onClick={() => setPagesCity({ slug: c.slug, name: c.name })}>
+                    <FileText className="w-3 h-3" /> Voir les pages
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" onClick={() => setCoverageCity({ slug: c.slug, name: c.name })}>
+                    <FileText className="w-3 h-3" /> Couverture
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => openLogs(c.slug)}>Voir les logs</Button>
+                  <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => setWorkSlug(c.slug)}>Détail technique</Button>
+                  {catSum && catSum.missing_unknown > 0 && (
+                    <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs" onClick={() => openWb(c, "decide")}>
+                      Décider les inconnues ({catSum.missing_unknown})
+                    </Button>
+                  )}
+                </div>
+                <div className="text-[10px] text-muted-foreground space-y-0.5">
                   {catLine && <div className="font-medium text-foreground/80">{catLine}</div>}
                   {genReason && wbGen === 0 && <div>Générer : {genReason}</div>}
                   {wbGen > 0 && !plan.generate.enabled && <div>Générer : {wbGen} combinaison(s) confirmée(s) par vos décisions — ouvrez « Vérifier et gérer la ville » pour les sélectionner.</div>}
@@ -881,6 +903,8 @@ export default function PipelineControlCenter() {
                   {pubReport.get(c.slug)?.failed.map((b) => <div key={b.slug} className="text-destructive">Échec {b.slug} : {b.error}</div>)}
                   {cv && cv.offCriteria > 0 && <div>Exclues : {cv.offCriteria} page(s) existante(s) hors critères (aucune demande ni service configuré) — conservées, jamais régénérées.</div>}
                 </div>
+                </div>
+                )}
               </div>
             );
           })}
