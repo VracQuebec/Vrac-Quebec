@@ -83,7 +83,10 @@ export default function PipelineControlCenter() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [showAudits, setShowAudits] = useState(false);
   const [search, setSearch] = useState("");
-  const [visible, setVisible] = useState(24);
+  const [visible, setVisible] = useState(12);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const startRef = useRef<HTMLDetailsElement>(null);
+  const openStart = () => { const d = startRef.current; if (!d) return; d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); };
   const [busy, setBusy] = useState<string | null>(null);
   const [logsCity, setLogsCity] = useState<string | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
