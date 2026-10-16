@@ -130,7 +130,7 @@ beforeAll(async () => {
     serve: (h: any) => { handler = h; },
     env: { get: (k: string) => (k === "SUPABASE_URL" ? "http://simule.invalid" : "cle-simulee") },
   };
-  await import("../../supabase/functions/quote-submit/index.ts");
+  const entry = "../../supabase/functions/quote-submit/index.ts"; await import(/* @vite-ignore */ entry);
 });
 beforeEach(() => {
   S.tables = { jsc_settings: [{ key: "admin_notification_email", value: "admin@exemple.invalid", is_active: true, archived_at: null }] };
