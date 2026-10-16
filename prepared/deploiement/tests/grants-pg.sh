@@ -52,7 +52,8 @@ check "relevé initial conservé (pas écrasé)" "$(q "select (relacl::text like
 check "anon ne lit pas le relevé" "$(q "select has_schema_privilege('anon','acl_backup_20261016','USAGE')")" f
 
 echo "== Restauration exacte"
-psql -X -v ON_ERROR_STOP=1 -q -f "$REST" 2>&1 | grep -c "créé après" | xargs -I{} echo "  (objets créés après signalés : {})"
+OUT=$(psql -X -v ON_ERROR_STOP=1 -f "$REST" 2>&1) || { echo "$OUT"; exit 1; }
+check "objet créé après le relevé signalé et non modifié" "$(echo "$OUT" | grep -c 'nouvelle_table')" 1
 q "DROP TABLE public.nouvelle_table"
 AFTER=$(q "select string_agg(relname||'='||coalesce(relacl::text,''), ';' order by relname) from pg_class where relnamespace='public'::regnamespace and relkind in ('r','v','S')")
 DEF_AFTER=$(q "select string_agg(defaclobjtype::text||'='||defaclacl::text, ';' order by defaclobjtype) from pg_default_acl")
