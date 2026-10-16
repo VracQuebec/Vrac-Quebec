@@ -65,3 +65,5 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [x] Staging/sauvegardes documentés : prepared/deploiement/staging-et-sauvegardes-2026-10-16.md
 - [x] Inventaire 194 fonctions anon : prepared/deploiement/inventaire-fonctions-anon-2026-10-16.csv
 - [ ] EN ATTENTE : création staging, revue des 130 « à examiner » et 3 « dangereuses », révocations (autorisation)
+- [x] Étape sécurisation (16 oct.) : prepared/deploiement/securisation-etape-2026-10-16.md + proposition-restriction-fonctions-anon-NON-APPLIQUEE.sql
+- [ ] EN ATTENTE : vérifier état prod des fonctions, staging, sauvegarde vérifiée, colonne guard_claim_id (autorisation)
