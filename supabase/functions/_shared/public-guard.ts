@@ -58,15 +58,60 @@ export function clientIp(req: Request): string | null {
   return (fwd ? fwd.split(",")[0].trim() : null) || req.headers.get("cf-connecting-ip") || null;
 }
 
-export async function guardPublicRequest(sb: any, o: GuardOptions): Promise<GuardVerdict> {
+// ------------------------------------------------------------
+// Mode de secours (fonctions SQL absentes ou en échec)
+// ------------------------------------------------------------
+// Le secours lit puis écrit en DEUX requêtes : il n'offre PAS la protection
+// contre les requêtes simultanées du chemin SQL transactionnel. Il n'existe
+// que pour la période précédant l'application de la migration ; son
+// activation est journalisée (événement « guard.fallback_active ») et
+// comptée pour être mesurable. Aucun courriel, nom ou adresse n'est journalisé.
+
+export type RpcFailureKind = "migration_absente" | "erreur_inattendue";
+
+export function classifyRpcError(err: unknown): RpcFailureKind {
+  const e = (err ?? {}) as { code?: string; message?: string };
+  const text = `${e.code ?? ""} ${e.message ?? String(err ?? "")}`;
+  return /PGRST202|42883|could not find the function|function .* does not exist|rpc indisponible/i.test(text)
+    ? "migration_absente"
+    : "erreur_inattendue";
+}
+
+/** Compteur d'activations du secours (par instance), exposé pour la mesure. */
+export const guardFallbackStats = { activations: 0, migrationAbsente: 0, erreurInattendue: 0 };
+
+function reportFallback(scope: string, rpc: string, err: unknown): RpcFailureKind {
+  const kind = classifyRpcError(err);
+  guardFallbackStats.activations++;
+  if (kind === "migration_absente") guardFallbackStats.migrationAbsente++;
+  else guardFallbackStats.erreurInattendue++;
+  const e = (err ?? {}) as { code?: string };
+  const line = JSON.stringify({
+    event: "guard.fallback_active",
+    scope,
+    rpc,
+    reason: kind,
+    code: e.code ?? null,
+    protection_concurrence: "inactive",
+    activations: guardFallbackStats.activations,
+  });
+  if (kind === "migration_absente") console.warn(line);
+  else console.error(line);
+  return kind;
+}
+
+async function preChecks(sb: any, o: GuardOptions) {
   const windowMinutes = o.windowMinutes ?? 60;
   const maxPerWindow = o.maxPerWindow ?? 5;
-  const dedupeMinutes = o.dedupeMinutes ?? 30;
   const minElapsed = o.minElapsedSeconds ?? 3;
+
+  if (!o.fingerprint || !o.fingerprint.trim()) {
+    throw new GuardError("Demande refusée.", 400, "invalid_fingerprint");
+  }
 
   // 1. Piège à robots : un humain ne remplit jamais ce champ.
   if (typeof o.honeypot === "string" && o.honeypot.trim() !== "") {
-    console.warn(`[guard:${o.scope}] honeypot rempli`, { ip: o.ip });
+    console.warn(`[guard:${o.scope}] honeypot rempli`);
     throw new GuardError("Demande refusée.", 400, "bot_detected");
   }
 
@@ -75,22 +120,20 @@ export async function guardPublicRequest(sb: any, o: GuardOptions): Promise<Guar
   if (Number.isFinite(started) && started > 0) {
     const elapsed = (Date.now() - started) / 1000;
     if (elapsed >= 0 && elapsed < minElapsed) {
-      console.warn(`[guard:${o.scope}] envoi trop rapide (${elapsed}s)`, { ip: o.ip });
+      console.warn(`[guard:${o.scope}] envoi trop rapide (${elapsed}s)`);
       throw new GuardError("Demande refusée.", 400, "bot_detected");
     }
   }
 
   // 3. Anti-pourriel sur le texte libre.
   if (looksLikeSpam(o.freeText)) {
-    console.warn(`[guard:${o.scope}] contenu identifié comme pourriel`, { ip: o.ip });
+    console.warn(`[guard:${o.scope}] contenu identifié comme pourriel`);
     throw new GuardError("Votre message a été identifié comme indésirable.", 400, "spam_detected");
   }
 
-  const sinceWindow = new Date(Date.now() - windowMinutes * 60000).toISOString();
-  const sinceDedupe = new Date(Date.now() - dedupeMinutes * 60000).toISOString();
-  const identities = [o.identity, o.ip].filter(Boolean) as string[];
-
   // 4. Limitation du débit (par courriel et par adresse IP).
+  const sinceWindow = new Date(Date.now() - windowMinutes * 60000).toISOString();
+  const identities = [o.identity, o.ip].filter(Boolean) as string[];
   const { count, error: countError } = await sb
     .from("public_request_guard")
     .select("id", { count: "exact", head: true })
@@ -99,27 +142,30 @@ export async function guardPublicRequest(sb: any, o: GuardOptions): Promise<Guar
     .gte("created_at", sinceWindow);
   if (countError) console.error(`[guard:${o.scope}] lecture impossible`, countError.message);
   if ((count ?? 0) >= maxPerWindow) {
-    console.warn(`[guard:${o.scope}] limite atteinte`, { identity: o.identity, count });
+    console.warn(`[guard:${o.scope}] limite atteinte`, { count });
     throw new GuardError(
       "Trop de demandes en peu de temps. Réessayez plus tard ou appelez-nous directement.",
       429,
       "rate_limited",
     );
   }
+}
+
+export async function guardPublicRequest(sb: any, o: GuardOptions): Promise<GuardVerdict> {
+  const dedupeMinutes = o.dedupeMinutes ?? 30;
+  await preChecks(sb, o);
+  const sinceDedupe = new Date(Date.now() - dedupeMinutes * 60000).toISOString();
 
   // 5+6. Déduplication ET journalisation en une seule transaction côté base
-  // (RPC guard_check_and_log, verrou consultatif) : deux requêtes
-  // parfaitement simultanées ne peuvent plus créer deux demandes, quelle que
-  // soit l'instance serveur. Repli sur l'ancien chemin si la fonction n'est
-  // pas encore déployée (migration en attente d'autorisation).
+  // (RPC guard_check_and_log, verrou consultatif).
   const { data: verdict, error: rpcError } = typeof sb.rpc === "function"
     ? await sb.rpc("guard_check_and_log", {
-    p_scope: o.scope,
-    p_identity: o.identity,
-    p_fingerprint: o.fingerprint,
-    p_payload: { ip: o.ip },
-    p_dedupe_minutes: dedupeMinutes,
-  })
+      p_scope: o.scope,
+      p_identity: o.identity,
+      p_fingerprint: o.fingerprint,
+      p_payload: { ip: o.ip },
+      p_dedupe_minutes: dedupeMinutes,
+    })
     : { data: null, error: { message: "rpc indisponible" } };
   if (!rpcError && verdict) {
     return {
@@ -127,11 +173,11 @@ export async function guardPublicRequest(sb: any, o: GuardOptions): Promise<Guar
       previous: (verdict.previous as Record<string, unknown>) ?? null,
     };
   }
-  const rpcMissing = rpcError && /could not find the function|42883|PGRST202/i.test(String(rpcError.message ?? rpcError));
-  if (rpcError && !rpcMissing) console.error(`[guard:${o.scope}] RPC guard_check_and_log en échec`, rpcError.message);
+  // Ce chemin est partagé par plusieurs fonctions (quote-submit,
+  // mkt-request-submit…) : il reste en secours dans les deux cas, mais
+  // l'activation est désormais toujours journalisée et comptée.
+  reportFallback(o.scope, "guard_check_and_log", rpcError ?? { message: "réponse vide" });
 
-  // Repli : lecture puis insertion en deux requêtes (course possible —
-  // comportement historique, valide seulement avant la migration).
   const { data: dup } = await sb
     .from("public_request_guard")
     .select("payload,created_at")
@@ -151,6 +197,141 @@ export async function guardPublicRequest(sb: any, o: GuardOptions): Promise<Guar
   if (logError) console.error(`[guard:${o.scope}] journalisation impossible`, logError.message);
 
   return { duplicate: Boolean(dup), previous: (dup?.payload as Record<string, unknown>) ?? null };
+}
+
+// ------------------------------------------------------------
+// Réservation en 3 temps (claim → complete | release)
+// ------------------------------------------------------------
+// Utilisée par submit-parcours. Une demande n'est « traitée » (doublon
+// possible) qu'après guard_complete, appelé une fois la création confirmée
+// avec la référence réelle. Un échec appelle guard_release sur la
+// réservation EXACTE (par id) : jamais de suppression aveugle.
+
+export interface Claim {
+  state: "new" | "duplicate" | "in_progress";
+  claimId: string | null;
+  /** Résultat mémorisé de la demande initiale (duplicate seulement). */
+  result: Record<string, unknown> | null;
+  /** Réservation « pending » expirée dont l'issue est inconnue. */
+  staleAt: string | null;
+  staleClaimId: string | null;
+  protection: "transactionnelle" | "secours_non_atomique";
+}
+
+export async function claimPublicRequest(
+  sb: any,
+  o: GuardOptions & { pendingSeconds?: number },
+): Promise<Claim> {
+  const dedupeMinutes = o.dedupeMinutes ?? 30;
+  const pendingSeconds = o.pendingSeconds ?? 120;
+  await preChecks(sb, o);
+
+  const { data, error } = typeof sb.rpc === "function"
+    ? await sb.rpc("guard_claim", {
+      p_scope: o.scope,
+      p_identity: o.identity,
+      p_fingerprint: o.fingerprint,
+      p_payload: { ip: o.ip },
+      p_dedupe_minutes: dedupeMinutes,
+      p_pending_seconds: pendingSeconds,
+    })
+    : { data: null, error: { message: "rpc indisponible" } };
+
+  if (!error && data && typeof data.state === "string") {
+    return {
+      state: data.state,
+      claimId: data.claim_id ?? null,
+      result: (data.result as Record<string, unknown>) ?? null,
+      staleAt: data.stale_at ?? null,
+      staleClaimId: data.stale_claim_id ?? null,
+      protection: "transactionnelle",
+    };
+  }
+
+  const kind = reportFallback(o.scope, "guard_claim", error ?? { message: "réponse vide" });
+  // Erreur inattendue (base indisponible, paramètre refusé…) : on n'invente
+  // pas de verdict. La demande n'est pas créée et l'erreur remonte.
+  if (kind === "erreur_inattendue") {
+    throw new GuardError("Service momentanément indisponible. Réessayez dans un instant.", 503, "guard_unavailable");
+  }
+
+  // Secours (migration absente) : lecture puis insertion, non atomique.
+  const since = new Date(Date.now() - dedupeMinutes * 60000).toISOString();
+  const { data: rows } = await sb
+    .from("public_request_guard")
+    .select("id,payload,created_at")
+    .eq("scope", o.scope)
+    .eq("fingerprint", o.fingerprint)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const list = (Array.isArray(rows) ? rows : []) as Array<{ id: string; payload: any; created_at: string }>;
+  const done = list.find((r) => r.payload?.state === "done");
+  if (done) {
+    return { state: "duplicate", claimId: done.id, result: done.payload?.result ?? null, staleAt: null, staleClaimId: null, protection: "secours_non_atomique" };
+  }
+  const pendingCut = new Date(Date.now() - pendingSeconds * 1000).toISOString();
+  const pending = list.find((r) => r.payload?.state === "pending" && r.created_at >= pendingCut);
+  if (pending) {
+    return { state: "in_progress", claimId: pending.id, result: null, staleAt: null, staleClaimId: null, protection: "secours_non_atomique" };
+  }
+  const stale = list.find((r) => r.payload?.state === "pending");
+  const { data: ins, error: insError } = await sb
+    .from("public_request_guard")
+    .insert({ scope: o.scope, identity: o.identity, fingerprint: o.fingerprint, payload: { ip: o.ip, state: "pending" } })
+    .select("id")
+    .single();
+  if (insError || !ins?.id) {
+    throw new GuardError("Service momentanément indisponible. Réessayez dans un instant.", 503, "guard_unavailable");
+  }
+  return {
+    state: "new", claimId: ins.id, result: null,
+    staleAt: stale?.created_at ?? null, staleClaimId: stale?.id ?? null,
+    protection: "secours_non_atomique",
+  };
+}
+
+/** Mémorise le résultat RÉEL sur la réservation exacte. Vrai si mémorisé. */
+export async function completeClaim(
+  sb: any,
+  scope: string,
+  claimId: string,
+  result: { submission_id: string } & Record<string, unknown>,
+): Promise<boolean> {
+  if (!result?.submission_id) throw new Error("completeClaim: référence de demande absente");
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { error } = typeof sb.rpc === "function"
+      ? await sb.rpc("guard_complete", { p_claim_id: claimId, p_result: result })
+      : { error: { message: "rpc indisponible" } };
+    if (!error) return true;
+    if (classifyRpcError(error) === "migration_absente") {
+      reportFallback(scope, "guard_complete", error);
+      const { data: row } = await sb.from("public_request_guard").select("payload").eq("id", claimId).maybeSingle();
+      const { error: upErr } = await sb.from("public_request_guard")
+        .update({ payload: { ...(row?.payload ?? {}), state: "done", result } })
+        .eq("id", claimId);
+      if (!upErr) return true;
+    }
+  }
+  console.error(JSON.stringify({ event: "guard.complete_failed", scope }));
+  return false;
+}
+
+/** Libère la réservation exacte après un échec de création. */
+export async function releaseClaim(sb: any, scope: string, claimId: string, reason: string): Promise<void> {
+  const { error } = typeof sb.rpc === "function"
+    ? await sb.rpc("guard_release", { p_claim_id: claimId, p_reason: reason })
+    : { error: { message: "rpc indisponible" } };
+  if (!error) return;
+  if (classifyRpcError(error) === "migration_absente") {
+    reportFallback(scope, "guard_release", error);
+    const { data: row } = await sb.from("public_request_guard").select("payload").eq("id", claimId).maybeSingle();
+    if (row?.payload?.state === "pending") {
+      await sb.from("public_request_guard").update({ payload: { ...row.payload, state: "failed", reason } }).eq("id", claimId);
+    }
+    return;
+  }
+  console.error(JSON.stringify({ event: "guard.release_failed", scope }));
 }
 
 /** Complète l'entrée du journal avec le résultat (numéro de soumission). */
