@@ -41,7 +41,7 @@ type SortKey = "name" | "requests" | "pages" | "progress" | "errors";
 
 export default function CityGenerator() {
   const {
-    overview, loading, run, verifying, dbActive, lockedBy,
+    overview, loading, overviewError, run, verifying, dbActive, lockedBy,
     load, generate, generateCity, regenerateErrors, verifyCity,
   } = useCityGeneration();
   const [query, setQuery] = useState("");
@@ -128,12 +128,26 @@ export default function CityGenerator() {
         </select>
       </div>
 
-      {loading && !overview && (
-        <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement du registre…</div>
+      {loading && (!overview || !!overviewError) && (
+        <div role="status" className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement du registre…</div>
+      )}
+
+      {/* Échec de lecture après toutes les tentatives : message persistant, jamais une liste vide trompeuse. */}
+      {overviewError && !loading && (
+        <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive flex flex-wrap items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span className="min-w-0 flex-1 break-words">
+            Registre indisponible — {overviewError}
+            {overview ? " (dernières données lues affichées ci-dessous)" : ""}
+          </span>
+          <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => void load()}>
+            <RefreshCw className="w-3 h-3" /> Réessayer
+          </Button>
+        </div>
       )}
 
       <div className="space-y-2">
-        {rows.map((c) => (
+        {overview && rows.map((c) => (
           <CityCard
             key={c.slug} city={c}
             run={run && run.citySlug === c.slug ? run : null}
@@ -146,8 +160,10 @@ export default function CityGenerator() {
             onRegenerateErrors={() => void regenerateErrors(c)}
           />
         ))}
-        {rows.length === 0 && !loading && (
-          <div className="text-xs text-muted-foreground text-center py-8 border border-dashed rounded-lg">Aucune ville pour ces critères.</div>
+        {overview && rows.length === 0 && !loading && (
+          <div className="text-xs text-muted-foreground text-center py-8 border border-dashed rounded-lg">
+            {(overview.cities ?? []).length === 0 ? "Registre lu : aucune ville enregistrée." : "Aucune ville pour ces critères."}
+          </div>
         )}
       </div>
 
