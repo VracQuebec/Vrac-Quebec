@@ -38,8 +38,13 @@ export default function SiteAssistant() {
 
   const poll = useCallback(async (t = token) => {
     if (!t) return;
-    const { data } = await db.rpc("site_chat_poll", { _token: t, _after: last.current });
+    const { data, error } = await db.rpc("site_chat_poll", { _token: t, _after: last.current });
+    // Erreur transitoire (réseau, serveur) : on conserve la conversation et
+    // le jeton — le prochain cycle de lecture réessaiera automatiquement.
+    if (error) { setErr("Connexion instable — nouvelle tentative automatique."); return; }
+    // Pas d'erreur mais aucune session : la conversation n'existe vraiment plus.
     if (!data) { localStorage.removeItem(KEY); setToken(null); return; }
+    setErr((e) => (e === "Connexion instable — nouvelle tentative automatique." ? null : e));
     setMode(data.mode); setAgent(data.agent);
     if (data.messages?.length) { last.current = data.messages[data.messages.length - 1].id; setMsgs((m) => [...m, ...data.messages.filter((x: Msg) => !m.some((y) => y.id === x.id))]); }
   }, [token]);

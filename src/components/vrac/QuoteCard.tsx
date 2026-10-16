@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/vrac/estimate";
 import type { PublicQuote } from "@/lib/jsc/engine";
 import type { SubmitAction, SubmitResult } from "@/lib/vrac/submit";
+import { PUBLIC_PHONE } from "@/lib/public-phone";
 
-const PHONE = "819-592-3495";
+const PHONE = PUBLIC_PHONE;
 
 /** Camion recommandé, sans jamais exposer d'information interne. */
 function truckLabel(quote: PublicQuote): string {
@@ -149,7 +150,9 @@ export default function QuoteCard({
           <p>
             {result.action === "callback"
               ? "Votre demande de rappel est enregistrée. Notre équipe vous contacte sous peu."
-              : `Demande confirmée. Votre soumission ${result.quote_number ?? ""} a été enregistrée et envoyée à ${result.emailed_to ?? "votre courriel"}.`}
+              : result.email_sent === false
+                ? `Demande confirmée. Votre soumission ${result.quote_number ?? ""} a bien été enregistrée. Le courriel de confirmation n'a pas pu être envoyé — notre équipe vous contactera directement.`
+                : `Demande confirmée. Votre soumission ${result.quote_number ?? ""} a été enregistrée et envoyée à ${result.emailed_to ?? "votre courriel"}.`}
           </p>
         </div>
       )}

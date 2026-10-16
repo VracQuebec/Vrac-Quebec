@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
+import { PUBLIC_PHONE, PUBLIC_PHONE_E164, PUBLIC_PHONE_WA } from "@/lib/public-phone";
 import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import { buildTransportPrefill, type TransportPrefillSource } from "@/lib/parcours/validation";
@@ -728,14 +729,22 @@ const TransportRequest = () => {
     });
 
       if (result.status === "rejected") {
+        // Refus définitif du serveur : rien n'a été enregistré et aucune
+        // relance n'aura lieu. Message honnête ; la saisie est conservée.
+        const known: Record<string, string> = {
+          site_non_valide: "Le site sélectionné n'a pas encore été validé par notre équipe.",
+          submission_introuvable: "La demande d'origine est introuvable.",
+          origin_submission_invalide: "Cette demande n'a pas pu être rattachée à votre dossier.",
+          "tarif de camion introuvable": "Le tarif de transport n'a pas pu être confirmé. Réessayez ou contactez-nous.",
+          "nombre de voyages invalide": "Le nombre de voyages indiqué est invalide. Corrigez-le et réessayez.",
+        };
+        const raw = (result.message ?? "").trim();
+        const looksHuman = /[a-zàâäéèêëîïôöùûüç]{3,}\s/i.test(raw);
         toast({
-          title: "Demande impossible",
+          title: "Demande non enregistrée",
           description:
-            result.message === "site_non_valide"
-              ? "Le site sélectionné n'a pas encore été validé par notre équipe."
-              : result.message === "submission_introuvable"
-                ? "La demande d'origine est introuvable."
-                : "Cette demande n'a pas pu être rattachée à votre dossier.",
+            known[raw] ??
+            (looksHuman ? raw : "Cette demande n'a pas pu être enregistrée. Vérifiez les informations saisies et réessayez."),
           variant: "destructive",
         });
         return;
@@ -837,16 +846,8 @@ const TransportRequest = () => {
           </button>
 
           <nav className="flex items-center gap-1 sm:gap-2">
-            {step > 1 && step < 6 && (
-              <button
-                onClick={back}
-                className="flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-lg border border-border bg-card hover:border-primary/40 text-xs sm:text-sm font-display font-semibold"
-                aria-label="Étape précédente"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Retour</span>
-              </button>
-            )}
+            {/* Retour krok späť rieši kontextové tlačidlo „Étape précédente“ pri ovládaní krokov —
+                v hlavičke by na desktope duplikovalo globálne „Retour“ z bannera. */}
             {step < 6 && (
               <button
                 onClick={requestExit}
@@ -1413,8 +1414,8 @@ const TransportRequest = () => {
             ) : dumps.length === 0 ? (
               <div className="p-6 bg-card border border-border rounded-lg text-center">
                 <p className="text-sm font-semibold mb-2">Aucune dompe en attente de livraison ne correspond actuellement à votre recherche.</p>
-                <a href="tel:+18195923495" className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
-                  <Phone className="w-4 h-4" /> 819-592-3495
+                <a href={`tel:${PUBLIC_PHONE_E164}`} className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
+                  <Phone className="w-4 h-4" /> {PUBLIC_PHONE}
                 </a>
               </div>
             ) : (
@@ -1700,19 +1701,21 @@ const TransportRequest = () => {
         {/* Navigation */}
         {step < 6 && (
           <div className="mt-8 pt-4 border-t border-border">
-            {missingFields.length > 0 && (
+            {missingFields.length > 0 && !(step === 4 && loadingResults) && (
               <p className="mb-3 text-xs font-body text-destructive">
                 Champs à compléter : {missingFields.join(", ")}
               </p>
             )}
             <div className="flex justify-between">
-            <button
-              onClick={back}
-              disabled={step === 1}
-              className="px-4 py-2.5 rounded-lg border border-border font-display font-semibold text-sm disabled:opacity-40 flex items-center gap-1.5"
-            >
-              <ChevronLeft className="w-4 h-4" /> Retour
-            </button>
+            {/* À l'étape 1, le bandeau global offre déjà « Retour » : pas de doublon inactif. */}
+            {step > 1 ? (
+              <button
+                onClick={back}
+                className="px-4 py-2.5 rounded-lg border border-border font-display font-semibold text-sm flex items-center gap-1.5"
+              >
+                <ChevronLeft className="w-4 h-4" /> Étape précédente
+              </button>
+            ) : <span />}
             <button
               onClick={next}
               disabled={!canNext || submitting}
@@ -1800,7 +1803,7 @@ const ConfirmationView = ({
       `Dompe          : ${dump || "—"}`,
       "",
       "SUIVI",
-      "Vrac Québec — 819-592-3495",
+      `Vrac Québec — ${PUBLIC_PHONE}`,
     ];
     const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -1869,11 +1872,11 @@ const ConfirmationView = ({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
-        <a href="tel:+18195923495" className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
+        <a href={`tel:${PUBLIC_PHONE_E164}`} className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
           <Phone className="w-4 h-4" /> Appeler maintenant
         </a>
         <a
-          href="https://wa.me/18195923495?text=Bonjour%2C%20je%20fais%20suite%20%C3%A0%20ma%20demande%20sur%20Vrac%20Qu%C3%A9bec."
+          href={`https://wa.me/${PUBLIC_PHONE_WA}?text=Bonjour%2C%20je%20fais%20suite%20%C3%A0%20ma%20demande%20sur%20Vrac%20Qu%C3%A9bec.`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[#25D366] text-white font-display font-bold text-sm"

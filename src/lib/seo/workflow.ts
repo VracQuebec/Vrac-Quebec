@@ -4,6 +4,7 @@
 // scoring et le regroupement ne sont pas touchés.
 
 import type { ActionGroup } from "@/lib/seo/actionGroups";
+import { PUBLIC_PHONE, PUBLIC_PHONE_E164, PUBLIC_PHONE_WA } from "@/lib/public-phone";
 
 export type WorkCapability = "titles_meta" | "content" | "internal_links" | "verification" | "not_configured";
 
@@ -518,8 +519,8 @@ export function ctaDestinations(page: Pick<EditablePage, "city_slug">, ref: SeoR
   const list: CtaDestination[] = [
     { href: "#soumission", label: "Formulaire de demande de cette page" },
     { href: "/soumission", label: "Assistant de soumission" },
-    { href: "tel:+18195923495", label: "Appel téléphonique 819-592-3495" },
-    { href: "https://wa.me/18195923495", label: "WhatsApp 819-592-3495" },
+    { href: `tel:${PUBLIC_PHONE_E164}`, label: `Appel téléphonique ${PUBLIC_PHONE}` },
+    { href: `https://wa.me/${PUBLIC_PHONE_WA}`, label: `WhatsApp ${PUBLIC_PHONE}` },
     { href: "/calculateur", label: "Calculateur de matériaux" },
     { href: "/materiaux", label: "Catalogue de matériaux" },
     { href: "/remblai", label: "Page remblai" },

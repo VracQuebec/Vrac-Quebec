@@ -73,7 +73,7 @@ export default function BlogPost() {
     }
   }, [post, slug]);
 
-  if (!isLoading && !post) return <Navigate to="/blog" replace />;
+  if (!isLoading && !post) return <Navigate to="/404" replace />;
   if (post && post.slug !== slug) return <Navigate to={`/blog/${post.slug}`} replace />;
 
   if (!post) {
