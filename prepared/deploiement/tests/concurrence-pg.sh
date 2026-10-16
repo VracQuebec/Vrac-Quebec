@@ -8,8 +8,14 @@
 # Usage : bash prepared/deploiement/tests/concurrence-pg.sh
 # ============================================================================
 set -euo pipefail
+# PostgreSQL refuse de s'exécuter en root : relance sous un compte non privilégié.
+if [ "$(id -u)" = 0 ]; then
+  cp "$0" /tmp/concurrence-pg.sh; cp "$(dirname "$0")/../migration-anti-doublon-transactionnel-NON-APPLIQUEE.sql" /tmp/mig-anti-doublon.sql
+  chmod 644 /tmp/concurrence-pg.sh /tmp/mig-anti-doublon.sql
+  exec setpriv --reuid=nobody --regid=nogroup --clear-groups env MIG=/tmp/mig-anti-doublon.sql PATH="$PATH" HOME=/tmp bash /tmp/concurrence-pg.sh
+fi
 HERE="$(cd "$(dirname "$0")" && pwd)"
-MIG="$HERE/../migration-anti-doublon-transactionnel-NON-APPLIQUEE.sql"
+MIG="${MIG:-$HERE/../migration-anti-doublon-transactionnel-NON-APPLIQUEE.sql}"
 DIR="$(mktemp -d /tmp/pgtest.XXXX)"
 PORT=54329
 unset PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE PGSSLMODE
