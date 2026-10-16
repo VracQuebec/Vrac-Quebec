@@ -48,10 +48,19 @@ export default function StrategicCounters({
   if (loading) {
     return <div className="text-sm text-muted-foreground flex items-center gap-2 py-3"><Loader2 className="w-4 h-4 animate-spin" /> Analyse complète de toutes les pages…</div>;
   }
+  // Lecture à la demande (non lancée au chargement) : état neutre, pas une erreur.
+  if (!error && !counters) {
+    return (
+      <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+        Compteurs détaillés non chargés — lecture complète de toutes les pages, lancée à la demande (environ 15 à 30 secondes, aucune page modifiée).
+        <button onClick={onReload} className="ml-2 underline text-foreground">Charger les compteurs</button>
+      </div>
+    );
+  }
   if (error || !counters) {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-        Compteurs indisponibles — {error ?? "aucune donnée"}
+        Compteurs indisponibles — {error}
         <button onClick={onReload} className="ml-2 underline">Réessayer</button>
       </div>
     );
