@@ -43,7 +43,7 @@ SQL
   sed -e "s/c7870f526ab498d7f2519c2becab3c38/$SRC/g" "$RB" > $D/rb.sql
 }
 stop(){ pg_ctl -D $D/d -m immediate stop >/dev/null 2>&1; rm -rf $D; }
-q(){ psql -X -Atqc "$1" 2>&1 | tail -1; }
+q(){ psql -X -Atqc "$1" 2>&1 | grep -v "^CONTEXT" | tail -1; }
 acl(){ q "select array(select x::text from unnest(proacl) x order by 1)::text from pg_proc where oid=to_regprocedure('$1')"; }
 run(){ psql -X -q -1 -v ON_ERROR_STOP=1 -f "$1" >/dev/null 2>$D/err && echo ok || echo erreur; }
 
