@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindexOnly, generateReasonWithCatalog, catalogActionLine } from "@/lib/seo/cityActions";
 import UnknownDecisionDialog from "@/components/seo/UnknownDecisionDialog";
 import RefusedTasksPanel from "@/components/seo/RefusedTasksPanel";

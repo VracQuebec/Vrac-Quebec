@@ -171,7 +171,7 @@ export default function AdminSeoManager() {
       <div className="container mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 items-start">
         <nav
           aria-label="Sections SEO"
-          className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-hidden md:sticky md:top-[4.5rem] md:max-h-[calc(100vh-6rem)] md:overflow-y-auto md:overscroll-contain md:pr-1 [-webkit-overflow-scrolling:touch]"
+          className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-hidden md:sticky md:top-[calc(var(--nav-h,0px)+4.5rem)] md:max-h-[calc(100vh-var(--nav-h,0px)-6rem)] md:overflow-y-auto md:overscroll-contain md:pr-1 [-webkit-overflow-scrolling:touch]"
         >
           {tabGroups.map((group) => (
             <div key={group.title} className="md:mb-3 flex md:block gap-1">

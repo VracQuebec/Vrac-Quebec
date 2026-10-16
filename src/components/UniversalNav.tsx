@@ -160,7 +160,7 @@ export default function UniversalNav() {
       <nav
         ref={navRef}
         aria-label="Navigation du CRM"
-        className="app-universal-nav safe-top safe-x w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90"
+        className="app-universal-nav safe-top safe-x w-full border-b border-border bg-background"
       >
         <div className="mx-auto flex min-h-14 w-full max-w-7xl items-center gap-1 px-2 sm:px-4">
           <Button variant="ghost" size="icon" onClick={goBack} className="h-11 w-11 shrink-0" aria-label="Retour">
@@ -241,7 +241,7 @@ export default function UniversalNav() {
       <nav
         ref={navRef}
         aria-label="Navigation universelle"
-        className="app-universal-nav safe-top safe-x w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+        className="app-universal-nav safe-top safe-x w-full border-b border-border bg-background0"
       >
 
         <div className="no-scrollbar mx-auto flex w-full max-w-7xl items-center gap-1 overflow-x-auto px-2 py-2 sm:gap-2 sm:px-4">
