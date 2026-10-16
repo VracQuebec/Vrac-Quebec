@@ -12,7 +12,7 @@ set -euo pipefail
 if [ "$(id -u)" = 0 ]; then
   cp "$0" /tmp/concurrence-pg.sh; cp "$(dirname "$0")/../migration-anti-doublon-transactionnel-NON-APPLIQUEE.sql" /tmp/mig-anti-doublon.sql
   chmod 644 /tmp/concurrence-pg.sh /tmp/mig-anti-doublon.sql
-  exec setpriv --reuid=nobody --regid=nogroup --clear-groups env MIG=/tmp/mig-anti-doublon.sql PATH="$PATH" HOME=/tmp bash /tmp/concurrence-pg.sh
+  exec setpriv --reuid=1000 --regid=1000 --clear-groups env MIG=/tmp/mig-anti-doublon.sql PATH="$PATH" HOME=/tmp bash /tmp/concurrence-pg.sh
 fi
 HERE="$(cd "$(dirname "$0")" && pwd)"
 MIG="${MIG:-$HERE/../migration-anti-doublon-transactionnel-NON-APPLIQUEE.sql}"
