@@ -49,3 +49,12 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [x] Migration resserrement grants anon rédigée : prepared/deploiement/migration-resserrement-grants-anon-NON-APPLIQUEE.sql (liste blanche déduite des politiques RLS réelles)
 - [x] Plan de mise en production : /mnt/documents/plan-deploiement-2026-10-15.md (ordre, fumées, retours arrière, liste de contrôle)
 - [ ] EN ATTENTE D'AUTORISATION : appliquer migrations, déployer fonctions, publier aperçu
+
+## Phase correction technique (16 oct.) — aperçu seulement, rien déployé
+- [x] Anti-doublon en 3 temps (claim/complete/release) : submit-parcours + dedupe-flow.ts + public-guard.ts; migration v2
+- [x] Mode de secours journalisé (guard.fallback_active), erreur inattendue → 503
+- [x] Validation des paramètres SQL; tests réels base jetable : 47/47
+- [x] Permissions anon v2 + relevé exact + restauration exacte; tests base jetable 19/19
+- [x] mailchimp-webhook : erreurs base non ignorées
+- [x] Plan : prepared/deploiement/plan-deploiement-2026-10-15.md
+- [ ] EN ATTENTE : staging isolé, migrations, déploiement, publication (autorisation)
