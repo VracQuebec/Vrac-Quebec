@@ -67,3 +67,5 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [ ] EN ATTENTE : création staging, revue des 130 « à examiner » et 3 « dangereuses », révocations (autorisation)
 - [x] Étape sécurisation (16 oct.) : prepared/deploiement/securisation-etape-2026-10-16.md + proposition-restriction-fonctions-anon-NON-APPLIQUEE.sql
 - [ ] EN ATTENTE : vérifier état prod des fonctions, staging, sauvegarde vérifiée, colonne guard_claim_id (autorisation)
+- [x] Préparé (16 oct., 13 h) : migration guard_claim_id + module claimed-create (prepared/, non déployé) ; tests PG 31/31, simulés 5/5 ; revue 3 fonctions ; procédure sauvegarde
+- [ ] EN ATTENTE : export, staging, migrations, copie du module dans supabase/functions, restrictions (autorisation)
