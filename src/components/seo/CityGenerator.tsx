@@ -41,7 +41,7 @@ type SortKey = "name" | "requests" | "pages" | "progress" | "errors";
 
 export default function CityGenerator() {
   const {
-    overview, loading, run, verifying, dbActive, lockedBy,
+    overview, loading, overviewError, run, verifying, dbActive, lockedBy,
     load, generate, generateCity, regenerateErrors, verifyCity,
   } = useCityGeneration();
   const [query, setQuery] = useState("");
