@@ -15,6 +15,7 @@ import { trackPageView } from "./lib/analytics/ga4";
 import { useAdminNotifications } from "./hooks/useAdminNotifications";
 import { isolatedSearch } from "@/lib/entrepreneur/search-runtime";
 import {isExec04Local} from "@/lib/marketplace/communications";
+import {isPunchLocal} from "@/lib/punch/runtime";
 import {isExec05Local} from "@/lib/finances/exec05";
 import { EntrepreneurDataProvider } from "./lib/entrepreneur-app/EntrepreneurDataProvider";
 
@@ -174,6 +175,7 @@ const AdminIaCenter = lazy(() => import("./pages/AdminIaCenter"));
 const AdminOrchestrator = lazy(() => import("./pages/AdminOrchestrator"));
 
 const queryClient = new QueryClient();
+const PunchLocalScreen = lazy(() => import("./components/punch/PunchLocalScreen"));
 const FinanceLocalScreen = lazy(() => import("./components/finances/FinanceLocalScreen"));
 
 const ScrollToTop = () => {
@@ -218,6 +220,7 @@ const PrivateNoIndex = () => {
 // Personal links and EXEC-01 tests are isolated from analytics, session keepers,
 // notification mounts and production data providers. No bearer token in URLs.
 const App = () => {
+  if(isPunchLocal())return <TooltipProvider><BrowserRouter><BrandPaletteScope/><Toaster/><Suspense fallback={<p className="p-6">Chargement…</p>}><PunchLocalScreen/></Suspense></BrowserRouter></TooltipProvider>;
   if(isExec05Local())return <TooltipProvider><BrowserRouter><BrandPaletteScope/><Toaster/><Suspense fallback={<p className="p-6">Chargement…</p>}><FinanceLocalScreen/></Suspense></BrowserRouter></TooltipProvider>;
   if(isExec04Local())return <TooltipProvider><BrowserRouter><BrandPaletteScope/><Suspense fallback={<p className="p-6">Chargement…</p>}>{window.location.pathname==='/admin/relances'?<AdminRelances/>:window.location.pathname==='/admin/marche/soumissions'?<AdminMarketplaceRequests/>:window.location.pathname==='/admin/marche/commissions'?<AdminMarketplaceCommissions/>:window.location.pathname==='/partenaire/soumissions'?<PartenaireSoumissions/>:<RemblaiFollowup/>}</Suspense></BrowserRouter></TooltipProvider>;
   if (isolatedSearch()) return <TooltipProvider><BrowserRouter><BrandPaletteScope /><Suspense fallback={<p className="p-6">Chargement…</p>}>{window.location.pathname === "/entrepreneur/comparateur" ? <EntrepreneurComparateur/> : <Entrepreneur/>}</Suspense></BrowserRouter></TooltipProvider>;
