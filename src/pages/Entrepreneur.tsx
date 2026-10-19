@@ -15,7 +15,7 @@ import { useSearchIdentity } from "@/hooks/useSearchIdentity";
 import { useSearchSector, searchRoute } from "@/hooks/useSearchSector";
 import { inSector, validPoint, canDrawSector, type RouteFact } from "@/lib/entrepreneur/search-sector";
 import { routingBatches } from "@/lib/entrepreneur/comparateur-candidates";
-import {recordAction} from "@/lib/help/progress";
+import {recordAction,searchCompleted} from "@/lib/help/progress";
 import { isolatedSearch, localSearchCall, SEARCH_CLOUD_ENABLED } from "@/lib/entrepreneur/search-runtime";
 import SearchSectorPanel from "@/components/entrepreneur/SearchSectorPanel";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
@@ -259,7 +259,7 @@ const Entrepreneur = () => {
   };
 
   useEffect(() => {
-    if (!loading && searchSucceeded && query.trim() && filteredLeads.length > 0) {
+    if (searchCompleted(loading, searchSucceeded, query, filteredLeads.length)) {
       recordAction(user?.id, search.companyId, "search");
     }
   }, [loading, searchSucceeded, query, filteredLeads, user?.id, search.companyId]);

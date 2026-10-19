@@ -1,5 +1,6 @@
 export type StartAction='sector'|'search'|'client'|'punch';
 export type Progress={paused:boolean;completed:Partial<Record<StartAction,string>>};
+export const searchCompleted=(loading:boolean,succeeded:boolean,query:string,resultCount:number)=>!loading&&succeeded&&query.trim().length>0&&resultCount>0;
 export const progressKey=(user:string,company:string)=>`vq.help.start.v1.${user}.${company}`;
 export function readProgress(user:string,company:string):Progress{try{const p=JSON.parse(localStorage.getItem(progressKey(user,company))??'null');return p&&typeof p.completed==='object'?p:{paused:false,completed:{}};}catch{return {paused:false,completed:{}};}}
 export function recordAction(user:string|null|undefined,company:string|null|undefined,action:StartAction){if(!user||!company)return;try{const p=readProgress(user,company);p.completed[action]=new Date().toISOString();localStorage.setItem(progressKey(user,company),JSON.stringify(p));window.dispatchEvent(new Event('vq-help-progress'));}catch{/* unavailable storage does not block work */}}

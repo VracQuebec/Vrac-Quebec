@@ -1,6 +1,6 @@
 import {describe,it,expect,beforeEach} from 'vitest';
 import {allowedArticles,searchArticles} from '@/lib/help/catalog';
-import {recordAction,readProgress,pauseProgress,isHelpLocal} from '@/lib/help/progress';
+import {recordAction,readProgress,pauseProgress,isHelpLocal,searchCompleted} from '@/lib/help/progress';
 describe('EXEC07 accès et démarrage',()=>{
  beforeEach(()=>localStorage.clear());
  it('employé limité sans CRM, finances ni flotte',()=>{const ids=allowedArticles('operateur').map(a=>a.id);expect(ids).toEqual(['punch','agenda']);});
@@ -10,4 +10,5 @@ describe('EXEC07 accès et démarrage',()=>{
  it('action confirmée reste séparée par compte et entreprise',()=>{recordAction('u','c','punch');expect(readProgress('u','c').completed.punch).toBeTruthy();expect(readProgress('other','c').completed.punch).toBeUndefined();expect(readProgress('u','other').completed.punch).toBeUndefined();});
  it('identité absente ne produit pas un avancement',()=>{recordAction(null,'c','client');expect(readProgress('u','c').completed).toEqual({});});
  it('démonstration nécessite localhost et sélection explicite',()=>{window.history.replaceState({},'', '/entrepreneur/aide');expect(isHelpLocal()).toBe(false);});
+ it('première recherche exige résultat confirmé, pas une saisie ou erreur',()=>{expect(searchCompleted(false,true,'gravier',1)).toBe(true);expect(searchCompleted(true,true,'gravier',1)).toBe(false);expect(searchCompleted(false,false,'gravier',1)).toBe(false);expect(searchCompleted(false,true,'gravier',0)).toBe(false);expect(searchCompleted(false,true,' ',1)).toBe(false);});
 });
