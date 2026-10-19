@@ -1,11 +1,12 @@
 // EXEC-01 — suivi des demandes de remblai sans compte.
-// Livraison des courriels : capture interne uniquement (capture:true), aucun envoi réel.
+// Captures fictives enregistrées; courrier réel uniquement avec EXEC01_REAL_MAIL_ENABLED.
 // Activation publique contrôlée par EXEC01_ENABLED; le bouton des vrais courriels reste désactivé.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { makeEndpoint } from '../_shared/exec01/endpoint.ts';
 import { digest } from '../_shared/exec01/lib/service.ts';
 import { cleanFictionalPhotos } from '../_shared/exec01/photo-cleanup.ts';
+import { deliveryCapture } from '../_shared/exec01/delivery-mode.ts';
 const env = (key: string) => { const value = Deno.env.get(key); if (!value) throw Error('Missing configuration'); return value; };
 const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } });
 const origin = env('EXEC01_PORTAL_ORIGIN');
@@ -27,9 +28,15 @@ const handler = makeEndpoint({ portalOrigin: origin, corsOrigin: origin,
     finish: async (_id, path, claimId, removed) => { const result = await photoRpc({ kind: 'finish', requestId, path, claimId, removed }); if (result.ok !== true) throw Error('History unavailable'); },
   }),
   dispatchMail: async (p, message) => {
-    // Capture interne à la base, restreinte par le SQL aux dossiers fictifs enregistrés.
-    // Aucun fournisseur externe ni serveur local n'est contacté.
-    const { data, error } = await db.rpc('exec01_dispatch_mail', { p, message: { ...message, from: 'Vrac Québec <noreply@notify.vracquebec.ca>', sender_domain: 'notify.vracquebec.ca' }, capture: true });
+    // Never trust a browser-supplied recipient or capture flag. SQL rechecks the
+    // locked dossier/contact and commits link/code and existing queue atomically.
+    const requestId = p.requestId;
+    if (typeof requestId !== 'string') throw Error('Request required');
+    const { data: dossier, error: dossierError } = await db.from('submissions').select('email').eq('id', requestId).single();
+    const { data: fixture, error: fixtureError } = await db.from('exec01_test_dossiers').select('submission_id').eq('submission_id', requestId).maybeSingle();
+    if (dossierError || fixtureError || !dossier?.email) throw Error('Mail routing unavailable');
+    const capture = deliveryCapture(dossier.email, Boolean(fixture), Deno.env.get('EXEC01_REAL_MAIL_ENABLED') === 'true');
+    const { data, error } = await db.rpc('exec01_dispatch_mail', { p, message: { ...message, from: 'Vrac Québec <noreply@notify.vracquebec.ca>', sender_domain: 'notify.vracquebec.ca' }, capture });
     if (error) throw Error('Mail transaction unavailable'); return data;
   },
   storage: {

@@ -1,5 +1,17 @@
 # EXEC-01 — état réel au 19 octobre 2026
 
+## Mise à jour finale — 21:52 UTC : ACTIVÉ
+- Publication complète autorisée exécutée et constatée sur `https://vracquebec.ca/portail/remblai` : HTTP 200, ouverture directe et navigation depuis le site sans traceurs. Le déploiement initial a été suivi de la publication du commutateur portail actif.
+- Parcours publié sans `?test=1`, dossier fictif `24d65de9-1d76-41dd-b868-7c8818a5c031` : code capturé, vérification, modification des conditions, fichier PNG privé effectivement affiché, confirmation, pause, reprise, confirmation et fermeture. Zéro appel GA/GTM/Hotjar/Clarity et zéro erreur JavaScript pendant le parcours. Le fragment est retiré dès l'ouverture.
+- Lecture serveur du même identifiant : version 10, disponibilité `owner_closed`, conditions modifiées dans `submission_fill_profile` et 8 événements dans l'historique. Le contrôle CRM serveur antérieur est conservé; aucune nouvelle vérification de l'écran CRM authentifié admin n'est revendiquée.
+- Après activation du transport : renouvellement via le traitement publié = `captured-test` pour le dossier fictif enregistré; ancien lien refusé avec 403. Les autres contrôles d'expiration, mauvais codes, quotas, idempotence, GET et nettoyage fictif réutilisent les preuves hébergées précédentes, sans répéter leurs migrations.
+- `submission-owner-portal` redéployé avec routage serveur : adresses fictives enregistrées toujours capturées; demandeurs réels vers la file existante lorsque `EXEC01_REAL_MAIL_ENABLED=true`. Plus de capture forcée des vrais demandeurs.
+- `send-transactional-email` redéployé avec `EXEC01_CONFIRMATION_ENABLED=true` et limite de création `2026-10-19T21:50:07Z`; les demandes antérieures continuent le traitement précédent sans nouveau lien. Aucun traitement massif de l'historique.
+- Domaine d'expédition vérifié; état de la file Live déclaré sain par l'outil courriel (20 envois sur 7 jours, 2 anciens échecs définitifs). Aucun message réel envoyé pour cet essai; la livraison d'un nouveau courriel à un véritable demandeur n'a volontairement pas été testée.
+- EXEC-02/03/04/05/06 restent désactivés. Un commutateur indépendant empêche l'activation du portail d'ouvrir les appels de coordination/réservation EXEC-02. Aucun paiement, punch ou facturation activé.
+- 24 tests ciblés réussis; derniers journaux : build OK. Nettoyage d'orphelins toujours manuel et limité aux fichiers fictifs enregistrés, sans planificateur ni suppression globale.
+- Les sections ci-dessous conservent les états historiques antérieurs; leurs mentions NON ACTIVÉ/404/capture forcée ne décrivent plus l'état actuel.
+
 ## Exécuté dans le projet, pas sur le serveur partagé
 - Protection précoce du document personnel : pas de chargement GA/polices externes; fragments et paramètres privés retirés avant montage; mémoire seule. Navigation publique→personnelle redémarre le document avant affichage.
 - Sources préparées : émission, codes et renouvellement avec capture/file transactionnelle; pas de livraison indépendante après commit. Contact courant associé à une empreinte vérifiée; nouveau contact doit être vérifié.
