@@ -1,6 +1,7 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## EXEC-01 — suivi remblai sans compte (19 oct.)
+- [ ] EXEC-01C : conformité au schéma Cloud lu, raccordements désactivés portail/CRM/courriel/photos, tests locaux ciblés et bilan d’activation.
 - [x] EXEC-01B : adaptateur serveur et SQL préparés; parcours HTTP/PostgreSQL local et capture courriel fictive vérifiés, même dossier et sécurité; 40 tests ciblés réussis.
 - [x] Parcours fictif isolé, conditions complètes, aperçu courriel et vue CRM TEST du même dossier.
 - [x] Contrôles du service et transitions testés sans accès métier réel; handler serveur préparé, non déployé.
