@@ -1,5 +1,12 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## EXEC-08 — consolidation (19 oct. 2026)
+- [ ] Distinguer sources intégrées, preuves locales, code incomplet et validation hébergée pour EXEC-01–07.
+- [ ] Examiner isolation gratuite disponible avant toute exécution; aucune nouvelle simulation en l’absence de stack adaptée.
+- [ ] Corriger les raccordements indépendants réalisables, vérifier uniquement les changements concernés.
+- [ ] Livrer matrice A–E, procédures reproductibles, dépendances, ordre et retour arrière; conserver hors connexion non livré.
+- Interdits : publication, migration publique, données personnelles réelles, communication réelle, paiement ou dépense.
+
 ## EXEC-07 — aide intégrée et démonstrations (19 oct. 2026)
 - [x] Aide intégrée, 10 articles/scripts et dialogues contextuels selon droits, sans perte de saisie.
 - [x] Démarrage passé/repris, pointage→étape, recherche, droits et accompagnement TEST vérifiés; 20 tests ciblés et captures ordinateur/mobile.
