@@ -4,6 +4,7 @@ import { REMBLAI_CLOUD_ENABLED } from '@/lib/remblai/activation';
 import { cloudPortalCall } from '@/lib/remblai/cloud-client';
 import type { RequestRecord } from '@/lib/remblai/service';
 import { quantityLabel } from '@/lib/remblai/conditions';
+import ReceptionCoordinationPanel from './ReceptionCoordinationPanel';
 export default function CrmReceptionPanel({ submissionId }: { submissionId: string }) {
  const [row, setRow] = useState<RequestRecord | null>(null); const [error, setError] = useState('');
  useEffect(() => {
@@ -13,5 +14,5 @@ export default function CrmReceptionPanel({ submissionId }: { submissionId: stri
   return ()=>{current=false;window.clearInterval(timer);};
  },[submissionId]);
  if(!REMBLAI_CLOUD_ENABLED)return null;
- return <section className="space-y-3 border-y border-border py-4"><h3 className="font-display font-semibold">Conditions du propriétaire</h3>{error && <p role="alert">{error}</p>}{row ? <><p>Besoin restant : {quantityLabel(row.conditions.remaining,row.conditions.unit)}</p><p>Disponibilité : {row.availability}</p><Button asChild variant="outline"><a href={`/admin/apercu-suivi-remblai?requestId=${submissionId}`}>Voir les conditions et l’historique</a></Button></> : <p role="status">Chargement…</p>}</section>;
+ return <section className="space-y-3 border-y border-border py-4"><h3 className="font-display font-semibold">Conditions du propriétaire</h3>{error && <p role="alert">{error}</p>}{row ? <><p>Besoin restant : {quantityLabel(row.conditions.remaining,row.conditions.unit)}</p><p>Disponibilité : {row.availability}</p><Button asChild variant="outline"><a href={`/admin/apercu-suivi-remblai?requestId=${submissionId}`}>Voir les conditions et l’historique</a></Button><ReceptionCoordinationPanel requestId={submissionId} staff /></> : <p role="status">Chargement…</p>}</section>;
 }

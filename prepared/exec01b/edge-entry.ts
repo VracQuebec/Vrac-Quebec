@@ -3,6 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { makeEndpoint, type Message } from './endpoint.ts';
 import { digest } from '../../src/lib/remblai/service.ts';
+import { makeCoordinationEndpoint } from './coordination-endpoint.ts';
 const env=(key:string)=>{const value=Deno.env.get(key);if(!value) throw Error('Missing configuration');return value;};
 const db=createClient(env('SUPABASE_URL'),env('SUPABASE_SERVICE_ROLE_KEY'),{auth:{persistSession:false}});
 const origin=env('EXEC01_PORTAL_ORIGIN');
@@ -34,8 +35,20 @@ const handler=makeEndpoint({portalOrigin:origin,corsOrigin:origin,
   if(!response.ok) throw Error('Capture unavailable');return 'captured-test';
  },
 });
+const coordination=makeCoordinationEndpoint({enabled:false,origin,
+ rpc:async p=>{const {data,error}=await db.rpc('exec02_dispatch',{p});if(error)throw Error('RPC unavailable');return data;},
+ authenticate:async request=>{
+  const token=request.headers.get('authorization')?.replace(/^Bearer /i,'');if(!token)return null;
+  const {data,error}=await db.auth.getUser(token);if(error||!data.user)return null;
+  const admin=await db.rpc('has_role',{_user_id:data.user.id,_role:'admin'});if(!admin.error&&admin.data===true)return {role:'admin',actorId:data.user.id};
+  const entrepreneur=await db.rpc('has_role',{_user_id:data.user.id,_role:'entrepreneur'});
+  if(entrepreneur.error||entrepreneur.data!==true)return null;
+  return {role:'entrepreneur',actorId:data.user.id};
+ },
+ quota:async request=>{const ip=request.headers.get('cf-connecting-ip');if(!ip)return false;const {data,error}=await db.rpc('exec01_quota',{_identity:await digest(ip)});return !error&&data===true;},
+});
 Deno.serve(async request=>{
  if(request.method==='OPTIONS') return new Response('ok',{headers:corsHeaders});
- try { return await handler(request); }
+ try { return await (new URL(request.url).pathname.endsWith('/submission-reception')?coordination(request):handler(request)); }
  catch {return new Response(JSON.stringify({error:'Service indisponible.'}),{status:503,headers:{...corsHeaders,'Content-Type':'application/json','Cache-Control':'no-store'}});}
 });

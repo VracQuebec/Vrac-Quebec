@@ -55,13 +55,16 @@ Constats déterminants :
    seulement après les essais isolés. URL d'origine complète, CORS exact, aucune télémétrie
    sur les routes personnelles. Configuration `EXEC01_PORTAL_ORIGIN`, capture locale
    `EXEC01_MAIL_MODE=capture` et `EXEC01_CAPTURE_URL` tant que l'envoi n'est pas autorisé.
-3. **Courriel normal non activé, atomicité lien/file non vérifiée.** Cause : les fonctions
+3. **Courriel normal non activé, atomicité lien/file vérifiée localement par EXEC-02.** Cause : les fonctions
    actives restent intactes. Insérer le hook dans `send-transactional-email` après lecture
    du dossier et contrôles d'envoi; remplacer le rendu de `client-confirmation`, conserver
    la file `transactional_emails`. Ne pas insérer le hook dans les données anonymes du
    modèle : elles sont remplacées côté serveur. Avant activation, réserver l'idempotence
    de confirmation et garantir reprise du même lien/message à l'échec d'enqueue.
-   Actuellement le hook prépare un lien, mais ne garantit pas l'atomicité avec `enqueue_email`.
+   Utiliser désormais `enqueueExistingClientConfirmation` et `exec02_dispatch`, pas l'ancien
+   hook de préparation séparée : rollback lien/file/opération et reprise sans doublon vérifiés
+   sur PostgreSQL local. Le branchement au rendu géré, suppression et désabonnement demeure
+   obligatoire avant activation; `prepareMail` absent bloque les mutations Cloud, sans contournement.
    Codes/renouvellement : adaptateur capture seulement, aucun prestataire réel branché.
 4. **Storage API réelle non exécutée.** Cause : aucun fichier test autorisé en Cloud.
    Tester upload/signature/expiry sur le bucket privé de l'environnement isolé. Le test
@@ -73,10 +76,10 @@ Constats déterminants :
    `public_request_guard`. L'entrée préparée exige `cf-connecting-ip` provenant d'un
    proxy de confiance; vérifier présence et nettoyage de ce champ côté hébergement,
    sinon accès refusé. Ne pas utiliser une adresse IP fournie par le visiteur.
-6. **EXEC-02.** Lecture des voyages explicitement liés seulement; `planifie` n'est pas
+6. **EXEC-02 développé et validé localement, non activé.** Lecture des voyages explicitement liés seulement; `planifie` n'est pas
    « livraison confirmée ». `cpn_trips` reçu = preuve séparée, jamais ajouté au livré ni
    utilisé pour convertir le restant. Compatibilité, proposition acceptée par propriétaire,
-   réservation et autorisation de réception restent EXEC-02. Aucun lien nouveau vers
+   réservation et autorisation de réception sont préparées dans `coordination.sql`. Aucun lien nouveau vers
    `jsc_deliveries`, aucune identité d'entrepreneur/transporteur exposée.
 
 La configuration des fournisseurs d'authentification et la livraison réelle des messages
