@@ -13,6 +13,7 @@
 - Règles par dossier : supabase/AGENTS.md (agenda, obligations, assurances) ; supabase/functions/AGENTS.md ; src/lib/{logbook,seo (dont SEO START),parcours,ops (voyages, OPS-02, CPN-01)}/AGENTS.md.
 - PWA : `push-sw.js` unique, enregistré au chargement, sans cache métier.
 - EXEC-01 follow-up uses the existing submissions dossier model and a repository-injected domain service; preview uses fictional local data only, while real access stays disabled until a transactional hosted adapter is authorized and deployed.
+- EXEC-01B SQL and edge adapters stay in prepared/exec01b; loopback PostgreSQL tests use an empty schema fixture and the same submission-bound RPC, never the shared backend, so hosted activation remains a separate authorized operation.
 - Personal follow-up entrypoints bypass analytics, production providers and notification mounts; this prevents bearer credentials and test actions reaching existing telemetry or business services.
 <!-- LOVABLE:BEGIN -->
 - Entrepreneur UI uses the existing shell to own safe areas and measured header/navigation heights; one owner prevents duplicate offsets without changing backend behavior.

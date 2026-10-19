@@ -24,6 +24,6 @@ const handler=makeEndpoint({portalOrigin:origin,corsOrigin:origin,
 });
 Deno.serve(async request=>{
  if(request.method==='OPTIONS') return new Response('ok',{headers:corsHeaders});
- try { const response=await handler(request);for(const [key,value] of Object.entries(corsHeaders)) response.headers.set(key,value);return response; }
+ try { return await handler(request); }
  catch {return new Response(JSON.stringify({error:'Service indisponible.'}),{status:503,headers:{...corsHeaders,'Content-Type':'application/json','Cache-Control':'no-store'}});}
 });

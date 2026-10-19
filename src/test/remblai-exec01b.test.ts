@@ -6,7 +6,10 @@ import { readFile } from 'node:fs/promises';
 import { makeEndpoint,type Message } from '../../prepared/exec01b/endpoint';
 import { unknownConditions } from '../lib/remblai/conditions';
 import { isLocalServerMode } from '../lib/remblai/isolated-client';
-const db=postgres('postgresql://lovable@127.0.0.1:55439/exec01b?sslmode=disable',{ssl:false,max:5});
+const enabled=process.env.EXEC01B_LOCAL_TEST==='1';
+const databaseName=`exec01b_${crypto.randomUUID().replaceAll('-','')}`;
+const adminDb=postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable',{ssl:false});
+const db=postgres(`postgresql://lovable@127.0.0.1:55439/${databaseName}?sslmode=disable`,{ssl:false,max:5});
 const mail:Message[]=[];
 const handler=makeEndpoint({portalOrigin:'http://localhost:8080',corsOrigin:'http://localhost:8080',isAdmin:async r=>r.headers.get('authorization')==='Bearer local-test-admin',captureOrSend:async m=>{if(!m.to.endsWith('.invalid'))throw Error('Real mail forbidden');mail.push(m);return 'captured-test';},rpc:async p=>{
  const rows=await db`select public.exec01_dispatch(${db.json(p as postgres.JSONValue)}) as result`;return rows[0].result;
@@ -22,11 +25,13 @@ async function verify(f:Awaited<ReturnType<typeof dossier>>){expect((await call(
 async function read(f:Awaited<ReturnType<typeof dossier>>){const response=await call({kind:'read',...f});expect(response.status).toBe(200);return response.body;}
 async function act(f:Awaited<ReturnType<typeof dossier>>,action:string,extra:Record<string,unknown>={}){const r=await read(f);return call({kind:'act',...f,action,version:r.version,operationId:crypto.randomUUID(),confirmed:true,...extra});}
 beforeAll(async()=>{
+ if(!enabled) return;
+ await adminDb.unsafe(`CREATE DATABASE ${databaseName} ENCODING 'UTF8' TEMPLATE template0`);
  await db.unsafe(await readFile(new URL('./fixtures/exec01b-base.sql',import.meta.url),'utf8'));
  await db.unsafe(await readFile(new URL('../../prepared/exec01b/schema.sql',import.meta.url),'utf8'));
 },30000);
-afterAll(()=>db.end());
-describe('EXEC-01B isolated PostgreSQL',()=>{
+afterAll(async()=>{await db.end();if(enabled)await adminDb.unsafe(`DROP DATABASE IF EXISTS ${databaseName}`);await adminDb.end();});
+describe.skipIf(!enabled)('EXEC-01B isolated PostgreSQL',()=>{
  it('local mode cannot target a public origin',()=>{expect(isLocalServerMode('?server=local','localhost')).toBe(true);expect(isLocalServerMode('?server=local','vracquebec.ca')).toBe(false);});
  it('captures confirmation, verifies original contact by random code, modifies same CRM dossier',async()=>{
   const f=await dossier(false);expect((await call({kind:'read',...f})).status).toBe(403);const code=await verify(f);
