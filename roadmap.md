@@ -1,5 +1,10 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## EXEC-06 — accès employés et punch opérationnel (19 oct. 2026)
+- [ ] Compléter accès/contexte employé et punch/corrections dans les écrans existants, sans activation réelle.
+- [ ] Vérifier identité fictive, permissions, révocation, pauses, dates Toronto, corrections et export en base locale jetable.
+- [ ] Livrer preuves mobile/ordinateur et dépendances communes; signaler toute capacité hors connexion non disponible.
+
 ## EXEC-05 — facturation entrepreneur (19 oct. 2026)
 - [x] Compléter les liens CRM/soumission/chantier/facture et préparation de courriel sans envoi.
 - [x] Vérifier factures, acomptes, encaissements, avoirs, rejeu et isolation avec un entrepreneur fictif ordinaire : 29 tests ciblés, grand livre inclus.
