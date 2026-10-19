@@ -44,7 +44,7 @@ Constats déterminants :
 ## Activation minimale ultérieure et limites à ne pas masquer
 1. **Cloud/PostgREST/JWT non exécutés.** Cause : le projet accessible est le serveur
    public partagé, les essais écrits y sont interdits. Autoriser un environnement Cloud
-   isolé, appliquer les deux SQL préparés et y vérifier JWT réel, rôle approuvé, RLS,
+   isolé, appliquer schema.sql, quota.sql, coordination.sql puis lifecycle.sql préparés et y vérifier JWT réel, rôle approuvé, RLS,
    appels PostgREST et tous les déclencheurs. Aucun nouveau service payant créé ici.
    La fixture copie les colonnes nécessaires et le déclencheur de disponibilité,
    pas les notifications, le SEO, l'audit entreprise ni le schéma complet.
@@ -63,8 +63,9 @@ Constats déterminants :
    de confirmation et garantir reprise du même lien/message à l'échec d'enqueue.
    Utiliser désormais `enqueueExistingClientConfirmation` et `exec02_dispatch`, pas l'ancien
    hook de préparation séparée : rollback lien/file/opération et reprise sans doublon vérifiés
-   sur PostgreSQL local. Le branchement au rendu géré, suppression et désabonnement demeure
-   obligatoire avant activation; `prepareMail` absent bloque les mutations Cloud, sans contournement.
+   sur PostgreSQL local. Le branchement au rendu géré, suppression et désabonnement est écrit par EXEC-02B
+   dans les copies préparées du sender/worker; installer et tester ces copies en isolé,
+   puis retirer leurs verrous uniquement après autorisation. `prepareMail` absent reste bloquant.
    Codes/renouvellement : adaptateur capture seulement, aucun prestataire réel branché.
 4. **Storage API réelle non exécutée.** Cause : aucun fichier test autorisé en Cloud.
    Tester upload/signature/expiry sur le bucket privé de l'environnement isolé. Le test
@@ -84,3 +85,11 @@ Constats déterminants :
 
 La configuration des fournisseurs d'authentification et la livraison réelle des messages
 ne sont pas établies par `project_info` : elles restent non vérifiées.
+## EXEC-02B — mise à jour commune (19 octobre 2026)
+- **Terminé dans les sources, non déployé** : payload/render React Email existant, idempotence stable, contact revérifié transactionnellement; copie sender + copie worker avec gardes/suppression et report de rappel hors horaires. Historique événement/lien/enqueue atomique. Mesures trips et corrections au delta dans le panneau CRM déjà monté. Aucun second CRM ni expéditeur.
+- **Validé isolément** : SQL/HTTP persistants (34 tests ciblés), capture du vrai rendu React Email, billet partiel 12 → correction 10 → CRM/portail restant 90 et réservé 20; trois largeurs. Types des trois entrées Deno et compilation aperçu. Les fonctions actives restent inchangées.
+- **À installer seulement dans un Cloud isolé autorisé** : ordre schema → quota → coordination → lifecycle; fixture locale ne remplace pas tous les triggers. Vérifier JWT/PostgREST/RLS/roles/visibilité/photos. Copies préparées à intégrer au sender/worker existants après empaquetage; conserver leurs constantes scaffoldées et enregistrer le modèle dans le registre existant.
+- **Queue API non exécutée localement** : `exec02_defer_message` utilise pgmq.set_vt de l’infrastructure existante; vérifier signature/permissions, reprises, suppression, désabonnement, TTL d’un rappel jusqu’à l’expiration et capture prestataire autorisée. Ne pas recréer l’infrastructure email. Ne pas annoncer une capture comme un envoi.
+- **Planificateur écrit, non installé** : `lifecycle-schedule.sql`, repli horaire authentifié avec le credential Vault de la file existante; 24 checks/jour, <=60 min de retard pour journal/courriel, risque de coût récurrent. La capacité est exclue à l’échéance lors de la lecture. Valider d’abord environnement/extensions/acteur système; aucun cron public dans ce lot. Harnais local minute seulement.
+- **Proxy** : header fiable absent = refus; nettoyage hébergé non validé. **Codes/renouvellements** : capture locale uniquement, envoi réel séparément autorisé. **Storage** : signatures/upload/collecte d’orphelins à vérifier isolément, aucun objet réel utilisé.
+- Aucune dépendance d’activation ne remplace du code courrier/rappels/mesures à écrire; toutes les dépendances restantes exigent autorisation ou validation sur un service hébergé réellement isolé.
