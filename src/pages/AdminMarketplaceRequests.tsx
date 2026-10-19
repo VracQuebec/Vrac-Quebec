@@ -17,6 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import Messagerie from "@/components/marketplace/Messagerie";
+import RelatedServicesPanel from "@/components/marketplace/RelatedServicesPanel";
+import {isExec04Local} from "@/lib/marketplace/communications";
 import {
   WORK_QUEUES, addAdminNote, deleteAdminNote, fetchActivityLog, fetchAdminBoard,
   fetchAdminNotes, fetchClientDocuments, fetchInvitations, fetchLots, fetchRequest,
@@ -54,6 +56,10 @@ function Kpi({ titre, valeur, ton }: { titre: string; valeur: string; ton?: "ver
 }
 
 export default function AdminMarketplaceRequests() {
+  if(isExec04Local())return <div className="mx-auto max-w-6xl p-4"><Link to="/admin/relances?exec04=local">Communications ciblées</Link><RelatedServicesPanel session={null} staff/></div>;
+  return <ExistingRequests/>;
+}
+function ExistingRequests(){
   const { isReady, isAuthenticated } = useAuthReady();
   const { isAdmin, loading: roleLoading } = useUserRoles();
   const { toast } = useToast();

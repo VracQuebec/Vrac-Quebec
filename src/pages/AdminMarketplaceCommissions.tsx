@@ -20,6 +20,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useEditorDraft } from "@/lib/drafts/useEditorDraft";
 import DraftStatusBar from "@/components/drafts/DraftStatusBar";
+import CommissionAgreementPanel from "@/components/marketplace/CommissionAgreementPanel";
+import {isExec04Local} from "@/lib/marketplace/communications";
 import {
   COMMISSION_STATUSES, PRICING_MODELS, commissionStatusLabel, deletePricingRule,
   fetchCategories, fetchCommissions, fetchPartnerCompanies, fetchPricingRules,
@@ -51,6 +53,10 @@ const NOUVELLE: Draft = {
 };
 
 export default function AdminMarketplaceCommissions() {
+  if(isExec04Local())return <CommissionAgreementPanel/>;
+  return <ExistingCommissions/>;
+}
+function ExistingCommissions(){
   const { isReady, isAuthenticated } = useAuthReady();
   const { isAdmin, loading: roleLoading } = useUserRoles();
   const { toast } = useToast();

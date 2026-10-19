@@ -95,7 +95,7 @@ CREATE FUNCTION exec04_available(_submission uuid,_category uuid) RETURNS jsonb 
  AND ((t.scope='province' AND t.region='Québec') OR (t.scope='ville' AND lower(t.city)=lower(s.city))
  OR (t.scope='region' AND t.region IS NOT NULL AND t.region=s.exec04_region)))
  AND NOT EXISTS(SELECT 1 FROM mkt_partner_availability a WHERE a.company_id=p.company_id AND a.is_active
- AND a.status IN ('indisponible','unavailable') AND a.starts_on<=current_date AND (a.ends_on IS NULL OR a.ends_on>=current_date));
+ AND a.quantity=0 AND a.starts_on<=current_date AND a.ends_on>=current_date);
 $$;
 CREATE FUNCTION exec04_dispatch(p jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,extensions AS $$
 #variable_conflict use_variable

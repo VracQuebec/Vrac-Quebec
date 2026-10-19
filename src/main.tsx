@@ -4,10 +4,11 @@ import App from "./App.tsx";
 import "./index.css";
 import { supabase } from "@/integrations/supabase/client";
 import { isolatedSearch } from "@/lib/entrepreneur/search-runtime";
+import {isExec04Local} from "@/lib/marketplace/communications";
 import { startRdsOutbox } from "@/lib/fleet/rdsOutbox";
 
 // EXEC-01 isolation: visiting a fictitious dossier must not flush a real outbox.
-const personalFollowup = ["/portail/remblai", "/admin/apercu-suivi-remblai"].includes(window.location.pathname) || isolatedSearch();
+const personalFollowup = ["/portail/remblai", "/admin/apercu-suivi-remblai"].includes(window.location.pathname) || isolatedSearch() || isExec04Local();
 if (!personalFollowup) startRdsOutbox(supabase);
 if (personalFollowup) {
   (window as unknown as Record<string, unknown>)["ga-disable-G-T6HYZVY8E0"] = true;

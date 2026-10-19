@@ -14,6 +14,8 @@ import PublicContactFooter from "./components/PublicContactFooter";
 import { trackPageView } from "./lib/analytics/ga4";
 import { useAdminNotifications } from "./hooks/useAdminNotifications";
 import { isolatedSearch } from "@/lib/entrepreneur/search-runtime";
+import {isExec04Local} from "@/lib/marketplace/communications";
+import RelatedServicesPanel from "@/components/marketplace/RelatedServicesPanel";
 import { EntrepreneurDataProvider } from "./lib/entrepreneur-app/EntrepreneurDataProvider";
 
 /** Presentation-only boundary: excluded spaces keep their existing palette. */
@@ -215,6 +217,7 @@ const PrivateNoIndex = () => {
 // Personal links and EXEC-01 tests are isolated from analytics, session keepers,
 // notification mounts and production data providers. No bearer token in URLs.
 const App = () => {
+  if(isExec04Local())return <TooltipProvider><BrowserRouter><BrandPaletteScope/><Suspense fallback={<p className="p-6">Chargement…</p>}>{window.location.pathname==='/admin/relances'?<AdminRelances/>:window.location.pathname==='/admin/marche/soumissions'?<AdminMarketplaceRequests/>:window.location.pathname==='/admin/marche/commissions'?<AdminMarketplaceCommissions/>:window.location.pathname==='/partenaire/soumissions'?<div className="mx-auto max-w-5xl p-4"><RelatedServicesPanel session={null} partner/></div>:<RemblaiFollowup/>}</Suspense></BrowserRouter></TooltipProvider>;
   if (isolatedSearch()) return <TooltipProvider><BrowserRouter><BrandPaletteScope /><Suspense fallback={<p className="p-6">Chargement…</p>}>{window.location.pathname === "/entrepreneur/comparateur" ? <EntrepreneurComparateur/> : <Entrepreneur/>}</Suspense></BrowserRouter></TooltipProvider>;
   const personal = window.location.pathname === "/portail/remblai";
   const previewCrm = window.location.pathname === "/admin/apercu-suivi-remblai";
