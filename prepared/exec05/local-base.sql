@@ -9,7 +9,7 @@ CREATE FUNCTION public.has_role(uuid,app_role) RETURNS boolean LANGUAGE sql SECU
 CREATE TABLE public.jsc_companies(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),name text,legal_name text,address text,phone text,email text,created_at timestamptz DEFAULT now());
 GRANT SELECT ON public.jsc_companies TO authenticated; GRANT ALL ON public.jsc_companies TO service_role;
 ALTER TABLE public.jsc_companies ENABLE ROW LEVEL SECURITY;
-CREATE TABLE public.jsc_company_members(company_id uuid REFERENCES jsc_companies(id),user_id uuid,role text,full_name text,is_active boolean DEFAULT true,archived_at timestamptz);
+CREATE TABLE public.jsc_company_members(company_id uuid REFERENCES jsc_companies(id),user_id uuid,role text,full_name text,email text,is_active boolean DEFAULT true,archived_at timestamptz);
 GRANT SELECT ON public.jsc_company_members TO authenticated; GRANT ALL ON public.jsc_company_members TO service_role;
 ALTER TABLE public.jsc_company_members ENABLE ROW LEVEL SECURITY;
 CREATE POLICY own ON public.jsc_company_members FOR SELECT TO authenticated USING(user_id=auth.uid());
