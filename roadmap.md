@@ -1,5 +1,11 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## EXEC-05 — facturation entrepreneur (19 oct. 2026)
+- [x] Compléter les liens CRM/soumission/chantier/facture et préparation de courriel sans envoi.
+- [x] Vérifier factures, acomptes, encaissements, avoirs, rejeu et isolation avec un entrepreneur fictif ordinaire : 29 tests ciblés, grand livre inclus.
+- [x] Livrer captures, bilan ciblé et dépendances communes sans activation hébergée : docs/audit/exec05-bilan.md.
+- [ ] Activation EXEC-05 : environnement Cloud isolé autorisé pour JWT/PostgREST/Storage et assemblage financier; file réelle avec capture sans envoi. Aucun paiement ni publication autorisé.
+
 ## EXEC-04 — complément des écrans existants (19 oct. 17:11 UTC)
 - [x] Compléter registre visible, formulaires partenaires/ententes et capture locale sans reconstruction.
 - [x] Vérifier les parcours fictifs et les règles ciblées; livrer captures, modèles et limites d’activation : docs/audit/exec04-complement-bilan.md, 55 tests ciblés et parcours complet local.
@@ -10,7 +16,7 @@
 - [x] Corriger preuves de commissions et segmentation géographique.
 - [x] Corriger raccordement géographique EXEC-03, CORS et sortie du dessin.
 - [x] Exécuter les tests ciblés dans une base locale jetable; produire le bilan et le statut d'intégration.
-- Activation hébergée et EXEC-05 interdits sans nouvelle autorisation.
+- Activation hébergée interdite; EXEC-05 source et essais locaux autorisés le 19 octobre, sans activation réelle.
 
 - Preuves : 66 tests ciblés, sources Deno EXEC-03/04 contrôlées, capture TEST navigateur 1280/420; bilan docs/audit/exec03-exec04-correctifs.md. GO limité à validation d’intégration isolée autorisée; NO-GO production.
 

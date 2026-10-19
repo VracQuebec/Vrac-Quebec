@@ -1,6 +1,6 @@
 // FIN-08 — Factures : brouillon → aperçu → « Émettre » (numéro serveur, contenu figé) ; PDF en stockage privé.
 // Montants : moteur commun FIN-07B (aperçu ici, recalcul et figement côté serveur).
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,9 @@ import CreditNotes from "@/components/finances/CreditNotes";
 import Retentions from "@/components/finances/Retentions";
 import ConstructionIssueTest from "@/components/finances/ConstructionIssueTest";
 import ProgressPlanDialog, { ProgressPlans } from "@/components/finances/ProgressBilling";
+import InvoiceMailDialog from "@/components/finances/InvoiceMailDialog";
+import { downloadFinanceBlob } from "@/lib/finances/download";
+import { EXEC05_HOSTED_ENABLED, isExec05Local } from "@/lib/finances/exec05";
 
 const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const BUCKET = "fin-invoices";
@@ -39,6 +42,7 @@ export function invoiceState(i: Inv, today: string) {
   if (net <= 0.004 && credits(i) > 0) return { label: "Soldée par avoir", tone: "bg-primary/10 text-foreground" };
   if (net - rec <= 0.004) return { label: credits(i) > 0 ? "Payée (après avoir)" : "Payée (encaissements reliés)", tone: "bg-primary/15 text-foreground" };
   if (i.due_date && i.due_date < today) return { label: "En retard", tone: "bg-destructive/15 text-destructive" };
+  if (rec > 0) return { label: "Partiellement payée", tone: "bg-secondary text-foreground" };
   return { label: i.sent_at ? "Envoyée" : "Émise (non envoyée)", tone: "bg-secondary text-foreground" };
 }
 
@@ -52,10 +56,11 @@ async function logoFor(path: string | null | undefined): Promise<InvoicePdfData[
 
 async function pdfData(i: Inv, live?: { seller: Inv; template: Inv; tax: Inv; project?: string | null }): Promise<InvoicePdfData> {
   const frozen = i.status === "emise";
-  const seller = frozen ? i.seller_snapshot : live!.seller; const tpl = frozen ? i.template_snapshot : live!.template;
+  if (!frozen && !live) throw Error("Données du brouillon indisponibles");
+  const seller = frozen ? i.seller_snapshot : live?.seller; const tpl = frozen ? i.template_snapshot : live?.template;
   const client = frozen ? i.client_snapshot : { name: i.client_name, address: i.client_address, email: i.client_email, phone: i.client_phone };
   return { status: i.status, isTest: !!i.is_test, number: i.number, issueDate: i.issue_date, dueDate: i.due_date, terms: i.terms, projectName: live?.project ?? i.ent_crm_projects?.name ?? null,
-    seller, client, lines: i.lines, tax: frozen ? i.tax_snapshot : live!.tax as InvoicePdfData["tax"], template: { color: tpl?.color ?? tpl?.brand_color, footer: tpl?.footer, version: tpl?.version ?? tpl?.template_version }, logo: await logoFor(tpl?.logo_path),
+    seller, client, lines: i.lines, tax: frozen ? i.tax_snapshot : live?.tax as InvoicePdfData["tax"], template: { color: tpl?.color ?? tpl?.brand_color, footer: tpl?.footer, version: tpl?.version ?? tpl?.template_version }, logo: await logoFor(tpl?.logo_path),
     progress: frozen ? i.tax_snapshot?.progress ?? null : null, recurring: frozen ? i.tax_snapshot?.recurring ?? null : null, construction: frozen ? i.tax_snapshot?.construction ?? null : null };
 }
 
@@ -64,23 +69,28 @@ export default function Invoices({ companyId, canWrite }: { companyId: string; c
   const [rows, setRows] = useState<Inv[] | null>(null);
   const [f, setF] = useState({ q: "", status: "", from: "", to: "", due: "" });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const creating = useRef(false); const [createBusy, setCreateBusy] = useState(false);
+  const createId = useRef(crypto.randomUUID());
   const openId = params.get("facture"); const planId = params.get("dossier"); const [plansKey, setPlansKey] = useState(0);
   const setOpen = (id: string | null) => { const p = new URLSearchParams(params); id ? p.set("facture", id) : p.delete("facture"); setParams(p); };
   const setPlan = (id: string | null) => { const p = new URLSearchParams(params); id ? p.set("dossier", id) : p.delete("dossier"); p.delete("facture"); setParams(p); };
   const today = todayIn();
 
   const load = useCallback(async () => {
-    const { data, error } = await db.from("fin_invoices").select("id,status,number,client_name,issue_date,due_date,total,sent_at,is_test,quote_id,fin_expected_inflows!fin_invoices_expected_inflow_id_fkey(received),fin_credit_notes(total,status)").eq("company_id", companyId).order("created_at", { ascending: false }).limit(500);
+    let query = db.from("fin_invoices").select("id,status,number,client_id,project_id,client_name,issue_date,due_date,total,sent_at,is_test,quote_id,fin_expected_inflows!fin_invoices_expected_inflow_id_fkey(received),fin_credit_notes(total,status)").eq("company_id", companyId);
+    if (params.get("client")) query = query.eq("client_id", params.get("client"));
+    if (params.get("chantier")) query = query.eq("project_id", params.get("chantier"));
+    const { data, error } = await query.order("created_at", { ascending: false }).limit(500);
     if (error) toast({ title: "Lecture impossible", description: error.message, variant: "destructive" });
     setRows(data ?? []);
-  }, [companyId]);
+  }, [companyId, params.get("client"), params.get("chantier")]);
   useEffect(() => { void load(); }, [load]);
 
   const list = useMemo(() => (rows ?? []).filter((i) => {
     const q = f.q.trim().toLowerCase(); const stt = invoiceState(i, today).label;
     if (q && !`${i.number ?? ""} ${i.client_name ?? ""}`.toLowerCase().includes(q)) return false;
     if (f.status === "brouillon" && i.status !== "brouillon") return false;
-    if (f.status === "ouverte" && (i.status !== "emise" || stt.startsWith("Payée"))) return false;
+    if (f.status === "ouverte" && (i.status !== "emise" || invoiceRest(i) <= 0.004)) return false;
     if (f.status === "retard" && stt !== "En retard") return false;
     if (f.status === "payee" && !stt.startsWith("Payée")) return false;
     if (f.from && (i.issue_date ?? "") < f.from) return false;
@@ -92,14 +102,29 @@ export default function Invoices({ companyId, canWrite }: { companyId: string; c
   const totals = { total: issued.reduce((a, i) => a + Number(i.total ?? 0), 0), credits: issued.reduce((a, i) => a + credits(i), 0), rest: issued.reduce((a, i) => a + invoiceRest(i), 0) };
 
   const create = async () => {
-    const { data, error } = await db.from("fin_invoices").insert({ company_id: companyId, issue_date: today, lines: [{ desc: "", qty: 1, unit: "unité", price: null, tax: null }] }).select("id").single();
-    if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" });
-    await load(); setOpen(data.id);
+    if (creating.current || !canWrite) return; creating.current = true; setCreateBusy(true);
+    try {
+      let id: string;
+      if (EXEC05_HOSTED_ENABLED || isExec05Local()) {
+        const { data, error } = await db.rpc("fin_invoice_draft_create", { _company: companyId, _key: createId.current, _client: params.get("client") || null, _project: params.get("chantier") || null });
+        if (error) throw error; id = data;
+      } else {
+        // Existing RLS/trigger path remains usable until the prepared RPC is installed.
+        const { data, error } = await db.from("fin_invoices").insert({ id: createId.current, company_id: companyId, issue_date: today, client_id: params.get("client") || null, project_id: params.get("chantier") || null, lines: [{ desc: "", qty: 1, unit: "unité", price: null, tax: null }] }).select("id").single();
+        if (error) {
+          const previous = await db.from("fin_invoices").select("id,client_id,project_id").eq("id", createId.current).eq("company_id", companyId).maybeSingle();
+          if (!previous.data || (previous.data.client_id ?? null) !== (params.get("client") || null) || (previous.data.project_id ?? null) !== (params.get("chantier") || null)) throw error; id = previous.data.id;
+        } else id = data.id;
+      }
+      createId.current = crypto.randomUUID(); await load(); setOpen(id);
+    } catch (e) { toast({ title: "Création non confirmée", description: (e as Error).message, variant: "destructive" }); }
+    finally { creating.current = false; setCreateBusy(false); }
   };
 
   return <div className="space-y-3">
     <div className="flex flex-wrap items-center gap-2">
-      {canWrite && <Button onClick={create}>+ Nouvelle facture</Button>}
+      {canWrite && <Button disabled={createBusy} onClick={create}>+ Nouvelle facture</Button>}
+      <Button asChild variant="outline"><Link to={`/entrepreneur/crm?company=${companyId}&tab=quotes`}>Soumissions</Link></Button>
       <Button variant="outline" onClick={() => setSettingsOpen(true)}>Modèle et numérotation</Button>
       <p className="text-xs text-muted-foreground">Depuis une soumission acceptée : CRM → Soumissions → « Créer la facture ».</p>
     </div>
@@ -130,18 +155,20 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
   const [clients, setClients] = useState<Inv[]>([]); const [projects, setProjects] = useState<Inv[]>([]); const [inflows, setInflows] = useState<Inv[]>([]);
   const [quote, setQuote] = useState<Inv | null>(null); const [busy, setBusy] = useState(false); const [ctaxLock, setCtaxLock] = useState(false); const [confirm, setConfirm] = useState(false); const [replace, setReplace] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const actionLock = useRef(false); const [mailData, setMailData] = useState<InvoicePdfData | null>(null);
   const [refresh, setRefresh] = useState(0); const [bal, setBal] = useState<Sum | null>(null); // solde : source commune (fin_invoice_receipt_summary)
 
   const load = useCallback(async () => {
-    const { data } = await db.from("fin_invoices").select("*, ent_crm_projects(name), fin_expected_inflows!fin_invoices_expected_inflow_id_fkey(id,amount,received,archived_at)").eq("id", id).maybeSingle();
+    const { data, error } = await db.from("fin_invoices").select("*, ent_crm_projects(name), fin_expected_inflows!fin_invoices_expected_inflow_id_fkey(id,amount,received,archived_at)").eq("id", id).eq("company_id", companyId).maybeSingle();
+    if (error || !data) setErr(error?.message ?? "Facture introuvable ou inaccessible.");
     setInv(data);
     if (data?.quote_id) { const { data: q } = await db.from("ent_crm_quotes").select("number,version,tax_snapshot,total,subtotal").eq("id", data.quote_id).maybeSingle(); setQuote(q); }
-  }, [id]);
+  }, [id, companyId]);
   useEffect(() => { void load();
     (async () => {
       const [rates, s, co, t, cl, pj, inf] = await Promise.all([loadRates(db), db.from("ent_crm_settings").select("gst_status,qst_status,gst_number,qst_number").eq("company_id", companyId).maybeSingle(),
         db.from("jsc_companies").select("name,legal_name,address,phone,email").eq("id", companyId).maybeSingle(), db.from("fin_invoice_settings").select("*").eq("company_id", companyId).maybeSingle(),
-        db.from("ent_crm_clients").select("id,name,email,phone,city").eq("company_id", companyId).is("archived_at", null).order("name").limit(500),
+        db.from("ent_crm_clients").select("id,name,email,phone,address,city").eq("company_id", companyId).is("archived_at", null).order("name").limit(500),
         db.from("ent_crm_projects").select("id,name").eq("company_id", companyId).is("archived_at", null).order("name").limit(300),
         db.from("fin_expected_inflows").select("id,amount,received,counterparty,expected_on").eq("company_id", companyId).is("invoice_id", null).is("archived_at", null).order("expected_on").limit(200)]);
       const sd = s.data ?? {}; setCtx({ rates, gst: sd.gst_status ?? "a_completer", qst: sd.qst_status ?? "a_completer",
@@ -149,7 +176,7 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
       setClients(cl.data ?? []); setProjects(pj.data ?? []); setInflows(inf.data ?? []);
     })(); }, [id, companyId, load]);
 
-  if (!inv || !ctx) return <Dialog open onOpenChange={onClose}><DialogContent><p>Chargement…</p></DialogContent></Dialog>;
+  if (!inv || !ctx) return <Dialog open onOpenChange={onClose}><DialogContent><DialogHeader><DialogTitle>Facture</DialogTitle></DialogHeader><p role={err ? "alert" : "status"}>{err ?? "Chargement…"}</p></DialogContent></Dialog>;
   const draft = inv.status === "brouillon"; const editable = draft && canWrite;
   const lines: Line[] = inv.lines ?? [];
   const preview = draft ? computeTaxes(lines, { gstStatus: ctx.gst, qstStatus: ctx.qst, rates: ctx.rates, pricesIncludeTax: !!inv.prices_include_tax }) : inv.tax_snapshot;
@@ -157,47 +184,64 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
   const set = (p: Inv) => setInv({ ...inv, ...p });
   const setLine = (i: number, p: Partial<Line>) => set({ lines: lines.map((l, j) => j === i ? { ...l, ...p } : l) });
 
-  const save = async () => {
+  const save = async (duringIssue = false) => {
+    if (actionLock.current && !duringIssue) return false;
+    if (!duringIssue) actionLock.current = true;
     setBusy(true); setErr(null);
+    try {
     const row = { client_id: inv.client_id || null, client_name: inv.client_name || null, client_address: inv.client_address || null, client_email: inv.client_email || null, client_phone: inv.client_phone || null,
       project_id: inv.project_id || null, issue_date: inv.issue_date || null, due_date: inv.due_date || null, terms: inv.terms || null, lines, prices_include_tax: !!inv.prices_include_tax, is_test: !!inv.is_test, private_note: inv.private_note || null };
-    const { error } = await db.from("fin_invoices").update(row).eq("id", id); setBusy(false);
+    const { error } = await db.from("fin_invoices").update(row).eq("id", id);
     if (error) { toast({ title: "Refusé", description: error.message, variant: "destructive" }); return false; }
     await load(); onChanged(); return true;
+    } catch (e) { setErr((e as Error).message); return false; }
+    finally { if (!duringIssue) { actionLock.current = false; setBusy(false); } }
   };
   const issue = async () => {
-    if (busy || ctaxLock) return; setBusy(true); setErr(null);
-    if (!(await save())) { setBusy(false); return; }
-    setBusy(true);
+    if (actionLock.current || ctaxLock) return; actionLock.current = true; setBusy(true); setErr(null);
+    try {
+    const existing = await db.from("fin_invoices").select("status").eq("id", id).eq("company_id", companyId).maybeSingle();
+    if (existing.error || !existing.data) throw existing.error ?? Error("Facture inaccessible");
+    if (existing.data.status !== "emise" && !(await save(true))) return;
     const { data, error } = await db.rpc("fin_invoice_issue", { _id: id, _replace_inflow: replace || null }); setBusy(false); setConfirm(false);
     if (error) { setErr(error.message); return; }
     toast({ title: data.already ? `Déjà émise : ${data.number}` : `Facture ${data.number} émise`, description: "Émise ne veut pas dire envoyée : transmettez-la vous-même puis marquez-la « Envoyée »." });
     await load(); onChanged();
+    } catch (e) { setErr((e as Error).message); } finally { actionLock.current = false; setBusy(false); }
   };
   const openPdf = async (download: boolean) => {
+    const tab = download ? null : window.open("", "_blank");
     setBusy(true);
     try {
       let path = inv.pdf_path as string | null;
-      if (!draft && !path && !canWrite) { const doc = renderInvoicePdf(await pdfData(inv)); download ? doc.save(`${inv.number}.pdf`) : window.open(URL.createObjectURL(doc.output("blob")), "_blank"); return; }
+      if (!draft && !path && !canWrite) { const doc = renderInvoicePdf(await pdfData(inv)); const blob = doc.output("blob"); if (download) downloadFinanceBlob(blob, `${inv.number}.pdf`); else if (tab) { const url = URL.createObjectURL(blob); tab.location.href = url; setTimeout(() => URL.revokeObjectURL(url), 30000); } return; }
       if (!draft && !path) { // premier rendu d'une facture émise : figé dans le stockage privé
         const blob = renderInvoicePdf(await pdfData(inv)).output("blob"); path = `${companyId}/pdf/${id}-${inv.number}.pdf`;
         const up = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: "application/pdf", upsert: false });
         if (up.error && !/exists|Duplicate/i.test(up.error.message)) throw up.error;
         await db.from("fin_invoices").update({ pdf_path: path }).eq("id", id).is("pdf_path", null); await load();
       }
-      if (draft) { const doc = renderInvoicePdf(await pdfData({ ...inv, lines }, { seller: ctx.seller, template: ctx.template, tax: preview })); download ? doc.save(`brouillon-facture.pdf`) : window.open(URL.createObjectURL(doc.output("blob")), "_blank"); return; }
-      const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path!, 120, download ? { download: `${inv.number}.pdf` } : undefined);
-      if (error) throw error; window.open(data.signedUrl, "_blank");
-    } catch (e) { toast({ title: "PDF indisponible", description: (e as Error).message, variant: "destructive" }); } finally { setBusy(false); }
+      if (draft) { const blob = renderInvoicePdf(await pdfData({ ...inv, lines }, { seller: ctx.seller, template: ctx.template, tax: preview })).output("blob"); if (download) downloadFinanceBlob(blob, "brouillon-facture.pdf"); else if (tab) { const url = URL.createObjectURL(blob); tab.location.href = url; setTimeout(() => URL.revokeObjectURL(url), 30000); } return; }
+      if (!path) throw Error("PDF absent");
+      const { data, error } = await supabase.storage.from(BUCKET).download(path);
+      if (error || !data) throw error ?? Error("PDF absent");
+      if (download) downloadFinanceBlob(data, `${inv.number}.pdf`); else if (tab) { const url = URL.createObjectURL(data); tab.location.href = url; setTimeout(() => URL.revokeObjectURL(url), 30000); }
+    } catch (e) { tab?.close(); toast({ title: "PDF indisponible", description: (e as Error).message, variant: "destructive" }); } finally { setBusy(false); }
   };
   const markSent = async () => { const note = window.prompt("Comment la facture a-t-elle été transmise ? (ex. courriel envoyé par vous le …)") ?? ""; if (!note.trim()) return;
     const { error } = await db.rpc("fin_invoice_mark_sent", { _id: id, _note: note }); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" }); await load(); onChanged(); };
   const del = async () => { if (!window.confirm("Supprimer ce brouillon ?")) return; const { error } = await db.from("fin_invoices").delete().eq("id", id); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" }); onChanged(); onClose(); };
-  const pickClient = (cid: string) => { const c = clients.find((x) => x.id === cid); set({ client_id: cid || null, client_name: c?.name ?? inv.client_name, client_email: c?.email ?? inv.client_email, client_phone: c?.phone ?? inv.client_phone }); };
+  const pickClient = (cid: string) => { const c = clients.find((x) => x.id === cid); set({ client_id: cid || null, client_name: c?.name ?? inv.client_name, client_address: c ? [c.address, c.city].filter(Boolean).join(", ") : inv.client_address, client_email: c?.email ?? inv.client_email, client_phone: c?.phone ?? inv.client_phone }); };
   const rec = inv.fin_expected_inflows; const profileLink = `/entrepreneur/crm?company=${companyId}&tab=team`;
 
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
     <DialogHeader><DialogTitle>{inv.number ? `Facture ${inv.number}` : "Facture — brouillon"}{inv.is_test ? " (TEST)" : ""}</DialogTitle></DialogHeader>
+    <nav aria-label="Dossiers liés" className="flex flex-wrap gap-2 text-xs">
+      {inv.client_id && <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/crm?company=${companyId}&tab=clients&client=${inv.client_id}`}>Client</Link></Button>}
+      {inv.quote_id && <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/crm?company=${companyId}&tab=quotes&quote=${inv.quote_id}`}>Soumission</Link></Button>}
+      {inv.project_id && <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/crm?company=${companyId}&tab=projects&chantier=${inv.project_id}`}>Chantier</Link></Button>}
+      <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/finances?company=${companyId}&tab=comptabilite`}>Grand livre</Link></Button>
+    </nav>
     {!draft && <div className="rounded border border-border p-2 text-xs">Émise le {new Date(inv.issued_at).toLocaleString("fr-CA", { timeZone: "America/Toronto" })} · contenu figé (client, entreprise, lignes, taxes, modalités, modèle v{inv.template_snapshot?.version}).
       {inv.sent_at ? ` Envoyée (déclarée) le ${new Date(inv.sent_at).toLocaleString("fr-CA", { timeZone: "America/Toronto" })} — ${inv.sent_note}.` : " Pas encore marquée envoyée (un téléchargement ne prouve pas l'envoi)."}
       {rec && <> Entrée attendue liée : {bal ? <>net après avoirs {money(bal.net)} · encaissé {money(bal.collected ?? bal.received)} · net à recevoir {money(bal.rest)}</> : "solde en cours de lecture"}{rec.archived_at ? " · retirée des prévisions de trésorerie (soldée par note de crédit)" : ""}.</>} Correction : par une note de crédit (ci-dessous); la facture originale et son PDF restent inchangés.</div>}
@@ -246,12 +290,14 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
     <div className="flex flex-wrap gap-2">
       <Button variant="outline" disabled={busy} onClick={() => openPdf(false)}>{draft ? "Aperçu PDF (BROUILLON)" : "Ouvrir le PDF"}</Button>
       <Button variant="outline" disabled={busy} onClick={() => openPdf(true)}>Télécharger</Button>
-      {editable && <><Button variant="outline" disabled={busy || ctaxLock} onClick={save}>Enregistrer le brouillon</Button><Button disabled={busy || ctaxLock} onClick={() => setConfirm(true)}>Émettre…</Button><Button variant="ghost" onClick={del}>Supprimer le brouillon</Button></>}
+      {editable && <><Button variant="outline" disabled={busy || ctaxLock} onClick={() => save()}>Enregistrer le brouillon</Button><Button disabled={busy || ctaxLock} onClick={() => setConfirm(true)}>Émettre…</Button><Button variant="ghost" onClick={del}>Supprimer le brouillon</Button></>}
+      {!draft && <Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); try { setMailData(await pdfData(inv)); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); } }}>Préparer le courriel…</Button>}
       {!draft && canWrite && !inv.sent_at && <Button variant="outline" onClick={markSent}>Marquer « Envoyée »</Button>}
     </div>
     {confirm && <div className="rounded border border-border p-2 text-sm"><p className="font-semibold">Émettre la facture ?</p><p className="text-xs">Un numéro unique sera attribué et le contenu sera figé (plus de modification ni de suppression). Une entrée attendue sera créée dans la trésorerie.</p>
       {inflows.length > 0 && <label className="mt-1 block text-xs">Remplacer une prévision existante (encaissements conservés) :<select className={`${sel} mt-1 w-full`} value={replace} onChange={(e) => setReplace(e.target.value)}><option value="">Non, créer une nouvelle entrée attendue</option>{inflows.map((x) => <option key={x.id} value={x.id}>{x.counterparty || "Entrée"} · {money(x.amount)} · {fmtDate(x.expected_on)}{Number(x.received) ? ` · déjà encaissé ${money(x.received)}` : ""}</option>)}</select></label>}
       <div className="mt-2 flex gap-2"><Button disabled={busy || ctaxLock} onClick={issue}>Confirmer l'émission</Button><Button variant="ghost" onClick={() => setConfirm(false)}>Annuler</Button></div></div>}
+    {mailData && <InvoiceMailDialog data={mailData} invoiceId={id} onClose={() => setMailData(null)} />}
   </DialogContent></Dialog>;
 }
 
