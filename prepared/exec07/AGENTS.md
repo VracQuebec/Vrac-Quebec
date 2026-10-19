@@ -1,0 +1,2 @@
+- The EXEC07 fixture extends existing conversation and agenda tables inside a verified disposable loopback database; it does not create hosted support writers or deploy migrations.
+- Capture claims use existing message metadata and transaction locks to preserve idempotency without a second support table; agenda slots require explicit configuration and fresh availability checks.

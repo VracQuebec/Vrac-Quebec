@@ -30,7 +30,7 @@ export async function createHelpLocal(){
     if(choice){await tx`select set_config('request.jwt.claim.sub',${user},true)`;const e=(await tx`insert into agd_events(company_id,title,description,category,status,start_at,end_at,owner_user_id,reminders,notify_client) values(${company},'Accompagnement Vrac Québec — TEST',${'Conversation TEST '+s.id},'appel','confirme',${choice.start},${choice.end},${user},'[]',false) returning id`)[0];event={id:e.id,label:choice.label};}
     const saved={sessionId:s.id,event,captureOnly:true};
     // Reuse message metadata under the transaction lock; no parallel capture table.
-    await tx`update site_chat_messages set links=${JSON.stringify({exec07_key:identity,payload,result:saved})}::jsonb where session_id=${s.id} and role='visiteur'`;
+    await tx`update site_chat_messages set links=${tx.json({exec07_key:identity,payload,result:saved})} where session_id=${s.id} and role='visiteur'`;
     return saved;
    });return result;
   };

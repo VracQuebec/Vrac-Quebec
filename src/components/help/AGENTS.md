@@ -1,0 +1,3 @@
+- Task help is shared by the existing entrepreneur shell and authorized employee screens; contextual dialogs leave the work screen mounted to preserve drafts and scroll.
+- Role-filtered help does not grant business access; local support uses only the explicit loopback fixture and never invokes live assistant, reminders or delivery providers.
+- Onboarding is device-scoped by authenticated user and company; completion is recorded only at confirmed business action boundaries, never by opening an article.
