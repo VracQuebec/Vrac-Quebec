@@ -31344,6 +31344,7 @@ export type Database = {
         Args: { _crm?: boolean; _id: string }
         Returns: Json
       }
+      exec01_quota: { Args: { _identity: string }; Returns: boolean }
       fin__alloc: {
         Args: {
           _allocs: Json
