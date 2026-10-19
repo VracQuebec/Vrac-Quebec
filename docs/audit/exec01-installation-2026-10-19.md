@@ -20,10 +20,17 @@ Navigateur : aperçu `/portail/remblai` désactivé, zéro requête externe, auc
 - Aucun message réel : la file `transactional_emails` est restée vide (0 message); les 4 messages de l’essai sont uniquement dans `exec01_mail_capture`.
 - Données fictives nettoyées après l’essai (verrou d’historique contourné uniquement dans cette session de nettoyage).
 
-## NON ACTIVÉ — causes
-1. Le traitement de bout en bout navigateur n’est pas installé : la fonction Edge (adaptateur préparé `prepared/exec01b/owner-edge-entry.ts`) n’est pas déployée; les RPC sont installés et vérifiés, mais aucun point d’entrée HTTP ne les expose encore. Raccordement de l’expéditeur existant (hook confirmation) non installé.
-2. La page publiée `/portail/remblai` renvoie 404 et le site publié charge encore Analytics : une publication de l’interface est indispensable, non exécutée. Bouton dans les vrais courriels et accès général restent fermés (`REMBLAI_CLOUD_ENABLED=false`).
-3. Le stockage photo hébergé (bucket privé) n’a pas été exercé; le cycle testé l’a été sur le registre SQL, pas sur des objets Storage réels.
+## INSTALLÉ depuis (19 octobre 2026, ~21 h UTC)
+- Fonction Edge `submission-owner-portal` déployée (point d’entrée HTTP sécurisé : origine limitée à `EXEC01_PORTAL_ORIGIN`, quota par IP, `EXEC01_ENABLED=true`). Modules partagés copiés sous `supabase/functions/_shared/exec01/`.
+- Expéditeur existant `send-transactional-email` redéployé avec le branchement de confirmation EXEC-01 câblé mais `EXEC01_CONFIRMATION_ENABLED=false` : le bouton reste hors des vrais courriels. Tout envoi du portail passe en capture interne (`capture: true` forcé côté fonction).
+- Parcours complet revérifié VIA la fonction déployée sur un nouveau dossier fictif (`exec01-portail@remblai.test`) : GET sans mutation → lecture avec mauvais jeton refusée → code capturé → mauvais code refusé → vérification → action sans confirmation explicite refusée (400) → modification avec VRAIE photo PNG → rejeu idempotent (même résultat, pas de doublon) → photo privée `private:submissions/…` avec URL signée → chemin d’un autre dossier refusé (503 générique) → pause → reprise → confirmation → même dossier CRM avec historique (4 événements) → renouvellement (ancien lien révoqué, 403) → nouveau lien extrait de la capture → code → vérification → révocation → accès refusé. Origine étrangère refusée (403). Création de lien sans session refusée (403).
+- Photos Storage hébergées exercées pour de vrai : objet réel dans le bucket privé `lead-photos` (vérifié dans `storage.objects`), URL signée temporaire générée par la fonction (le téléchargement direct depuis ce bac à sable est bloqué par le réseau, la signature elle-même est produite et l’objet confirmé présent). Nettoyage : réclamation refusée tant que le fichier est référencé (protection correcte), puis cycle complet sur un second fichier fictif orphelin (claim → suppression Storage confirmée → historique `photo_cleanup_removed`). Suppression directe par SQL bloquée par la protection de la plateforme : le retrait passe bien par l’API Storage, comme prévu.
+- Aucun message réel : la file d’envoi est restée vide; les messages de l’essai sont uniquement dans la capture interne.
+- Données fictives nettoyées après l’essai (0 dossier, 0 lien, 0 capture, 0 événement, 0 fichier restants).
+
+## NON ACTIVÉ — causes restantes
+1. La page publiée `/portail/remblai` renvoie 404 et le site publié charge encore Analytics : une publication de l’interface est indispensable, non exécutée. Bouton dans les vrais courriels et accès général restent fermés (`REMBLAI_CLOUD_ENABLED=false` côté page, `EXEC01_CONFIRMATION_ENABLED=false` côté expéditeur).
+2. Le nettoyage de photos n’a aucun planificateur installé (déclenchement manuel uniquement).
 Retour arrière privilégié (sans restauration globale) : garder l’entrée désactivée et le bouton hors des vrais courriels; les extensions additives peuvent rester en place sans effet, ou être marquées DEPRECATED. Aucune restauration de la sauvegarde du 19 oct. 04:41 UTC n’est prévue : elle effacerait les données postérieures.
 
 ## Installation préparée, non exécutée
