@@ -13,13 +13,18 @@ Commande : `EXEC01B_LOCAL_TEST=1 bunx vitest run src/test/remblai-installation-s
 
 Navigateur : aperçu `/portail/remblai` désactivé, zéro requête externe, aucun gtag, fragment retiré, aucune erreur JavaScript. Cette vérification ne prétend pas exercer le dossier hébergé. Site publié sans paramètre TEST : 404 et script GA présent. Aucun secret réel utilisé sur le site publié.
 
-## Opérations hébergées réellement exécutées
-Aucune migration, aucun déploiement de fonction, aucune modification de l’expéditeur, aucune suppression Storage, aucun message réel, aucune publication. Inspections en lecture seule seulement.
+## Opérations hébergées réellement exécutées (19 octobre 2026, après sauvegarde confirmée 04:41:30 UTC)
+- Migrations additives appliquées, dans l’ordre prévu : `0225_exec01_schema_portail_remblai` (tables liens/opérations/événements, RPC `exec01_dispatch`/`exec01_projection`, verrous), `0226_exec01_quota_portail`, `0227_exec01_dispatch_correctif_inputhash` (correction d’une coquille de transcription `p->'inputHash'` → `p->>'inputHash'` dans la première application, par remplacement de fonction, sans donnée touchée), `0228_exec01_confirmation_queue`, `0229_exec01_mail_capture`, `0230_exec01_photos_privees`.
+- Parcours complet exercé sur dossier fictif (`exec01-essai@remblai.test`, adresse réservée) : émission du lien → capture de la confirmation → demande de code (capture) → mauvais code refusé → vérification → action sans confirmation explicite refusée → modification des conditions → rejeu idempotent → conflit d’opération refusé → pause → confirmation en pause refusée → reprise → confirmation → même dossier CRM avec historique → renouvellement (ancien lien révoqué) → quota 60 s sur le code appliqué → vérification du nouveau lien → révocation → lecture refusée. Résultat : succès complet.
+- Photos privées : cycle complet sur fichier fictif (enregistrement, claim trop récent refusé, claim après 24 h, mauvais identifiant de claim refusé, suppression confirmée, second claim refusé, chemin étranger refusé). Succès.
+- Aucun message réel : la file `transactional_emails` est restée vide (0 message); les 4 messages de l’essai sont uniquement dans `exec01_mail_capture`.
+- Données fictives nettoyées après l’essai (verrou d’historique contourné uniquement dans cette session de nettoyage).
 
 ## NON ACTIVÉ — causes
-1. Sauvegarde préalable non vérifiée : inventaire non accessible par outil. Le propriétaire doit fournir l’horodatage UTC de la dernière ligne dans **Plus → Base de données → Gérer → Sauvegardes**; l’autorisation d’installation existe déjà et ne sera pas redemandée. Aucune preuve de sauvegarde ou de restauration n’est inventée.
-2. La page publiée n’existe pas : une publication de l’interface est indispensable, mais n’a pas été autorisée comme publication générale. Bouton dans les vrais courriels et accès général restent fermés.
-3. Le parcours hébergé complet reste non exercé; fonctions préparées toujours sous `prepared/`, entrée propriétaire désactivée, capture uniquement. Avant activation : paquet de fonction, authentification admin et visiteurs sans compte, origine, quotas gateway, RPC/permissions, capture interne et stockage privé doivent être validés sur le dossier fictif.
+1. Le traitement de bout en bout navigateur n’est pas installé : la fonction Edge (adaptateur préparé `prepared/exec01b/owner-edge-entry.ts`) n’est pas déployée; les RPC sont installés et vérifiés, mais aucun point d’entrée HTTP ne les expose encore. Raccordement de l’expéditeur existant (hook confirmation) non installé.
+2. La page publiée `/portail/remblai` renvoie 404 et le site publié charge encore Analytics : une publication de l’interface est indispensable, non exécutée. Bouton dans les vrais courriels et accès général restent fermés (`REMBLAI_CLOUD_ENABLED=false`).
+3. Le stockage photo hébergé (bucket privé) n’a pas été exercé; le cycle testé l’a été sur le registre SQL, pas sur des objets Storage réels.
+Retour arrière privilégié (sans restauration globale) : garder l’entrée désactivée et le bouton hors des vrais courriels; les extensions additives peuvent rester en place sans effet, ou être marquées DEPRECATED. Aucune restauration de la sauvegarde du 19 oct. 04:41 UTC n’est prévue : elle effacerait les données postérieures.
 
 ## Installation préparée, non exécutée
 Ordre SQL : `schema.sql` → `quota.sql` → `confirmation-queue.sql` → `owner-mail.sql` → `owner-photos.sql`. Additions aux dossiers existants et tables/RPC privés; aucune reprise massive des demandes historiques. Nouvelle empreinte de contact nullable, pas de vérification rétroactive présumée. Raccordement initial remplace la confirmation existante, jamais un second message.
