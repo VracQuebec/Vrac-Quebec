@@ -13,7 +13,7 @@
 - PWA : `push-sw.js` unique, enregistré au chargement, sans cache métier.
 - EXEC-01 uses submissions and shared domain handlers; SQL/adapters in prepared/exec01b run against empty loopback fixtures only, with hosted activation separately authorized.
 - EXEC-01C/02/02B keep CRM, sender and queue-worker adapters disabled in prepared sources. Reservations lock dossier/offer capacity and commit link/message atomically; immutable trip corrections debit only the delta. The existing queue rechecks reminder eligibility and suppression. Preferences never override regulatory rules; private photos require dossier authorization.
-- Personal follow-up entrypoints bypass analytics, production providers and notification mounts; this prevents bearer credentials and test actions reaching existing telemetry or business services.
+- Personal follow-up entrypoints enforce privacy before trackers initialize and restart public SPA documents before personal navigation; this prevents previously loaded telemetry from observing bearer pages.
 - Help subdirectories have their own AGENTS.md; read them before changes to keep task guidance and isolated support separate from active services.
 - EXEC-03 reuses map/comparator filters and membership-checked preferences; loopback tests share domain code, hosted adapters stay disabled.
 - EXEC-04 shares owner/network permission history; dossier credentials override staff sessions to avoid identity collisions. Extend existing mkt records only; server consent keys include entity, subject, channel and partner/request scope. Immutable events prove acquisition; partner allowlists prevent internal disclosure; hosted adapters stay disabled.

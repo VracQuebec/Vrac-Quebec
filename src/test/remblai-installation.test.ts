@@ -31,6 +31,12 @@ describe('EXEC01 installation guards',()=>{
   expect(await cleanFictionalPhotos(requestId,[`submissions/${requestId}/${'b'.repeat(64)}.png`],deps)).toEqual({removed:0});
   expect(deps.remove).not.toHaveBeenCalled();
  });
+ it('does not release a deletion claim after storage removal when history fails',async()=>{
+  const path=`submissions/${requestId}/${'c'.repeat(64)}.png`;
+  const deps={claim:vi.fn(async()=>({claimed:true,claimId:linkId})),remove:vi.fn(async()=>{}),finish:vi.fn(async()=>{throw Error('History unavailable');})};
+  await expect(cleanFictionalPhotos(requestId,[path],deps)).rejects.toThrow('History unavailable');
+  expect(deps.finish).toHaveBeenCalledExactlyOnceWith(requestId,path,linkId,true);
+ });
  it('rejects files outside the dossier before any storage action',async()=>{
   const deps={claim:vi.fn(),remove:vi.fn(),finish:vi.fn()};
   await expect(cleanFictionalPhotos(requestId,[`submissions/${linkId}/${'b'.repeat(64)}.png`],deps)).rejects.toThrow('hors dossier');expect(deps.claim).not.toHaveBeenCalled();

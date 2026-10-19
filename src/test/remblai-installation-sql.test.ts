@@ -4,8 +4,9 @@ import postgres from 'postgres';
 import {readFile} from 'node:fs/promises';
 import {digest} from '../lib/remblai/service';
 import {unknownConditions} from '../lib/remblai/conditions';
+import {makeEndpoint} from '../../prepared/exec01b/endpoint';
 const enabled=process.env.EXEC01B_LOCAL_TEST==='1';
-const name=`exec01_install_${crypto.randomUUID().replaceAll('-','')}`;
+const name=`exec01_install_${crypto.randomUUID().replace(/-/g,'')}`;
 const root=postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable',{ssl:false});
 const db=postgres(`postgresql://lovable@127.0.0.1:55439/${name}?sslmode=disable`,{ssl:false});
 const msg={subject:'TEST',html:'<p>TEST</p>',text:'TEST',from:'capture@test.invalid',sender_domain:'test.invalid'};
@@ -35,6 +36,32 @@ beforeAll(async()=>{
 },30000);
 afterAll(async()=>{await db.end();if(enabled)await root.unsafe(`DROP DATABASE IF EXISTS ${name}`);await root.end();});
 describe.skipIf(!enabled)('EXEC01 additive SQL installation',()=>{
+ it('uses the actual captured link and code across the prepared endpoint and same dossier',async()=>{
+  const f=await fixture();
+  const objects=new Map<string,Uint8Array>();
+  const handler=makeEndpoint({enabled:true,portalOrigin:'https://test.invalid',corsOrigin:'https://test.invalid',isAdmin:async()=>true,rpc,
+   captureOrSend:async()=>{throw Error('Separate delivery forbidden');},
+   dispatchMail:async(p,message)=>(await db`select exec01_dispatch_mail(${db.json(p as postgres.JSONValue)},${db.json({...message,from:msg.from,sender_domain:msg.sender_domain})},true) r`)[0].r,
+   storage:{put:async(path,bytes)=>{expect(await file({kind:'begin',requestId:f.requestId,path})).toMatchObject({ok:true});objects.set(path,bytes);},sign:async(path)=>`https://test.invalid/private/${path}`},
+  });
+  const call=async(p:Record<string,unknown>)=>{const r=await handler(new Request('https://test.invalid',{method:'POST',body:JSON.stringify(p)}));expect(r.status).toBe(200);return r.json();};
+  await call({kind:'issue',requestId:f.requestId});
+  const captured=(await db`select payload from exec01_mail_capture where submission_id=${f.requestId}`)[0].payload;
+  const url=new URL(captured.text.split('Suivre ou modifier ma demande : ')[1]);
+  const session=Object.fromEntries(new URLSearchParams(url.hash.slice(1)));
+  expect(session.requestId).toBe(f.requestId);
+  await call({kind:'code',...session});
+  const codeMail=(await db`select payload from exec01_mail_capture where submission_id=${f.requestId} and dedupe_key like 'exec01-code-%'`)[0].payload;
+  const code=codeMail.text.match(/\d{6}/)?.[0];expect(code).toMatch(/^\d{6}$/);
+  await call({kind:'verify',...session,code});let row=await call({kind:'read',...session});
+  const bytes=Uint8Array.from([137,80,78,71,13,10,26,10,0,0,0,0]);
+  row=await call({kind:'act',...session,action:'modifier',version:row.version,operationId:crypto.randomUUID(),confirmed:true,conditions:{...unknownConditions(),photos:[{name:'Fictif',preview:'data:image/png;base64,'+btoa(String.fromCharCode(...bytes))}]}});
+  const crm=await call({kind:'crm',requestId:f.requestId});expect(crm.id).toBe(f.requestId);expect(crm.conditions.photos[0].preview).toBe(row.conditions.photos[0].preview);expect(objects.size).toBe(1);
+  expect(row.conditions.photos[0].signedUrl).toContain('/private/submissions/');
+  for(const action of ['confirmer','pause','reprendre'])row=await call({kind:'act',...session,action,version:row.version,operationId:crypto.randomUUID(),confirmed:true});
+  await call({kind:'revoke',...session,confirmed:true});
+  const revoked=await handler(new Request('https://test.invalid',{method:'POST',body:JSON.stringify({kind:'read',...session})}));expect(revoked.status).toBe(403);
+ });
  it('captured confirmation → code → modification → same CRM → pause/resume → revoke',async()=>{
   const f=await fixture();await mail({kind:'issue',...f});
   expect(await rpc({kind:'read',...f})).toMatchObject({denied:true});
