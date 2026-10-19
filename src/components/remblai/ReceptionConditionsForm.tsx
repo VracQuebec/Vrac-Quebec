@@ -1,0 +1,39 @@
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import type { ReceptionConditions } from "@/lib/remblai/conditions";
+const selectClass = "h-11 w-full rounded-md border border-input bg-background px-3 text-sm";
+export default function ReceptionConditionsForm({ value, onChange }: { value: ReceptionConditions; onChange: (value: ReceptionConditions) => void }) {
+  const patch = (p: Partial<ReceptionConditions>) => onChange({ ...value, ...p });
+  const numeric = (key: "total" | "remaining" | "minimumDelivery" | "minimumDay" | "maxRockCm", label: string) => <div><Label htmlFor={key}>{label}</Label><Input id={key} type="number" min="0" step="any" placeholder="Inconnu" value={value[key] ?? ""} onChange={e => patch({ [key]: e.target.value === "" ? null : Number(e.target.value) })} /></div>;
+  const text = (key: "access" | "hours" | "instructions" | "mixedDetails" | "slots" | "explicitConditions", label: string) => <div><Label htmlFor={key}>{label}</Label><Textarea id={key} maxLength={2000} placeholder="Inconnu" value={value[key] ?? ""} onChange={e => patch({ [key]: e.target.value || null })} /></div>;
+  const answer = (key: "progressive" | "presence", label: string) => <div><Label htmlFor={key}>{label}</Label><select id={key} className={selectClass} value={value[key]} onChange={e => patch({ [key]: e.target.value as ReceptionConditions[typeof key] })}><option value="inconnu">Inconnu</option><option value="oui">Oui</option><option value="non">Non</option></select></div>;
+  const stanceOptions = <><option value="a_confirmer">À confirmer</option><option value="accepte">Accepté</option><option value="refuse">Refusé</option></>;
+  async function photos(files: FileList | null) {
+    if (!files) return;
+    const additions = await Promise.all(Array.from(files).slice(0, 8 - value.photos.length).filter(f => ["image/jpeg", "image/png", "image/webp"].includes(f.type) && f.size <= 4000000).map(file => new Promise<{ name: string; preview: string }>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve({ name: file.name, preview: String(reader.result) }); reader.onerror = reject; reader.readAsDataURL(file); })));
+    patch({ photos: [...value.photos, ...additions] });
+  }
+  return <div className="space-y-7">
+    <fieldset className="space-y-3"><legend className="font-display text-lg font-semibold">Quantité et réception</legend>
+      <div><Label htmlFor="unit">Unité d’origine</Label><select id="unit" className={selectClass} value={value.unit} onChange={e => patch({ unit: e.target.value as ReceptionConditions["unit"] })}><option value="inconnu">Inconnue</option><option value="m3">m³</option><option value="tonnes">Tonnes</option><option value="verges3">Verges³</option><option value="voyages">Voyages</option></select></div>
+      <div className="grid gap-3 sm:grid-cols-2">{numeric("total", "Quantité totale")}{numeric("remaining", "Besoin restant")}{numeric("minimumDelivery", "Minimum par livraison (unité d’origine)")}{numeric("minimumDay", "Minimum par journée (unité d’origine)")}{answer("progressive", "Réception progressive")}</div>
+      <p className="text-sm text-muted-foreground">Aucune conversion automatique. Les valeurs inconnues restent inconnues.</p>
+    </fieldset>
+    <fieldset className="space-y-3"><legend className="font-display text-lg font-semibold">Préférences de matériaux</legend>
+      <div className="grid gap-3 sm:grid-cols-2">{value.materials.map((m, index) => <div key={m.name}><Label htmlFor={`material-${index}`}>{m.name}</Label><select id={`material-${index}`} className={selectClass} value={m.stance} onChange={e => patch({ materials: value.materials.map((item, i) => i === index ? { ...item, stance: e.target.value as typeof item.stance } : item) })}>{stanceOptions}</select></div>)}</div>
+      <div><Label htmlFor="mixed">Compositions mixtes</Label><select id="mixed" className={selectClass} value={value.mixed} onChange={e => patch({ mixed: e.target.value as ReceptionConditions["mixed"] })}>{stanceOptions}</select></div>
+      {text("mixedDetails", "Composition et proportions acceptées ou refusées")}{numeric("maxRockCm", "Taille maximale des roches (cm)")}
+      <p className="border-l-2 border-border pl-3 text-sm text-muted-foreground">Votre préférence ne constitue pas une admissibilité environnementale ni une validation du projet. Branches, souches et déchets ne sont pas automatiquement du sol admissible; les recouvrir ne suffit pas.</p>
+    </fieldset>
+    <fieldset className="space-y-3"><legend className="font-display text-lg font-semibold">Véhicules et accès</legend><div className="grid gap-3 sm:grid-cols-2">{value.vehicles.map((v, index) => <div key={v.name}><Label htmlFor={`vehicle-${index}`}>{v.name}</Label><select id={`vehicle-${index}`} className={selectClass} value={v.stance} onChange={e => patch({ vehicles: value.vehicles.map((item, i) => i === index ? { ...item, stance: e.target.value as typeof item.stance } : item) })}>{stanceOptions}</select></div>)}</div>{text("access", "Accès, largeur, hauteur et contraintes")}{text("hours", "Horaires de réception")}{answer("presence", "Présence nécessaire")}{text("instructions", "Consignes de réception")}</fieldset>
+    <fieldset className="space-y-3"><legend className="font-display text-lg font-semibold">Mode de réception souhaité</legend><Label htmlFor="mode">Préférence</Label><select id="mode" className={selectClass} value={value.mode} onChange={e => patch({ mode: e.target.value as ReceptionConditions["mode"] })}><option value="a_confirmer">À confirmer</option><option value="preautorisee">Réception préautorisée selon conditions</option><option value="creneaux">Rendez-vous sur créneaux</option><option value="par_demande">Confirmation à chaque demande</option></select>
+      {value.mode === "preautorisee" && <><div className="grid gap-3 sm:grid-cols-2"><div><Label htmlFor="start">Début de période</Label><Input id="start" type="date" value={value.periodStart ?? ""} onChange={e => patch({ periodStart: e.target.value || null })} /></div><div><Label htmlFor="end">Fin de période</Label><Input id="end" type="date" value={value.periodEnd ?? ""} onChange={e => patch({ periodEnd: e.target.value || null })} /></div></div>{text("explicitConditions", "Conditions explicites de réception")}</>}
+      {value.mode === "creneaux" && text("slots", "Créneaux souhaités")}
+      <p className="text-sm text-muted-foreground">Cette préférence ne réserve aucun créneau et n’autorise aucune livraison.</p>
+    </fieldset>
+    <fieldset className="space-y-3"><legend className="font-display text-lg font-semibold">Photos</legend><Label htmlFor="photos">Site, entrée et zone de dépôt — JPEG, PNG ou WebP, 4 Mo maximum</Label><Input id="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e => void photos(e.target.files)} /><div className="grid grid-cols-2 gap-3">{value.photos.map((photo, i) => <div key={`${photo.name}-${i}`}><img src={photo.preview} alt={photo.name} className="aspect-video w-full rounded-md object-cover" /><Button type="button" variant="ghost" onClick={() => patch({ photos: value.photos.filter((_, j) => i !== j) })}>Retirer {i + 1}</Button></div>)}</div></fieldset>
+    <label className="flex items-start gap-3 text-sm"><input type="checkbox" className="mt-1" checked={value.promotional} onChange={e => patch({ promotional: e.target.checked })} />Je souhaite recevoir les communications promotionnelles (facultatif, distinct du suivi de cette demande).</label>
+  </div>;
+}

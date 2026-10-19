@@ -91,6 +91,7 @@ const TransportRequest = lazy(() => import("./pages/TransportRequest"));
 const Soumission = lazy(() => import("./pages/Soumission"));
 const AchatVrac = lazy(() => import("./pages/AchatVrac"));
 const ClientPortal = lazy(() => import("./pages/ClientPortal"));
+const RemblaiFollowup = lazy(() => import("./pages/RemblaiFollowup"));
 const ClientAccountPortal = lazy(() => import("./pages/ClientAccountPortal"));
 const DriverPortal = lazy(() => import("./pages/DriverPortal"));
 const AdminSoumissionConfig = lazy(() => import("./pages/AdminSoumissionConfig"));
@@ -210,7 +211,13 @@ const PrivateNoIndex = () => {
   );
 };
 
-const App = () => (
+// Personal links and EXEC-01 tests are isolated from analytics, session keepers,
+// notification mounts and production data providers. No bearer token in URLs.
+const App = () => {
+  const personal = window.location.pathname === "/portail/remblai";
+  const previewCrm = window.location.pathname === "/admin/apercu-suivi-remblai";
+  if (personal || previewCrm) return <TooltipProvider><BrowserRouter><BrandPaletteScope /><Suspense fallback={<p className="p-6">Chargement…</p>}><RemblaiFollowup crm={previewCrm} /></Suspense></BrowserRouter></TooltipProvider>;
+  return (
   <AppErrorBoundary>
     {/* Métadonnées par défaut : chaque page peut les remplacer avec son propre <Helmet>. */}
     <Helmet>
@@ -397,6 +404,7 @@ const App = () => (
       </TooltipProvider>
     </QueryClientProvider>
   </AppErrorBoundary>
-);
+  );
+};
 
 export default App;
