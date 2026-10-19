@@ -32,4 +32,17 @@ Ordre SQL : `schema.sql` → `quota.sql` → `confirmation-queue.sql` → `owner
 Retour opérationnel : maintenir/désactiver l’entrée et le bouton, rétablir la version précédente de l’expéditeur; conserver les extensions additives et l’historique, aucune suppression de tables ni de données. Restauration globale seulement en dernier recours : perte des écritures postérieures et retour du schéma avec les données; Storage non couvert.
 
 ## Changements potentiellement publiés
-Une publication générale publierait tout le code de la version courante, pas uniquement EXEC-01. Pour EXEC-01, les changements comprennent le document initial (chargement conditionnel GA/polices et retrait des paramètres), les gardes Analytics/SEO/attribution/retour, le démarrage de l’application, la page personnelle/CRM et le rendu des photos. Les autres changements non publiés du projet ne sont pas inventoriés exhaustivement ici; aucune garantie de publication exclusivement EXEC-01. Les SQL et fichiers préparés ne seraient pas installés par publication du site.
+Une publication générale publierait tout le code de la version courante, pas uniquement EXEC-01; elle n’a pas été exécutée à cette étape.
+
+Changements EXEC-01 qui seraient inclus :
+- `index.html` : exclusion précoce des routes personnelles (GA/polices non chargés, CSP, fragments gardés en mémoire puis retirés), redémarrage du document lors d’une navigation publique→personnelle.
+- `src/lib/analytics/privacy.ts`, `ga4.ts`, `attribution.ts`, `src/lib/seo/tracking.ts`, `src/App.tsx`, `src/main.tsx`, `src/lib/navigation/returnTo.ts` : gardes de télémétrie et de destination de retour.
+- `src/index.css` : retrait de l’import Google Fonts (chargé conditionnellement).
+- `src/pages/RemblaiFollowup.tsx`, `src/lib/remblai/isolated-client.ts`, `src/components/remblai/*` : page personnelle et panneau CRM.
+- `src/lib/remblai/activation.ts` reste `REMBLAI_CLOUD_ENABLED=false` : même publiée, la page affiche « suivi non activé » et le bouton n’apparaît pas dans les vrais courriels tant que le traitement Edge n’est pas déployé et la page vérifiée sans traceur.
+
+Autres changements non publiés du projet : non inventoriés exhaustivement; aucune garantie de publication exclusivement EXEC-01.
+
+Fonctions pouvant rester désactivées après publication : l’envoi réel (`exec01_dispatch_mail` avec capture=false) et la file de confirmation initiale (`exec01_enqueue_confirmation`) restent sans point d’entrée tant que la fonction Edge préparée n’est pas déployée; le nettoyage de photos n’a aucun planificateur installé.
+
+Les SQL et fichiers préparés ne seraient pas installés par publication du site.
