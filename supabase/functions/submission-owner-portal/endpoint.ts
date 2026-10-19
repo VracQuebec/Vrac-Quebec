@@ -1,5 +1,5 @@
 // Prepared edge handler: dependency-injected RPC and email. No hosted access on import.
-import { z } from 'zod';
+import { z } from 'npm:zod@3.25.76';
 import { conditionsSchema, unknownConditions, WAITING_MESSAGE } from './lib/conditions.ts';
 import { legacyReception } from './lib/cloud-contract.ts';
 import { preparePhotos, signPhotos, type PhotoStorage } from './photos.ts';
