@@ -36,6 +36,7 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
   const [corrections, setCorrections] = useState<any[]>([]);
   const [exports, setExports] = useState<any[]>([]);
   const [options, setOptions] = useState<{projects:any[];tasks:any[]}>({projects:[],tasks:[]});
+  const [projectHours,setProjectHours]=useState<any[]>([]);
   const [project,setProject] = useState("");
   const [task,setTask] = useState("");
   const [person,setPerson] = useState("");
@@ -69,7 +70,7 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
       db.rpc("pun_summary", { _company: companyId, _from: from, _to: to }),
     ]);
     setError(readError?.message ?? ""); setEntries(e ?? []); setMembers(m ?? []); setClients(c ?? []); setSummary(s ?? []);
-    if(extended){const [r,x,o]=await Promise.all([db.from("pun_corrections").select("*").eq("company_id",companyId), isMgr?db.from("pun_exports").select("*").eq("company_id",companyId):Promise.resolve({data:[]}),canPunch?db.rpc("pun_work_options",{_company:companyId}):Promise.resolve({data:null})]);setCorrections(r.data??[]);setExports(x.data??[]);setOptions(o.data??{projects:[],tasks:[]});}
+    if(extended){const [r,x,o]=await Promise.all([db.from("pun_corrections").select("*").eq("company_id",companyId), isMgr?db.from("pun_exports").select("*").eq("company_id",companyId):Promise.resolve({data:[]}),canPunch?db.rpc("pun_work_options",{_company:companyId}):Promise.resolve({data:null})]);setCorrections(r.data??[]);setExports(x.data??[]);setOptions(o.data??{projects:[],tasks:[]});if(isMgr){const h=await db.rpc("pun_project_hours",{_company:companyId,_from:from,_to:to});setProjectHours(h.data??[]);}}
   }, [companyId, from, to, isMgr, extended, canPunch]);
   useEffect(() => { load(); }, [load]);
   useEffect(()=>{const on=()=>{setConnected(navigator.onLine);if(navigator.onLine)load();};window.addEventListener("online",on);window.addEventListener("offline",on);return()=>{window.removeEventListener("online",on);window.removeEventListener("offline",on);};},[load]);
@@ -242,6 +243,7 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
         </section>
       )}
 
+      {extended && isMgr && tab==="paie" && <section className="space-y-2"><h3 className="font-semibold">Heures approuvées par chantier</h3>{projectHours.map(h=><p key={h.project_id} className="text-sm">{h.project_name} · {fmtMin(h.approved_min)} · Coût monétaire non imputé</p>)}<p className="text-xs text-muted-foreground">Aucune imputation automatique : le rapprochement aux coûts de chantier et les paramètres de paie doivent être validés.</p></section>}
       {tab === "salaire" && isMgr && !extended && <PayrollPanel companyId={companyId} canManage={isMgr} from={from} to={to} members={members} me={me} />}
 
       {tab === "salaire" && extended && <p className="text-muted-foreground">Aucune paie calculée ou transmise dans ce parcours de test. Les règlements de paie existants nécessitent leur validation séparée.</p>}

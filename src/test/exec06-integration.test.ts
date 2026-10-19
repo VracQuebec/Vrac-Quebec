@@ -66,6 +66,13 @@ describe.skipIf(process.env.EXEC06_LOCAL_TEST!=='1')('EXEC-06 SQL isolé',()=>{
  await expect(call(h.ids.user,`select pun_decide('${h.ids.company}',ARRAY['${e.id}']::uuid[],true,null)`)).rejects.toThrow(/finalisée/);
  expect((await h.db`select status from pun_entries where id=${e.id}`)[0].status).toBe('soumis');
  });
+ it('chantier reprend heures approuvées et pauses sans imputation monétaire',async()=>{
+ const e=await manual(h.second,'2026-10-04T09:00:00-04:00','2026-10-04T11:00:00-04:00');
+ await h.db`update pun_entries set project_id=${h.project} where id=${e.id}`;
+ await call(h.ids.user,`select pun_decide('${h.ids.company}',ARRAY['${e.id}']::uuid[],true,null)`);
+ const r=await call(h.ids.user,`select * from pun_project_hours('${h.ids.company}','2026-10-04','2026-10-04')`);expect(Number(r.approved_min)).toBe(120);expect(r.monetary_cost).toBeNull();
+ await expect(call(h.employee,`select * from pun_project_hours('${h.ids.company}','2026-10-04','2026-10-04')`)).rejects.toThrow(/refusé/);
+ });
  it('oubli répété avec même identifiant conserve une seule entrée',async()=>{
  const q=`select pun_manual_submit('${h.ids.company}','${h.second}','2026-10-02T09:00:00-04:00','2026-10-02T10:00:00-04:00','Oubli fictif','manual-repeat-key') id`;
  const a=await call(h.second,q);expect((await call(h.second,q)).id).toBe(a.id);

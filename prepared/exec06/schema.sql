@@ -148,3 +148,16 @@ CREATE OR REPLACE FUNCTION public.pun_manual_submit(_company uuid,_user uuid,_st
 END $$;
 REVOKE ALL ON FUNCTION public.pun_manual_submit FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.pun_manual_submit TO authenticated;
+-- Project attribution is a view of the canonical approved intervals, not an import or a new cost ledger.
+CREATE OR REPLACE FUNCTION public.pun_project_hours(_company uuid,_from date,_to date) RETURNS TABLE(project_id uuid,project_name text,approved_min numeric,monetary_cost numeric)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public AS $$ BEGIN
+ IF NOT pun_can_manage(_company) THEN RAISE EXCEPTION 'Accès refusé' USING ERRCODE='42501'; END IF;
+ IF _from IS NULL OR _to IS NULL OR _to<_from OR _to-_from>366 THEN RAISE EXCEPTION 'Période invalide'; END IF;
+ RETURN QUERY SELECT w.scoped_project,p.name,round(greatest(sum((CASE WHEN w.kind='travail' THEN 1 ELSE -1 END)*extract(epoch FROM(least(w.ended_at,(_to+1)::timestamp AT TIME ZONE 'America/Toronto')-greatest(w.started_at,_from::timestamp AT TIME ZONE 'America/Toronto')))/60),0),2),NULL::numeric
+ FROM (SELECT e.*,coalesce(e.project_id,parent.project_id) scoped_project FROM pun_entries e LEFT JOIN pun_entries parent ON parent.id=e.work_entry_id AND parent.company_id=e.company_id WHERE e.company_id=_company AND e.archived_at IS NULL AND e.status='approuve' AND e.ended_at IS NOT NULL) w
+ JOIN ent_crm_projects p ON p.id=w.scoped_project AND p.company_id=_company
+ WHERE w.started_at<(_to+1)::timestamp AT TIME ZONE 'America/Toronto' AND w.ended_at>_from::timestamp AT TIME ZONE 'America/Toronto'
+ GROUP BY w.scoped_project,p.name;
+END $$;
+REVOKE ALL ON FUNCTION public.pun_project_hours FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.pun_project_hours TO authenticated;

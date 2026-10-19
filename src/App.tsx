@@ -175,6 +175,7 @@ const AdminIaCenter = lazy(() => import("./pages/AdminIaCenter"));
 const AdminOrchestrator = lazy(() => import("./pages/AdminOrchestrator"));
 
 const queryClient = new QueryClient();
+const EmployeeInviteScreen = lazy(() => import("./components/punch/EmployeeInviteScreen"));
 const PunchLocalScreen = lazy(() => import("./components/punch/PunchLocalScreen"));
 const FinanceLocalScreen = lazy(() => import("./components/finances/FinanceLocalScreen"));
 
@@ -220,6 +221,7 @@ const PrivateNoIndex = () => {
 // Personal links and EXEC-01 tests are isolated from analytics, session keepers,
 // notification mounts and production data providers. No bearer token in URLs.
 const App = () => {
+  if(window.location.pathname==="/entrepreneur/punch" && new URLSearchParams(window.location.hash.slice(1)).has("invitation"))return <TooltipProvider><Suspense fallback={<p className="p-6">Chargement…</p>}><EmployeeInviteScreen/></Suspense></TooltipProvider>;
   if(isPunchLocal())return <TooltipProvider><BrowserRouter><BrandPaletteScope/><Toaster/><Suspense fallback={<p className="p-6">Chargement…</p>}><PunchLocalScreen/></Suspense></BrowserRouter></TooltipProvider>;
   if(isExec05Local())return <TooltipProvider><BrowserRouter><BrandPaletteScope/><Toaster/><Suspense fallback={<p className="p-6">Chargement…</p>}><FinanceLocalScreen/></Suspense></BrowserRouter></TooltipProvider>;
   if(isExec04Local())return <TooltipProvider><BrowserRouter><BrandPaletteScope/><Suspense fallback={<p className="p-6">Chargement…</p>}>{window.location.pathname==='/admin/relances'?<AdminRelances/>:window.location.pathname==='/admin/marche/soumissions'?<AdminMarketplaceRequests/>:window.location.pathname==='/admin/marche/commissions'?<AdminMarketplaceCommissions/>:window.location.pathname==='/partenaire/soumissions'?<PartenaireSoumissions/>:<RemblaiFollowup/>}</Suspense></BrowserRouter></TooltipProvider>;
