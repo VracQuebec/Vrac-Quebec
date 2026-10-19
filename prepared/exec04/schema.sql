@@ -177,7 +177,7 @@ BEGIN
   IF msg.subject_type='owner' THEN
    INSERT INTO submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at) VALUES((p->>'nextId')::uuid,msg.subject_id,p->>'nextHash',encode(digest(msg.email,'sha256'),'hex'),now()+interval '30 days');
   END IF;
-  qid:=enqueue_email('transactional_emails',p->'message'||jsonb_build_object('to',msg.email,'recipientEmail',msg.email,'idempotency_key',msg.message_key,'purpose',CASE msg.purpose WHEN 'service' THEN 'transactional' ELSE 'promotion' END,'exec04_guard',jsonb_build_object('messageId',msg.id,'purpose',msg.purpose)));
+  qid:=enqueue_email('transactional_emails',p->'message'||jsonb_build_object('to',msg.email,'recipientEmail',msg.email,'idempotency_key',msg.message_key,'purpose',CASE msg.purpose WHEN 'service' THEN 'transactional' ELSE 'marketing' END,'exec04_guard',jsonb_build_object('messageId',msg.id,'purpose',msg.purpose)));
   UPDATE mkt_promo_sends SET state='queued',queue_id=qid,attempts=attempts+1 WHERE id=msg.id;
   result:=jsonb_build_object('ok',true,'id',msg.id);
  ELSIF kind='campaign_ack' THEN
