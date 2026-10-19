@@ -16,7 +16,7 @@
 - Personal follow-up entrypoints bypass analytics, production providers and notification mounts; this prevents bearer credentials and test actions reaching existing telemetry or business services.
 - EXEC-03 reuses map/comparator filters and membership-checked preferences; loopback tests share domain code, hosted adapters stay disabled.
 - EXEC-04 shares owner/network permission history; dossier credentials override staff sessions to avoid identity collisions. Extend existing mkt records only; server consent keys include entity, subject, channel and partner/request scope. Immutable events prove acquisition; partner allowlists prevent internal disclosure; hosted adapters stay disabled.
-- EXEC-03/04 SQL tests require a verified disposable loopback cluster before any write; shared municipality lookup uses exact existing reference data and unknown geography never fabricates coordinates.
+- EXEC-03/04/05 tests require verified disposable loopback DBs; geography uses exact references, never invented coordinates. EXEC-05 reuses fin_* and frozen PDFs; SQL stays prepared, mail capture-only, hosted disabled.
 <!-- LOVABLE:BEGIN -->
 - Entrepreneur UI uses the existing shell to own safe areas and measured header/navigation heights; one owner prevents duplicate offsets without changing backend behavior.
 - Brand colors use one HSL token and presentation-only route scoping preserves excluded admin/fleet palettes; functional and tenant-configured colors remain independent.

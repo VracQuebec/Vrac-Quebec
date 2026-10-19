@@ -108,6 +108,7 @@ export default function EntrepreneurCrm() {
             )}
             <nav className="mb-5 flex gap-1 overflow-x-auto border-b border-border pb-2">
               {visibleTabs.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-display font-semibold ${tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>{l}</button>)}
+              {canFinance && <Button asChild variant="outline"><Link to={`/entrepreneur/finances?company=${companyId}&tab=factures`}>Factures et encaissements</Link></Button>}
             </nav>
             <Body key={companyId} tab={tab} companyId={companyId} companyName={company?.name ?? ""} canWrite={canWrite} canFinance={canFinance} canAdmin={canAdmin} canCommercial={canCommercial} canCost={["support", "proprietaire", "gestionnaire", "comptabilite"].includes(role ?? "")} params={params} setParams={setParams} />
           </>
@@ -407,7 +408,7 @@ function LeadDialog({ lead, companyId, clients, onClose, onSaved }: any) {
     </div></DialogContent></Dialog>;
 }
 
-function Clients({ companyId, canWrite, params, setParams }: any) {
+export function Clients({ companyId, canWrite, canFinance, params, setParams }: any) {
   // Recherche gardée dans l'adresse (?cq=) : conservée après Retour et actualisation.
   const q = params.get("cq") ?? ""; const setQ = (v: string) => { const n = new URLSearchParams(params); v ? n.set("cq", v) : n.delete("cq"); setParams(n, { replace: true }); };
   const [rows, setRows] = useState<any[]>([]);
@@ -427,7 +428,7 @@ function Clients({ companyId, canWrite, params, setParams }: any) {
   const openJsc = async () => { const { data, error } = await db.rpc("entcrm_jsc_candidates", { _company_id: companyId }); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" }); setJsc(data ?? []); };
   const linkJsc = async (j: any) => { const { error } = await db.rpc("entcrm_link_jsc_client", { _company_id: companyId, _jsc_client_id: j.jsc_client_id }); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" }); toast({ title: "Client rattaché", description: "Même dossier réutilisé, sans ressaisie." }); setJsc(null); load(); };
   const archive = async (c: any) => { if (!confirm("Archiver ce client ?")) return; await db.from("ent_crm_clients").update({ archived_at: new Date().toISOString() }).eq("id", c.id); load(); };
-  const shown = rows.filter((r) => !q || normalize(`${r.name}${r.email}${r.phone}`).includes(normalize(q)));
+  const shown = rows.filter((r) => (!params.get("client") || params.get("client") === "nouveau" || r.id === params.get("client")) && (!q || normalize(`${r.name}${r.email}${r.phone}`).includes(normalize(q))));
   return <div><div className="mb-3 flex flex-wrap gap-2"><Input placeholder="Rechercher un client" value={q} onChange={(e) => setQ(e.target.value)} className="h-10 w-full sm:w-60" />{canWrite && <Button onClick={add}><Plus className="mr-1 h-4 w-4" />Nouveau client</Button>}{canWrite && <Button variant="outline" onClick={openJsc}>Clients existants (Transport JSC)</Button>}</div>
     {jsc && <Dialog open onOpenChange={() => setJsc(null)}><DialogContent><DialogHeader><DialogTitle>Rattacher un client existant</DialogTitle></DialogHeader>
       <p className="text-xs text-muted-foreground">Seuls les dossiers clients appartenant à votre entreprise sont listés. Le rattachement est explicite : aucun rapprochement automatique par nom, téléphone ou courriel.</p>
@@ -440,6 +441,11 @@ function Clients({ companyId, canWrite, params, setParams }: any) {
       <p className="mt-1 text-xs"><strong>Contacts :</strong> {c.ent_crm_contacts.map((x: any) => `${x.name}${x.phone ? " " + x.phone : ""}`).join(" · ") || "—"}</p>
       <p className="text-xs"><strong>Opportunités :</strong> {c.ent_crm_leads.map((x: any) => x.title).join(" · ") || "—"}</p>
       <p className="text-xs"><strong>Chantiers :</strong> {c.ent_crm_projects.map((x: any) => x.name).join(" · ") || "—"}</p>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {canWrite && <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/crm?company=${companyId}&tab=quotes&quote=nouveau&client=${c.id}`}>Nouvelle soumission</Link></Button>}
+        {canFinance && <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/finances?company=${companyId}&tab=factures&client=${c.id}`}>Factures et encaissements</Link></Button>}
+        {c.ent_crm_projects.map((p: any) => <Button key={p.id} asChild size="sm" variant="ghost"><Link to={`/entrepreneur/crm?company=${companyId}&tab=projects&chantier=${p.id}`}>{p.name}</Link></Button>)}
+      </div>
       {canWrite && <div className="mt-2 flex flex-wrap gap-1"><Button size="sm" variant="outline" onClick={() => addContact(c)}>+ Contact</Button><Button size="sm" variant="outline" onClick={() => setOpenId(c.id, "opp")}>+ Opportunité</Button><Button size="sm" variant="outline" onClick={() => setOpen(c)}>Modifier</Button><Button size="sm" variant="ghost" onClick={() => archive(c)}>Archiver</Button></div>}
       <FilesBtn t="client" id={c.id} />
     </div>)}</div>
@@ -516,7 +522,7 @@ function ContactDialog({ client, companyId, onClose, onSaved }: any) {
   </DialogContent></Dialog>;
 }
 
-function Quotes({ companyId, companyName, canWrite }: any) {
+export function Quotes({ companyId, companyName, canWrite }: any) {
   const [rows, setRows] = useState<any[]>([]); const [clients, setClients] = useState<any[]>([]); const [print, setPrint] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]); const [tpls, setTpls] = useState<any[]>([]); const [printDocs, setPrintDocs] = useState<string[]>([]);
   const load = useCallback(async () => { setRows((await db.from("ent_crm_quotes").select("*, ent_crm_clients(name), ent_crm_projects(id)").eq("company_id", companyId).order("created_at", { ascending: false })).data ?? []);
@@ -528,7 +534,7 @@ function Quotes({ companyId, companyName, canWrite }: any) {
   // Fenêtre de soumission : ?quote=<id|nouveau> dans l'adresse, brouillon par compte + entreprise + soumission.
   const [qp, setQp] = useSearchParams(); const qid = qp.get("quote"); const fd = qp.get("fd");
   const setParam = (k: string, v: string | null) => { const n = new URLSearchParams(qp); v ? n.set(k, v) : n.delete(k); setQp(n); };
-  const open = qid === "nouveau" ? { lines: [] } : rows.find((r) => r.id === qid && r.status === "brouillon") ?? null;
+  const open = qid === "nouveau" ? { lines: [], client_id: clients.some(c => c.id === qp.get("client")) ? qp.get("client") : null } : rows.find((r) => r.id === qid && r.status === "brouillon") ?? null;
   const edit = (q: any) => setParam("quote", q.id ?? "nouveau");
   const setStatus = async (q: any, status: string) => {
     if (status === "remise" && incomplete(q.lines ?? [])) return toast({ title: "Soumission incomplète", description: `${incomplete(q.lines)} ligne(s) sans quantité ou prix.` });
@@ -567,18 +573,21 @@ function Quotes({ companyId, companyName, canWrite }: any) {
       {print.inclusions && <p className="mt-2"><strong>Inclusions :</strong> {print.inclusions}</p>}{print.exclusions && <p><strong>Exclusions :</strong> {print.exclusions}</p>}{print.conditions && <p><strong>Conditions :</strong> {print.conditions}</p>}{print.valid_until && <p>Valide jusqu'au {print.valid_until}</p>}
       {printDocs.length > 0 && <p className="mt-2"><strong>Pièces prévues pour le client (liste des noms, fichiers non inclus dans ce document) :</strong> {printDocs.join(", ")}</p>}</div></div>; }
   return <div>{canWrite && <Button className="mb-3" onClick={() => edit({ lines: [] })}><Plus className="mr-1 h-4 w-4" />Nouvelle soumission</Button>}
-    <div className="grid gap-2">{rows.map((q) => <div key={q.id} className="rounded-lg border border-border bg-card p-3 text-sm">
+    <div className="grid gap-2">{rows.filter(q => (!qp.get("client") || q.client_id === qp.get("client")) && (!qid || qid === "nouveau" || q.id === qid)).map((q) => <div key={q.id} className="rounded-lg border border-border bg-card p-3 text-sm">
       <p className="font-display font-bold">{q.number || "Soumission"} · {q.ent_crm_clients?.name ?? "Sans client"} · v{q.version} · <span className="uppercase">{q.status}</span></p>
       <p className="text-xs">{q.tax_snapshot?.final ? <>Hors taxes : {money(Number(q.subtotal))} · TPS : {money(q.tax_gst)} · TVQ : {money(q.tax_qst)} · <strong>Total : {money(q.total)}</strong></> : q.status === "brouillon" && q.tax_snapshot ? <>Aperçu : {q.tax_snapshot.resolved ? <>total {money(q.tax_snapshot.total)} (non figé)</> : <span className="text-destructive">taxes à déterminer</span>}</> : q.taxes_applied ? <>Sous-total : {money(Number(q.subtotal))} · TPS : {money(q.tax_gst)} · TVQ : {money(q.tax_qst)} · <strong>Total : {money(q.total)}</strong></> : <>Estimé hors taxes : {money(Number(q.subtotal))}{q.status === "brouillon" ? " (taxes calculées à la remise si activées)" : " · taxes non appliquées"}</>} · Facturé : {money(q.invoiced_amount)} · Encaissé : {money(q.paid_amount)}</p>
       {q.accepted_at && <p className="text-xs text-muted-foreground">Acceptée par {q.accepted_by_name} ({q.accepted_source}) le {new Date(q.accepted_at).toLocaleString("fr-CA")}</p>}
       {q.shared_at && <p className="text-xs text-muted-foreground">Lien client créé le {new Date(q.shared_at).toLocaleString("fr-CA")}{q.client_viewed_at ? ` · consulté le ${new Date(q.client_viewed_at).toLocaleString("fr-CA")}` : " · pas encore consulté"}{q.client_response ? ` · réponse : ${q.client_response === "acceptee" ? "acceptée" : "refusée"} par ${q.client_response_name}` : ""}</p>}
       {q.client_response_note && <p className="text-xs">Commentaire du client : {q.client_response_note}</p>}
       <div className="mt-2 flex flex-wrap gap-1">
+        {q.client_id && <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/crm?company=${companyId}&tab=clients&client=${q.client_id}`}>Client</Link></Button>}
+        <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/finances?company=${companyId}&tab=factures&client=${q.client_id ?? ""}`}>Factures et encaissements</Link></Button>
+        {(Array.isArray(q.ent_crm_projects) ? q.ent_crm_projects : q.ent_crm_projects ? [q.ent_crm_projects] : []).map((p: any) => <Button key={p.id} asChild size="sm" variant="outline"><Link to={`/entrepreneur/crm?company=${companyId}&tab=projects&chantier=${p.id}`}>Chantier</Link></Button>)}
         <Button size="sm" variant="outline" onClick={() => openPrint(q)}>PDF</Button>
         {canWrite && q.status === "brouillon" && <><Button size="sm" variant="outline" onClick={() => edit(q)}>Modifier</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "remise")}>Marquer remise</Button></>}
         {canWrite && q.status !== "brouillon" && <Button size="sm" variant="outline" onClick={() => share(q)}>{q.share_token ? "Copier le lien client" : "Créer le lien client"}</Button>}
         {canWrite && q.share_token && <Button size="sm" variant="ghost" onClick={() => unshare(q)}>Retirer le lien</Button>}
-        {canWrite && q.status === "acceptee" && <Button size="sm" variant="outline" onClick={async () => { const { data, error } = await db.rpc("fin_invoice_from_quote", { _quote_id: q.id }); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" }); window.location.assign(`/entrepreneur/finances?company=${q.company_id}&tab=factures&facture=${data}`); }}>Créer la facture</Button>}
+        {canWrite && q.status === "acceptee" && <Button size="sm" variant="outline" onClick={async () => { const { data, error } = await db.rpc("fin_invoice_from_quote", { _quote_id: q.id }); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" }); window.location.assign(`/entrepreneur/finances?company=${q.company_id}&tab=factures&facture=${data}${qp.get("finance_test") === "local" && ["localhost","127.0.0.1"].includes(location.hostname) ? "&finance_test=local" : ""}`); }}>Créer la facture</Button>}
         {canWrite && q.status === "acceptee" && <Button size="sm" variant="outline" onClick={async () => {
           const { data, error } = await db.rpc("fin_progress_plan_create", { _quote: q.id, _key: `progress:${q.id}` });
           if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" });
@@ -707,7 +716,7 @@ function FieldsDialog({ form, recordId, companyId, title, route, fields, initial
   </DialogContent></Dialog>;
 }
 
-function Projects({ companyId, canWrite, params, setParams }: any) {
+export function Projects({ companyId, canWrite, canFinance, params, setParams }: any) {
   // NAV-01B : adresse et dates modifiées dans une fenêtre avec brouillon (?fd=chantier:id) — plus d'enregistrement implicite à la sortie du champ.
   const fd = params?.get("fd") ?? null;
   const setFd = (val: string | null) => { const n = new URLSearchParams(params); val ? n.set("fd", val) : n.delete("fd"); setParams(n); };
@@ -716,8 +725,13 @@ function Projects({ companyId, canWrite, params, setParams }: any) {
   useEffect(() => { void load(); }, [load]);
   const upd = async (p: any, k: string, v: string) => { const { error } = await db.from("ent_crm_projects").update({ [k]: v || null, updated_at: new Date().toISOString() }).eq("id", p.id); if (error) toast({ title: "Refusé", description: error.message }); load(); };
   const fdP = fd?.startsWith("chantier:") ? rows.find((r) => r.id === fd.slice(9)) : undefined;
-  return <div className="grid gap-2 md:grid-cols-2">{rows.length === 0 && <p className="text-muted-foreground">Aucun chantier. Créez-en un depuis une soumission acceptée.</p>}{rows.map((p) => <div key={p.id} className="rounded-lg border border-border bg-card p-3 text-sm">
+  return <div className="grid gap-2 md:grid-cols-2">{rows.length === 0 && <p className="text-muted-foreground">Aucun chantier. Créez-en un depuis une soumission acceptée.</p>}{rows.filter(p => !params.get("chantier") || p.id === params.get("chantier")).map((p) => <div key={p.id} className="rounded-lg border border-border bg-card p-3 text-sm">
     <p className="font-display font-bold">{p.name}</p><p className="text-xs text-muted-foreground">{p.ent_crm_clients?.name}</p>
+    <div className="my-2 flex flex-wrap gap-1">
+      {canFinance && <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/finances?company=${companyId}&tab=factures&chantier=${p.id}`}>Factures et encaissements</Link></Button>}
+      {p.quote_id && canFinance && <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/crm?company=${companyId}&tab=quotes&quote=${p.quote_id}`}>Soumission</Link></Button>}
+      {p.client_id && canFinance && <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/crm?company=${companyId}&tab=clients&client=${p.client_id}`}>Client</Link></Button>}
+    </div>
     <FilesBtn t="project" id={p.id} />
     <p className="mt-1 text-xs">{p.address || "Adresse non précisée"} · {p.start_date || "—"} → {p.end_date || "—"}</p>
     {canWrite ? <div className="mt-2 grid gap-1"><Button size="sm" variant="outline" onClick={() => setFd(`chantier:${p.id}`)}>Modifier l'adresse et les dates</Button>
