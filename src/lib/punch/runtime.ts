@@ -1,12 +1,13 @@
 import {supabase} from '@/integrations/supabase/client';
 import {createClient} from '@supabase/supabase-js';
+import {isHelpLocal} from '@/lib/help/progress';
 export const EXEC06_HOSTED_ENABLED=false;
 export const isPunchLocal=()=>typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.location.hostname)&&new URLSearchParams(window.location.search).get('punch_test')==='local';
 let localUser='';
 export function setPunchTestUser(user:string){localUser=user;}
-const local=isPunchLocal()?createClient('http://localhost:55446','local-disposable-only',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:(url,options)=>fetch(url,{...options,headers:{...Object.fromEntries(new Headers(options?.headers)),'x-test-user':localUser}})}}):null;
+const local=isPunchLocal()||isHelpLocal()?createClient(isHelpLocal()?'http://localhost:55447':'http://localhost:55446','local-disposable-only',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:(url,options)=>fetch(url,{...options,headers:{...Object.fromEntries(new Headers(options?.headers)),'x-test-user':localUser}})}}):null;
 export const punchDb:any=local??supabase;
-export const punchExtended=()=>isPunchLocal()||EXEC06_HOSTED_ENABLED;
+export const punchExtended=()=>isPunchLocal()||isHelpLocal()||EXEC06_HOSTED_ENABLED;
 export const punchUser=async()=>local?localUser:(await supabase.auth.getUser()).data.user?.id??null;
 export const torontoInput=(date:Date)=>new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Toronto',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(date).replace(' ','T');
 export const torontoDay=(d=new Date())=>torontoInput(d).slice(0,10);
