@@ -113,6 +113,7 @@ const dompeLabel = (l: EntLead) => crmDompeNumber(l) ?? "";
 const Entrepreneur = () => {
   const [leads, setLeads] = useState<EntLead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchSucceeded, setSearchSucceeded] = useState(false);
   const mapRef = useRef<google.maps.Map | null>(null);
   const [mapReady,setMapReady]=useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -248,19 +249,20 @@ const Entrepreneur = () => {
 
   const fetchLeads = async () => {
     setLoading(true);
+    setSearchSucceeded(false);
     const { sites, error } = isolated
       ? await localSearchCall<{sites: EntLead[];error:null}>("sites").catch(()=>({sites:[],error:"Serveur isolé indisponible"}))
       : await getEligibleEntrepreneurDumpSites();
     if (error) toast({ title: "Erreur", description: error, variant: "destructive" });
-    else {setLeads((sites as any[]).filter((d) => crmDompeNumber(d) !== null));}
+    else {setLeads((sites as any[]).filter((d) => crmDompeNumber(d) !== null));setSearchSucceeded(true);}
     setLoading(false);
   };
 
   useEffect(() => {
-    if (!loading && query.trim() && filteredLeads.length > 0) {
+    if (!loading && searchSucceeded && query.trim() && filteredLeads.length > 0) {
       recordAction(user?.id, search.companyId, "search");
     }
-  }, [loading, query, filteredLeads, user?.id, search.companyId]);
+  }, [loading, searchSucceeded, query, filteredLeads, user?.id, search.companyId]);
 
   useEffect(() => {
     if (!containerRef.current) return;

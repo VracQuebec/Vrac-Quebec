@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import {Link} from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,7 +14,7 @@ export default function HelpWorkspace({role,userId,companyId,initialArticle,onCl
  useEffect(()=>{const update=()=>setProgress(readProgress(userId,companyId));update();window.addEventListener('vq-help-progress',update);return()=>window.removeEventListener('vq-help-progress',update);},[userId,companyId]);
  useEffect(()=>{if(!local)return;helpLocalCall('slots').then(d=>setSlots(d.slots)).catch(()=>setError('Serveur de démonstration non démarré; aucune demande envoyée.'));},[local]);
  const accessible=allowedArticles(role),article=accessible.find(a=>a.id===selected),list=searchArticles(role,query);
- const steps:{action:StartAction;label:string;article:string}[]= ['chauffeur','mecanicien','operateur'].includes(role)?[{action:'punch',label:'Mon premier pointage',article:'punch'}]:['comptabilite','lecture'].includes(role)?[{action:'client',label:'Mon premier client',article:'clients'}]:[{action:'sector',label:'Choisir mon secteur',article:'dompe'},{action:'search',label:'Ma première recherche',article:'dompe'},{action:'client',label:'Mon premier client',article:'clients'},{action:'punch',label:'Mon premier pointage',article:'punch'}];
+ const steps:{action:StartAction;label:string;article:string}[]= ['chauffeur','mecanicien','operateur'].includes(role)?[{action:'punch',label:'Mon premier pointage',article:'punch'}]:['comptabilite','lecture'].includes(role)?[]:[{action:'sector',label:'Choisir mon secteur',article:'dompe'},{action:'search',label:'Ma première recherche',article:'dompe'},{action:'client',label:'Mon premier client',article:'clients'},{action:'punch',label:'Mon premier pointage',article:'punch'}];
  const open=(id:string)=>{setSelected(id);setView('articles');};
  const capture=async()=>{if(busy||!local||!message.trim())return;setBusy(true);setError('');try{setResult(await helpLocalCall('capture',{kind,message,slot:kind==='appel'?slot:null,key,role,companyId}));}catch(e){setError(e instanceof Error?e.message:'Demande non capturée');}finally{setBusy(false);}};
  return <div className="min-w-0 space-y-5 text-foreground">
