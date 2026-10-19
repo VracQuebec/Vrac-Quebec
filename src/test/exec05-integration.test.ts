@@ -75,7 +75,7 @@ describe.skipIf(process.env.EXEC05_LOCAL_TEST !== "1")("EXEC-05 SQL isolé", () 
   it("comptabilise facture, règlement et avoir une fois avec débits égaux aux crédits", async () => {
     const accounts:Record<string,string>={};
     for(const [role,category] of [['ar','actif'],['revenue','revenus'],['gst_payable','passif'],['qst_payable','passif'],['bank','actif']]){
-      const a=(await user(`select fin_gl_account_save('${h.ids.company}',null,'TEST-${role}','${role} TEST','${category}',true) id`)).id;
+      const a=(await user(`select fin_gl_account_save('${h.ids.company}',null,'TEST-${role.replace(/_/g,'-')}','${role} TEST','${category}',true) id`)).id;
       accounts[role]=a;
       if(role!=='bank')await user(`select fin_gl_map_set('${h.ids.company}','${role}','${a}')`);
     }
