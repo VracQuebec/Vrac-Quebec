@@ -66,6 +66,14 @@ describe.skipIf(process.env.EXEC06_LOCAL_TEST!=='1')('EXEC-06 SQL isolé',()=>{
  await expect(call(h.ids.user,`select pun_decide('${h.ids.company}',ARRAY['${e.id}']::uuid[],true,null)`)).rejects.toThrow(/finalisée/);
  expect((await h.db`select status from pun_entries where id=${e.id}`)[0].status).toBe('soumis');
  });
+ it('oubli répété avec même identifiant conserve une seule entrée',async()=>{
+ const q=`select pun_manual_submit('${h.ids.company}','${h.second}','2026-10-02T09:00:00-04:00','2026-10-02T10:00:00-04:00','Oubli fictif','manual-repeat-key') id`;
+ const a=await call(h.second,q);expect((await call(h.second,q)).id).toBe(a.id);
+ await expect(call(h.second,q.replace('10:00:00','11:00:00'))).rejects.toThrow(/réutilisé/);
+ });
+ it('approbation rejouée ne double pas le journal',async()=>{
+ const e=await manual(h.second,'2026-10-03T09:00:00-04:00','2026-10-03T10:00:00-04:00');const q=`select pun_decide('${h.ids.company}',ARRAY['${e.id}']::uuid[],true,null)`;await call(h.ids.user,q);await call(h.ids.user,q);expect(Number((await h.db`select count(*) n from pun_log where entry_id=${e.id} and action='approuvee'`)[0].n)).toBe(1);
+ });
  it('révocation bloque lectures, sortie, pauses, résumé, acceptation rejouée, archives conservées',async()=>{
  await call(h.ids.user,`select entcrm_set_member('${h.ids.company}','lea@test.invalid','operateur',false)`);
  expect(await h.asUser(h.employee,async tx=>tx`select id from pun_entries where company_id=${h.ids.company}`)).toHaveLength(0);

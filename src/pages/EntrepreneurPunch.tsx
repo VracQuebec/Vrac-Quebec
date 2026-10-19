@@ -5,7 +5,7 @@ import { useCompanyRole } from "@/components/todo/useCompanyRole";
 export default function EntrepreneurPunch() {
   const { companies, companyId, setCompanyId, role, ready } = useCompanyRole();
   return (
-    <EntrepreneurAppShell title="Punch et heures" subtitle={companies.find((c) => c.id === companyId)?.name ?? ""} backTo={null} allowCompanyMembers>
+    <EntrepreneurAppShell title="Punch et heures" subtitle={companies.find((c) => c.id === companyId)?.name ?? ""} backTo={null} allowCompanyMembers employeeMode={!!role && !["proprietaire","gestionnaire","support"].includes(role)}>
       {companies.length > 1 && (
         <select aria-label="Entreprise active" className="mb-4 h-10 w-full rounded-md border border-border bg-background px-2 text-sm sm:w-auto" value={companyId ?? ""} onChange={(e) => setCompanyId(e.target.value)}>
           {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
