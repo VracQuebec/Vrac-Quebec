@@ -1,5 +1,9 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## EXEC-04 — complément des écrans existants (19 oct. 17:11 UTC)
+- [ ] Compléter registre visible, formulaires partenaires/ententes et capture locale sans reconstruction.
+- [ ] Vérifier les parcours fictifs et les règles ciblées; livrer captures, modèles et limites d’activation.
+
 ## Correctifs audit EXEC-03 / EXEC-04 (19 oct. 2026)
 - [x] Corriger consentements, confidentialité, transitions et admissibilité serveur.
 - [x] Corriger reprise des communications, renouvellement et séparation TEST.
