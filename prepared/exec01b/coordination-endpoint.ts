@@ -46,7 +46,7 @@ export function makeCoordinationEndpoint(deps:CoordinationDependencies){
     if(!offer.availability_start||!offer.availability_end||!data.start||!data.end){(p.evaluation as {result:string;reasons:unknown[]}).result='NEEDS_REVIEW';(p.evaluation as {reasons:unknown[]}).reasons.push({level:'REVIEW',code:'PERIOD',label:'Disponibilité du chantier inconnue.'});}
     else if(data.start.slice(0,10)<offer.availability_start||data.end.slice(0,10)>offer.availability_end){(p.evaluation as {result:string;reasons:unknown[]}).result='INCOMPATIBLE';(p.evaluation as {reasons:unknown[]}).reasons.push({level:'BLOCKER',code:'PERIOD',label:'Horaire hors disponibilité du chantier.'});}
    }
-   p.inputHash=await digest(JSON.stringify(data));
+   p.inputHash=await digest(JSON.stringify(data.kind==='mail'?{kind:'mail',requestId:data.requestId}:data));
    if(data.kind!=='list'){
     // Stable dedupe derived from actor + operation, not visitor contact. SQL commits link + queue + action together.
     const nextId=crypto.randomUUID(),secret=randomSecret();p.nextId=nextId;p.nextHash=await digest(secret);
