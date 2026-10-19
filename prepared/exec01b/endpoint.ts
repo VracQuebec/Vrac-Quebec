@@ -14,7 +14,7 @@ const bodySchema = z.discriminatedUnion('kind', [
  z.object({kind:z.literal('crm'),requestId:z.string().uuid()}).strict(),
 ]);
 export type Message = { to:string; subject:string; html:string; text:string; purpose:'service'; tracking:false };
-export type Dependencies = { rpc:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>; isAdmin:(request:Request)=>Promise<boolean>; captureOrSend:(message:Message)=>Promise<'captured-test'|'sent'>; portalOrigin:string; corsOrigin:string };
+export type Dependencies = { rpc:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>; isAdmin:(request:Request)=>Promise<boolean>; captureOrSend:(message:Message)=>Promise<'captured-test'|'sent'>; portalOrigin:string; corsOrigin:string; localHarness?:boolean };
 function escape(value:string) { return value.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] ?? c)); }
 export function confirmationMessage(to:string,name:string,url:string):Message {
  return {to,subject:'Confirmation de votre demande — Vrac Québec',purpose:'service',tracking:false,
@@ -22,7 +22,7 @@ export function confirmationMessage(to:string,name:string,url:string):Message {
  text:`Bonjour ${name},\n${WAITING_MESSAGE}\nSuivre ou modifier ma demande : ${url}`};
 }
 export function makeEndpoint(deps:Dependencies) {
- const reply=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','Access-Control-Allow-Origin':deps.corsOrigin,'Access-Control-Allow-Headers':'Content-Type, Authorization','Access-Control-Allow-Methods':'POST, GET, OPTIONS','Vary':'Origin'}});
+ const reply=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','Access-Control-Allow-Origin':deps.corsOrigin,'Access-Control-Allow-Headers':'Content-Type, Authorization','Access-Control-Allow-Methods':'POST, GET, OPTIONS','Vary':'Origin',...(deps.localHarness?{'Access-Control-Allow-Credentials':'true'}:{})}});
  return async (request:Request)=>{
   if(request.method==='OPTIONS') return reply({});
   if(request.method==='GET') return reply({message:'Ouvrez le suivi personnel. Aucune modification effectuée.'});
@@ -52,7 +52,7 @@ export function makeEndpoint(deps:Dependencies) {
     if(typeof result.contact!=='string') throw Error('contact');
     let message:Message;
     if(data.kind==='code') message={to:result.contact,subject:'Code de vérification — Vrac Québec',html:`<p>Votre code : <strong>${code}</strong></p>`,text:`Votre code : ${code}`,purpose:'service',tracking:false};
-    else { const fragment=new URLSearchParams({requestId:data.requestId,linkId,secret});const url=`${deps.portalOrigin}/portail/remblai#${fragment}`;message=confirmationMessage(result.contact,String(result.name??''),url); }
+    else { const fragment=new URLSearchParams({requestId:data.requestId,linkId,secret});const url=`${deps.portalOrigin}/portail/remblai${deps.localHarness?'?server=local':''}#${fragment}`;message=confirmationMessage(result.contact,String(result.name??''),url); }
     const delivery=await deps.captureOrSend(message);return reply({ok:true,delivery});
    }
    if('conditions' in result && result.conditions==null) result.conditions=unknownConditions();
