@@ -1,0 +1,11 @@
+// @vitest-environment node
+import {describe,it,expect} from 'vitest';
+import {makeServiceMailPreparer} from '../../prepared/exec01b/service-mail';
+import {receptionMessageAllowed} from '../../prepared/exec01b/queue-reception-guard';
+describe('EXEC02B existing mail contract',()=>{
+ const context={requestId:crypto.randomUUID(),kind:'propose',subject:'Proposition',url:'http://localhost/portail/remblai#secret',summary:'Aucune réception confirmée',dedupeKey:'event-unique',recipient:'owner@test.invalid'};
+ it('capture is explicitly limited to fictional contacts',async()=>{const prepare=makeServiceMailPreparer({captureOnly:true,sender:{from:'capture@test.invalid',domain:'test.invalid'},lookup:async()=>({suppressed:false,unsubscribeToken:'test-only'}),render:async()=>({html:'safe',text:'safe'})});await expect(prepare({...context,recipient:'person@real-domain.ca'})).rejects.toThrow('Fictional');});
+ it('suppression blocks rendering, never bypasses footer token',async()=>{let rendered=false;const prepare=makeServiceMailPreparer({captureOnly:true,sender:{from:'capture@test.invalid',domain:'test.invalid'},lookup:async()=>({suppressed:true,unsubscribeToken:null}),render:async()=>{rendered=true;return {html:'',text:''};}});expect((await prepare(context)).blocked).toBe(true);expect(rendered).toBe(false);});
+ it('missing unsubscribe token fails closed',async()=>{const prepare=makeServiceMailPreparer({captureOnly:true,sender:{from:'capture@test.invalid',domain:'test.invalid'},lookup:async()=>({suppressed:false,unsubscribeToken:null}),render:async()=>({html:'',text:''})});await expect(prepare(context)).rejects.toThrow('Unsubscribe');});
+ it('queue dispatch drops obsolete reminders and suppression',async()=>{const payload={to:context.recipient,reception_guard:{kind:'remind'}};expect(await receptionMessageAllowed(payload,{current:async()=>false,suppressed:async()=>false})).toBe(false);expect(await receptionMessageAllowed(payload,{current:async()=>true,suppressed:async()=>true})).toBe(false);await expect(receptionMessageAllowed(payload,{current:async()=>{throw Error('read failed');},suppressed:async()=>false})).rejects.toThrow('read failed');});
+});

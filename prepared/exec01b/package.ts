@@ -33,7 +33,7 @@ async function stage(path:string){
   let target=/\.tsx?$/.test(absolute)?absolute:`${absolute}.ts`;
   try{await access(target);}catch{target=resolve(absolute,'index.ts');await access(target);}
   const relative=target.slice(project.length+1);
-  if(!relative.startsWith('src/')&&!relative.startsWith('prepared/')&&!relative.startsWith('supabase/functions/_shared/transactional-email-templates/'))throw Error('Dependency outside prepared source graph');
+  if(!relative.startsWith('src/')&&!relative.startsWith('prepared/')&&!relative.startsWith('supabase/functions/_shared/'))throw Error('Dependency outside prepared source graph');
   await stage(relative);
   const resolvedImport=relativePath(dirname(path),relative);const importPath=resolvedImport.startsWith('.')?resolvedImport:`./${resolvedImport}`;
   normalized=normalized.replaceAll(`'${dependency}'`,`'${importPath}'`).replaceAll(`"${dependency}"`,`"${importPath}"`);
@@ -41,6 +41,13 @@ async function stage(path:string){
  await mkdir(resolve(output,path,'..'),{recursive:true});await writeFile(resolve(output,path),imports(normalized));
 }
 await stage('prepared/exec01b/edge-entry.ts');
+// Preserve the sender's existing relative imports in staging, without touching active sources.
+for(const file of ['send-transactional-email.ts','process-email-queue.ts']){
+ const source=await readFile(`${project}/prepared/exec01b/${file}`,'utf8');
+ const adjusted=source.replaceAll("'../_shared/","'../../supabase/functions/_shared/");
+ await writeFile(`${output}/prepared/exec01b/${file}`,adjusted);
+ for(const match of [...source.matchAll(/from ['"]\.\.\/_shared\/([^'"]+)['"]/g)])await stage(`supabase/functions/_shared/${match[1]}`);
+}
 await writeFile(`${output}/deno.json`,JSON.stringify({imports:{zod:'npm:zod@3.25.76'},compilerOptions:{strict:false}}));
 await build({entryPoints:[`${project}/prepared/exec01b/edge-entry.ts`],bundle:true,platform:'neutral',format:'esm',external:['npm:*'],outfile:`${output}/edge-entry.js`});
 console.log('Préparation seulement : /tmp/exec01c-package. Aucun déploiement.');
