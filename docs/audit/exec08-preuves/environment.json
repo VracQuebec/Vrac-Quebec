@@ -1,0 +1,13 @@
+{
+  "environment": "production",
+  "has_development": false,
+  "has_production": true,
+  "managed_by_lovable": true,
+  "draft": "existing, behind main, not opened or modified",
+  "dockerAvailable": false,
+  "podmanAvailable": false,
+  "userNamespaceProbe": "unshare failed; see report",
+  "fullStackAvailable": false,
+  "businessExecutionPerformed": false,
+  "localDatabaseCreated": false
+}
