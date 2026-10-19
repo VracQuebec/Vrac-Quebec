@@ -14,7 +14,7 @@
 - PWA : `push-sw.js` unique, enregistré au chargement, sans cache métier.
 - EXEC-01 follow-up uses the existing submissions dossier model and a repository-injected domain service; preview uses fictional local data only, while real access stays disabled until a transactional hosted adapter is authorized and deployed.
 - EXEC-01B SQL and edge adapters stay in prepared/exec01b; loopback PostgreSQL tests use an empty schema fixture and the same submission-bound RPC, never the shared backend, so hosted activation remains a separate authorized operation.
-- EXEC-01C/02 mount disabled CRM adapters; prepared sources avoid auto-deployment. Submission-bound reservations serialize dossier/offer capacity and commit link/message together; measured trips debit once. Preferences never overwrite regulatory conditions. Private photos require dossier authorization; managed mail wiring stays fail-closed.
+- EXEC-01C/02/02B keep CRM, sender and queue-worker adapters disabled in prepared sources. Reservations lock dossier/offer capacity and commit link/message atomically; immutable trip corrections debit only the delta. The existing queue rechecks reminder eligibility and suppression. Preferences never override regulatory rules; private photos require dossier authorization.
 - Personal follow-up entrypoints bypass analytics, production providers and notification mounts; this prevents bearer credentials and test actions reaching existing telemetry or business services.
 <!-- LOVABLE:BEGIN -->
 - Entrepreneur UI uses the existing shell to own safe areas and measured header/navigation heights; one owner prevents duplicate offsets without changing backend behavior.

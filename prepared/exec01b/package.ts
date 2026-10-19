@@ -8,9 +8,9 @@ const output='/tmp/exec01c-package';
 await mkdir(`${output}/prepared/exec01b`,{recursive:true});
 await mkdir(`${output}/src/lib/remblai`,{recursive:true});
 await mkdir(`${output}/src/integrations/supabase`,{recursive:true});
-function imports(text:string){return text.replace(/(from ['"])(\.[^'"]+?)(['"])/g,(_whole,start,path,end)=>`${start}${path}${path.endsWith('.ts')?'':'.ts'}${end}`);}
+function imports(text:string){return text.replace(/(from ['"])(\.[^'"]+?)(['"])/g,(_whole,start,path,end)=>`${start}${path}${/\.tsx?$/.test(path)?'':'.ts'}${end}`);}
 for(const file of await readdir(`${project}/prepared/exec01b`)){
- if(!file.endsWith('.ts')||file==='package.ts')continue;
+ if((!file.endsWith('.ts')&&!file.endsWith('.tsx'))||file==='package.ts')continue;
  await writeFile(`${output}/prepared/exec01b/${file}`,imports(await readFile(`${project}/prepared/exec01b/${file}`,'utf8')));
 }
 for(const file of ['conditions','service','cloud-contract','coordination']){
@@ -30,10 +30,10 @@ async function stage(path:string){
  for(const dependency of dependencies){
   if(!dependency.startsWith('.')&&!dependency.startsWith('@/'))continue;
   const absolute=dependency.startsWith('@/')?resolve(project,'src',dependency.slice(2)):resolve(project,path,'..',dependency);
-  let target=absolute.endsWith('.ts')?absolute:`${absolute}.ts`;
+  let target=/\.tsx?$/.test(absolute)?absolute:`${absolute}.ts`;
   try{await access(target);}catch{target=resolve(absolute,'index.ts');await access(target);}
   const relative=target.slice(project.length+1);
-  if(!relative.startsWith('src/')&&!relative.startsWith('prepared/'))throw Error('Dependency outside prepared source graph');
+  if(!relative.startsWith('src/')&&!relative.startsWith('prepared/')&&!relative.startsWith('supabase/functions/_shared/'))throw Error('Dependency outside prepared source graph');
   await stage(relative);
   const resolvedImport=relativePath(dirname(path),relative);const importPath=resolvedImport.startsWith('.')?resolvedImport:`./${resolvedImport}`;
   normalized=normalized.replaceAll(`'${dependency}'`,`'${importPath}'`).replaceAll(`"${dependency}"`,`"${importPath}"`);
@@ -41,6 +41,13 @@ async function stage(path:string){
  await mkdir(resolve(output,path,'..'),{recursive:true});await writeFile(resolve(output,path),imports(normalized));
 }
 await stage('prepared/exec01b/edge-entry.ts');
+// Preserve the sender's existing relative imports in staging, without touching active sources.
+for(const file of ['send-transactional-email.ts','process-email-queue.ts']){
+ const source=await readFile(`${project}/prepared/exec01b/${file}`,'utf8');
+ const adjusted=source.replaceAll("'../_shared/","'../../supabase/functions/_shared/");
+ await writeFile(`${output}/prepared/exec01b/${file}`,adjusted);
+ for(const match of [...source.matchAll(/from ['"]\.\.\/_shared\/([^'"]+)['"]/g)])await stage(`supabase/functions/_shared/${match[1]}`);
+}
 await writeFile(`${output}/deno.json`,JSON.stringify({imports:{zod:'npm:zod@3.25.76'},compilerOptions:{strict:false}}));
 await build({entryPoints:[`${project}/prepared/exec01b/edge-entry.ts`],bundle:true,platform:'neutral',format:'esm',external:['npm:*'],outfile:`${output}/edge-entry.js`});
 console.log('Préparation seulement : /tmp/exec01c-package. Aucun déploiement.');
