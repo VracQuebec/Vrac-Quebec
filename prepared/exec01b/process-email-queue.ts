@@ -205,7 +205,8 @@ Deno.serve(async (req) => {
       const queuedAt = payload.queued_at ?? msg.enqueued_at
       if (queuedAt) {
         const ageMs = Date.now() - new Date(queuedAt).getTime()
-        const maxAgeMs = ttlMinutes[queue] * 60 * 1000
+        const guard=payload.reception_guard as {kind?:string;expiresAt?:string}|undefined
+        const maxAgeMs = guard?.kind==='remind'&&guard.expiresAt ? Math.max(0,new Date(guard.expiresAt).getTime()-new Date(queuedAt).getTime()) : ttlMinutes[queue] * 60 * 1000
         if (ageMs > maxAgeMs) {
           console.warn('Email expired (TTL exceeded)', {
             queue,

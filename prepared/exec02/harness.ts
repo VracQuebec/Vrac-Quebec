@@ -13,7 +13,7 @@ const staff={admin:crypto.randomUUID(),entrepreneur:crypto.randomUUID()},message
 const role=(r:Request)=>{const cookie=r.headers.get('cookie')??'';for(const [role,id] of Object.entries(staff))if(cookie.includes(`exec02_session=${id}`))return {role:role as 'admin'|'entrepreneur',actorId:id};return null;};
 const portal=makeEndpoint({enabled:true,localHarness:true,portalOrigin:'http://localhost:8080',corsOrigin:'http://localhost:8080',isAdmin:async r=>role(r)?.role==='admin',rpc:async p=>(await db`select exec01_dispatch(${db.json(p as any)}) r`)[0].r,captureOrSend:async m=>{if(!m.to.endsWith('.invalid'))throw Error('No real contact');messages.push(m);return 'captured-test';}});
 const prepareMail=localServiceMail(async props=>{
- const child=Bun.spawn(['deno','run','--allow-env=NODE_ENV','--config','/tmp/exec01c-package/deno.json','prepared/exec02/render-capture.ts'],{stdin:JSON.stringify(props),stdout:'pipe',stderr:'pipe'});
+ const child=Bun.spawn(['deno','run','--allow-env=NODE_ENV','--config','/tmp/exec01c-package/deno.json','prepared/exec02/render-capture.ts'],{stdin:new Blob([JSON.stringify(props)]),stdout:'pipe',stderr:'pipe'});
  const result=await new Response(child.stdout).text();if(await child.exited!==0)throw Error('Local React Email rendering unavailable');
  return JSON.parse(result);
 });
