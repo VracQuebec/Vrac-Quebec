@@ -6,7 +6,7 @@
 - Adresses de test réservées (@*.invalid, .test, .example, example.com) : jamais d'envoi de courriel (garde dans send-transactional-email et process-email-queue) ni d'envoi téléphone (trigger sur crm_notifications).
 - Règles Finances : src/lib/finances/AGENTS.md ; brouillons : src/lib/drafts/AGENTS.md ; paie : src/lib/payroll/AGENTS.md.
 - Liste de tâches : ent_crm_tasks est la seule source (couleur, priorité, statut, liste de contrôle); trigger ent_crm_tasks_todo_guard limite un employé non gestionnaire à l’avancement de SA tâche et fixe done_at/done_by — aucune deuxième table de tâches.
-- Punch : pun_entries/pun_log, écritures par RPC seulement (pun_in/out/break/manual/decide); correction = nouvelle entrée + ancienne archivée; heures pour la paie via pun_summary — jamais de paie calculée hors de ce relevé approuvé.
+- Punch rules: read src/lib/punch/AGENTS.md before changing punch screens, prepared/exec06 or payroll time sources.
 - Assistant du site : site_chat_sessions/site_chat_messages écrits seulement par la fonction site-assistant (visiteur, jeton secret, lecture via site_chat_poll) et site_chat_agent_action (agents = admin ou site_chat_agents); en mode « humain » l'IA ne répond jamais — une seule conversation, reprise sans perte.
 - Ronde de sécurité : référentiel rds_categories/rds_codes (lecture seule, listes 1-3); rds_reports/rds_defects écrits seulement par les RPC rds_* (rapport figé, correction = nouvelle version liée); classement mineur/majeur séparé du statut de circulation (48 h depuis le premier constat, jamais remis à zéro); chaque défaut crée une fleet_repairs — blocage levé seulement après validation.
 - Règles par dossier : supabase/AGENTS.md (agenda, obligations, assurances) ; supabase/functions/AGENTS.md ; src/lib/{logbook,seo (dont SEO START),parcours,ops (voyages, OPS-02, CPN-01)}/AGENTS.md.
@@ -28,4 +28,3 @@
 - Access request numbering (transport_requests.request_number): single-row counter transport_request_number_counter bumped by trigger zz_tr_assign_number, named to run after validation triggers — rejected or failed inserts consume no number (transport_requests_number_seq is deprecated).
 - Parcours prioritaires : les destinations « Je cherche une dompe » / « Je veux du remblai » viennent de src/lib/navigation/priority-paths.ts ; pied de page public commun PublicContactFooter (numéro via src/lib/public-phone.ts) — une seule source pour éviter les entrées divergentes.
 
-- Read src/lib/punch/AGENTS.md before changing punch screens, prepared/exec06 or punch logic; scoped integration rules prevent unsafe activation.
