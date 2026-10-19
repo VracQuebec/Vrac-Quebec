@@ -14,7 +14,7 @@ export async function createPunchLocal(){
  await h.db`insert into auth.users values(${employee},'lea@test.invalid'),(${second},'marc@test.invalid'),(${reader},'lecture@test.invalid')`;
  await h.db`insert into jsc_company_members(company_id,user_id,role,full_name,email) values(${h.ids.company},${second},'operateur','Marc TEST','marc@test.invalid'),(${h.ids.company},${reader},'lecture','Lecture TEST','lecture@test.invalid')`;
  const project=(await h.asUser(h.ids.user,async tx=>tx`insert into ent_crm_projects(company_id,client_id,name) values(${h.ids.company},${h.ids.client},'Chantier TEST') returning id`))[0].id;
- const task=(await h.asUser(h.ids.user,async tx=>tx`insert into ent_crm_tasks(company_id,project_id,title,assigned_to) values(${h.ids.company},${project},'Excavation TEST',${employee}) returning id`))[0].id;
+ const task=(await h.asUser(h.ids.user,async tx=>tx`insert into ent_crm_tasks(company_id,project_id,title,assignee_user_id) values(${h.ids.company},${project},'Excavation TEST',${employee}) returning id`))[0].id;
  return {...h,employee,second,reader,project,task};
  }catch(e){await h.cleanup();throw e;}
 }
