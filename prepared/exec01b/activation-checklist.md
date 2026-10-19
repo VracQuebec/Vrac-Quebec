@@ -119,3 +119,9 @@ ne sont pas établies par `project_info` : elles restent non vérifiées.
 - Acquisition limitée aux événements result journalisés, liés au même besoin et partenaire; autres déclencheurs restent refusés tant qu’une preuve métier officielle n’est pas raccordée. Finances complètes non certifiées localement.
 - Prévol Authorization/apikey/x-client-info corrigé; dessin Google réel non testé ni activé. Résultats courants sans ville/région restent à confirmer jusqu’à installation autorisée de search-sites.
 - Bilan de correctifs : docs/audit/exec03-exec04-correctifs.md. GO éventuel concerne uniquement une validation d’intégration isolée, pas la production ni EXEC-05.
+
+## Complément EXEC-04 — 19 octobre 2026
+- Registre complet et identité propriétaire prioritaire intégrés aux sources; 55 tests ciblés et parcours navigateur complet capturé uniquement en local.
+- Avant activation isolée autorisée : vérifier permissions réseau/admin, identité du lien avec session staff concomitante, projections du registre et historique, prévol CORS, reprise du worker et preuves financières avec vrais objets de test.
+- Aucun taux retenu : ententes sans montant sauvegardables, acquisition impossible sans règles commerciales complètes et événement vérifiable. Validation financière de bout en bout toujours non réalisée.
+- Tous les verrous Cloud, Google, envoi réel et EXEC-05 précédents restent en vigueur.

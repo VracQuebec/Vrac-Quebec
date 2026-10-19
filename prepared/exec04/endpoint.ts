@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { campaignTemplates,filterSchema,matchesSegment,renderCampaign,type NetworkContact,type TemplateKey } from '../../src/lib/marketplace/communications';
 import { digest,randomSecret } from '../../src/lib/remblai/service';
 const uuid=z.string().uuid();
-const input=z.object({kind:z.enum(['network','campaign_list','campaign_save','prepare','capture','queue','commissions','agreement','commission','finance_link','services','preferences','permission','service_create','service_action','service_admin','partner_list']),
+const input=z.object({kind:z.enum(['network','campaign_list','campaign_save','prepare','capture','queue','commissions','agreement','commission','finance_link','services','preferences','permission','service_create','service_action','service_admin','partner_list','permission_list']),
  requestId:uuid.optional(),linkId:uuid.optional(),secret:z.string().regex(/^[a-f0-9]{64}$/).optional(),operationId:uuid.optional(),confirmed:z.boolean().optional(),
  campaignId:uuid.optional(),name:z.string().min(1).max(150).optional(),template:z.enum(['confirmation','reconfirmation','offer','appointment','welcome','features']).optional(),segment:filterSchema.optional(),frequencyHours:z.number().int().min(1).max(8760).optional(),
  audience:z.enum(['owner','entrepreneur']).optional(),subjectId:uuid.optional(),purpose:z.enum(['service','promotion','partner_share']).optional(),channel:z.enum(['email','sms','app']).optional(),state:z.enum(['granted','withdrawn']).optional(),source:z.string().min(1).max(150).optional(),proof:z.string().max(2000).optional(),expiresAt:z.string().datetime().optional(),
@@ -13,6 +13,7 @@ const mutations=new Set(['campaign_save','prepare','capture','queue','agreement'
 export function makeCommunicationEndpoint(d:CommDeps){
  const reply=(v:unknown,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store','Referrer-Policy':'no-referrer','Access-Control-Allow-Origin':d.origin,'Access-Control-Allow-Credentials':'true','Access-Control-Allow-Headers':'Content-Type, Authorization, apikey, x-client-info','Access-Control-Allow-Methods':'POST,GET,OPTIONS','Vary':'Origin'}});
  return async(r:Request)=>{
+  if(r.headers.get('origin')&&r.headers.get('origin')!==d.origin)return reply({error:'Accès refusé.'},403);
   if(r.method==='OPTIONS')return reply({});if(!d.enabled)return reply({error:'Communications et services non activés.'},503);
   if(r.headers.get('origin')&&r.headers.get('origin')!==d.origin)return reply({error:'Accès refusé.'},403);
   if(r.method==='GET')return reply({message:'Aucune modification effectuée.'});if(r.method!=='POST')return reply({error:'Méthode refusée'},405);
@@ -25,7 +26,8 @@ export function makeCommunicationEndpoint(d:CommDeps){
   if(mutations.has(data.kind)&&(!data.operationId||data.confirmed!==true))return reply({error:'Confirmation explicite requise'},400);
   try{
    if(d.quota&&!await d.quota(r))return reply({error:'Trop de tentatives'},429);
-   const staff=await d.authenticate(r);if(!staff&&(!data.linkId||!data.secret||!data.requestId))return reply({error:'Accès refusé'},403);
+   const personal=Boolean(data.linkId&&data.secret&&data.requestId);
+   const staff=personal?null:await d.authenticate(r);if(!staff&&(!data.linkId||!data.secret||!data.requestId))return reply({error:'Accès refusé'},403);
    const p:Record<string,unknown>={...data,testMode:d.local,role:staff?.role??'owner',actorId:staff?.actorId??data.linkId};delete p.secret;
    // Personal credentials remain in process memory/request body only; SQL receives the fingerprint.
    if(data.secret)p.secretHash=await digest(data.secret);
