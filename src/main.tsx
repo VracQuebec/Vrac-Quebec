@@ -5,10 +5,13 @@ import "./index.css";
 import { supabase } from "@/integrations/supabase/client";
 import { isolatedSearch } from "@/lib/entrepreneur/search-runtime";
 import {isExec04Local} from "@/lib/marketplace/communications";
+import {isHelpLocal} from "@/lib/help/progress";
+import {isPunchLocal} from "@/lib/punch/runtime";
+import {isExec05Local} from "@/lib/finances/exec05";
 import { startRdsOutbox } from "@/lib/fleet/rdsOutbox";
 
 // EXEC-01 isolation: visiting a fictitious dossier must not flush a real outbox.
-const personalFollowup = ["/portail/remblai", "/admin/apercu-suivi-remblai"].includes(window.location.pathname) || isolatedSearch() || isExec04Local();
+const personalFollowup = ["/portail/remblai", "/admin/apercu-suivi-remblai"].includes(window.location.pathname) || isolatedSearch() || isExec04Local() || isHelpLocal() || isPunchLocal() || isExec05Local();
 if (!personalFollowup) startRdsOutbox(supabase);
 if (personalFollowup) {
   (window as unknown as Record<string, unknown>)["ga-disable-G-T6HYZVY8E0"] = true;

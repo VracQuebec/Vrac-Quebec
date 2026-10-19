@@ -20,9 +20,10 @@ export default defineConfig(({ mode }) => ({
       apply: "serve",
       transformIndexHtml(html, ctx) {
         const url=new URL(ctx.originalUrl??ctx.path,"http://localhost");
-        if(url.searchParams.get('exec03')!=='local'&&url.searchParams.get('exec04')!=='local')return html;
+        if(url.searchParams.get('exec03')!=='local'&&url.searchParams.get('exec04')!=='local'&&url.searchParams.get('help_test')!=='local')return html;
         // Local preview only: prevent static HTML/font/analytics requests before React starts.
-        return html.replace('<head>',`<head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' http://localhost:55440 ws://localhost:8080;">`);
+        const port=url.searchParams.get('help_test')==='local'?55447:55440;
+        return html.replace('<head>',`<head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' http://localhost:${port} ws://localhost:8080;">`);
       },
     } satisfies Plugin,
     // Pré-rendu SEO global (pages SEO publiées + articles de blogue publiés).
