@@ -7,7 +7,7 @@ const ident=(s:string)=>{if(!/^[a-z_][a-z_0-9]*$/.test(s))throw Error('Identifie
 const token='local-invitation-token-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
 await h.asUser(h.ids.user,async tx=>tx`select pun_invite_prepare(${h.ids.company}::uuid,'lea@test.invalid','operateur','browser-invitation',${token})`);
 const server=Bun.serve({hostname:'127.0.0.1',port:55446,async fetch(req){
- const headers={'Access-Control-Allow-Origin':'http://localhost:8080','Access-Control-Allow-Headers':'Content-Type,Authorization,apikey,x-client-info,Prefer,Accept,x-test-user','Access-Control-Allow-Methods':'GET,POST,OPTIONS'};
+ const headers={'Access-Control-Allow-Origin':'http://localhost:8080','Access-Control-Allow-Headers':'Content-Type,Authorization,apikey,x-client-info,Prefer,Accept,x-test-user,Content-Profile,Accept-Profile','Access-Control-Allow-Methods':'GET,POST,OPTIONS'};
  const url=new URL(req.url);if(req.headers.get('Origin')&&req.headers.get('Origin')!=='http://localhost:8080')return new Response('Origin denied',{status:403});if(req.method==='OPTIONS')return new Response(null,{headers});
  try{
  if(url.pathname==='/session')return Response.json({company:h.ids.company,other:h.ids.other,name:'Excavation Exemple — TEST',owner:h.ids.user,employee:h.employee,second:h.second,token,isolation:h.isolation},{headers});
