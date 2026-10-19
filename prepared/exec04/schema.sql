@@ -96,7 +96,7 @@ CREATE FUNCTION exec04_permission(_email text,_purpose text,_at timestamptz DEFA
  AND c.permission_state='granted' AND c.withdrawn_at IS NULL AND c.accepted_at<=_at AND (c.expires_at IS NULL OR c.expires_at>_at)
  AND trim(c.source)<>'' AND trim(c.consent_text)<>'' AND c.partner_company_id IS NOT DISTINCT FROM _partner AND c.service_request_id IS NOT DISTINCT FROM _request
  AND (_purpose<>'promotion' OR NOT EXISTS(SELECT 1 FROM email_unsubscribe_tokens t WHERE t.email=c.email AND t.used_at IS NOT NULL AND t.used_at>=c.accepted_at)))
- AND NOT EXISTS(SELECT 1 FROM suppressed_emails se WHERE se.email=lower(trim(_email)) AND (se.reason IN ('bounce','complaint') OR (_purpose='promotion' AND (se.reason IS DISTINCT FROM 'unsubscribe' OR NOT EXISTS(SELECT 1 FROM email_unsubscribe_tokens t JOIN mkt_consents c ON c.email=t.email WHERE t.email=se.email AND t.used_at IS NOT NULL AND c.accepted_at>t.used_at AND c.entity='vrac_quebec' AND c.scope='promotions_courriel' AND c.withdrawn_at IS NULL AND c.permission_state='granted' AND (_type IS NULL OR (c.subject_type=_type AND c.subject_id=_id)))))));
+ AND NOT EXISTS(SELECT 1 FROM suppressed_emails se WHERE se.email=lower(trim(_email)) AND (se.reason IN ('bounce','complaint') OR _purpose='promotion'));
 $$;
 CREATE FUNCTION exec04_consent_guard() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$
 BEGIN
@@ -105,7 +105,6 @@ BEGIN
   IF NOT exec04_test_database() THEN RAISE EXCEPTION 'Preuve TEST interdite hors base locale jetable'; END IF;
   NEW.evidence_mode:='test';
  END IF;
- IF TG_OP='UPDATE' AND OLD.evidence_mode='test' AND NEW.evidence_mode<>'test' THEN RAISE EXCEPTION 'Preuve TEST non convertible'; END IF;
  RETURN NEW;
 END $$;
 CREATE TRIGGER exec04_consent_guard BEFORE INSERT OR UPDATE ON mkt_consents FOR EACH ROW EXECUTE FUNCTION exec04_consent_guard();
@@ -225,7 +224,7 @@ BEGIN
   result:=jsonb_build_object('ok',true);
  ELSIF kind='campaign_claim' THEN
   IF camp.id IS NULL THEN RAISE EXCEPTION 'Campagne absente';END IF;
-  SELECT * INTO msg FROM mkt_promo_sends ms WHERE ms.campaign=camp.id::text AND ms.state IN ('prepared','failed','queued') AND (coalesce((p->>'testMode')::boolean,false) OR ms.queue_id IS NULL) AND ms.attempts<3 ORDER BY ms.id LIMIT 1 FOR UPDATE SKIP LOCKED;
+  SELECT * INTO msg FROM mkt_promo_sends ms WHERE ms.campaign=camp.id::text AND ms.state IN ('prepared','failed','queued') AND ((coalesce((p->>'testMode')::boolean,false) AND ms.capture_only) OR ms.queue_id IS NULL) AND ms.attempts<3 ORDER BY ms.id LIMIT 1 FOR UPDATE SKIP LOCKED;
   IF msg.id IS NULL THEN RETURN jsonb_build_object('empty',true);END IF;
   IF camp.archived_at IS NOT NULL OR NOT exec04_send_eligible(msg.subject_type,msg.subject_id,msg.email,msg.purpose,coalesce((p->>'testMode')::boolean,false)) THEN UPDATE mkt_promo_sends SET state='excluded',last_error='permission_retirée_ou_absente' WHERE id=msg.id;RETURN jsonb_build_object('excluded',true);END IF;
   IF msg.queue_id IS NOT NULL THEN RETURN jsonb_build_object('recover',true,'id',msg.id); END IF;
@@ -279,6 +278,14 @@ BEGIN
    IF state IN ('cancel','known') THEN UPDATE mkt_commissions SET status='annulee',exec04_cancelled_at=now(),notes=reason WHERE request_id=req.id AND finance_invoice_id IS NULL; END IF;
    IF state='result' AND p->>'ruleId' IS NOT NULL THEN
     IF NOT admin OR req.answers->>'partnerId' IS NULL OR req.answers ? 'known' OR req.status IN ('annulee','litige') THEN RAISE EXCEPTION 'Attribution non admissible'; END IF;
+    IF NOT EXISTS(SELECT 1 FROM mkt_pricing_rules r WHERE r.id=(p->>'ruleId')::uuid
+      AND nullif(trim(r.agreement->>'basis'),'') IS NOT NULL AND r.agreement->>'trigger'='result'
+      AND nullif(trim(r.agreement->>'attribution'),'') IS NOT NULL
+      AND (r.company_id IS NULL OR r.company_id=(req.answers->>'partnerId')::uuid)
+      AND ((r.agreement->>'fixed' IS NOT NULL AND (r.agreement->>'fixed')::numeric>=0 AND r.agreement->>'rate' IS NULL)
+        OR (r.agreement->>'rate' IS NOT NULL AND (r.agreement->>'rate')::numeric BETWEEN 0 AND 100
+          AND r.agreement->>'fixed' IS NULL AND p->>'amount' IS NOT NULL AND (p->>'amount')::numeric>=0)))
+      THEN RAISE EXCEPTION 'Entente, attribution et montant de commission requis'; END IF;
     INSERT INTO mkt_commissions(request_id,company_id,rule_id,rule_snapshot,base_amount,amount,status)
     SELECT req.id,(req.answers->>'partnerId')::uuid,r.id,jsonb_build_object('exec04',true,'agreement',r.agreement),
     (p->>'amount')::numeric,
