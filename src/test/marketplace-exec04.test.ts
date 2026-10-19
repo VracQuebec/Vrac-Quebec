@@ -16,7 +16,7 @@ describe('EXEC04 business rules',()=>{
 });
 const enabled=process.env.EXEC01B_LOCAL_TEST==='1';let local:Awaited<ReturnType<typeof createLocal>>;
 beforeAll(async()=>{if(enabled)local=await createLocal();},30000);
-afterAll(async()=>{if(!enabled)return;await local.db.end();const root=postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable',{ssl:false});await root.unsafe(`DROP DATABASE ${local.name}`);await root.end();});
+afterAll(async()=>{if(!enabled||!local)return;await local.db.end();const root=postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable',{ssl:false});await root.unsafe(`DROP DATABASE ${local.name}`);await root.end();});
 const p=(kind:string,data:any={})=>local.rpc({kind,role:'admin',actorId:local.ids.admin,operationId:crypto.randomUUID(),inputHash:crypto.randomUUID(),confirmed:true,...data});
 describe.skipIf(!enabled)('EXEC04 same SQL isolated',()=>{
  it('owner with no explicit network provenance is excluded server-side',async()=>{const {db,ids}=local;await db`update submissions set exec04_network_enrolled_at=NULL where id=${ids.unknown}`;expect((await p('network')).some((c:any)=>c.id===ids.unknown)).toBe(false);expect((await db`select exec04_contact('owner',${ids.unknown}::uuid) c`)[0].c).toBeNull();});

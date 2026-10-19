@@ -8,7 +8,7 @@ export async function createLocal(){
  await root.unsafe(`CREATE DATABASE ${name} ENCODING 'UTF8' TEMPLATE template0`);await root.end();
  const db=postgres(`postgresql://lovable@127.0.0.1:55439/${name}?sslmode=disable`,{ssl:false});
  const isolation=(await db`select inet_server_addr()::text host,inet_server_port() port,current_setting('data_directory') path`)[0];
- if(isolation.host!=='127.0.0.1'||isolation.port!==55439||!isolation.path.startsWith('/tmp/exec-correctifs/'))throw Error('Disposable cluster isolation not proven');
+ if(isolation.host!=='127.0.0.1'||Number(isolation.port)!==55439||!isolation.path.startsWith('/tmp/exec-correctifs/'))throw Error('Disposable cluster isolation not proven');
  for(const f of scripts)await db.unsafe(await readFile(f,'utf8'));
  const admin=crypto.randomUUID(),partner=crypto.randomUUID(),foreignUser=crypto.randomUUID(),company=crypto.randomUUID(),foreignCompany=crypto.randomUUID(),owner=crypto.randomUUID(),unknown=crypto.randomUUID(),entrepreneur=crypto.randomUUID(),category=crypto.randomUUID(),rule=crypto.randomUUID();
  for(const [id,label] of [[company,'Excavation Fictive — TEST'],[foreignCompany,'Partenaire hors secteur — TEST']])await db`insert into jsc_companies values(${id},${label})`;
