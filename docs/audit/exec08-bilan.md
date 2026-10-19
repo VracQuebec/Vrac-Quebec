@@ -4,6 +4,7 @@
 
 ## Résultat exploitable
 - Corrections indépendantes intégrées : PDF téléchargé et pièce EML utilisent désormais les mêmes octets privés figés; absence de fichier refuse le courrier. Fin de la régénération divergente relevée dans EXEC-05. Changement de contenu du courrier efface l’ancien état de capture et renouvelle sa clé.
+- Une facture ancienne sans PDF enregistré exige un gestionnaire pour conserver son premier PDF; un lecteur seul ne peut créer un substitut. Vérifier ce cas en Storage isolé avant activation. L’erreur de préparation sur une facture émise n’annonce plus faussement un retour en brouillon.
 - Aide contextuelle suit l’onglet Soumissions du CRM; lien ajouté dans le dossier personnel de remblai, les factures/règlements et la démonstration finances. Fenêtres conservant le travail monté; pas de navigation vers une seconde aide.
 - **15 tests ciblés réussis**, sans base créée : document 2, règles financières 4, aide/droits/progression 9. Trois assemblages préparés EXEC-01B/03/04 contrôlés par Deno, sans exécution. Aucun ancien lot SQL rejoué pour gonfler le total.
 - Capture navigateur : l’aide locale affiche honnêtement « Démonstration isolée non démarrée. Aucun service réel appelé. », zéro erreur JavaScript. Ce contrôle d’absence n’est **pas** une preuve du parcours authentifié, de la correction PDF dans l’interface, ni des cinq chaînes métier.

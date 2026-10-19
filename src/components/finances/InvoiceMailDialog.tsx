@@ -22,9 +22,9 @@ export default function InvoiceMailDialog({ data, pdf, invoiceId, onClose }: { d
     finally {setBusy(false);}
   };
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Courriel — {data.number}</DialogTitle></DialogHeader>
-    <label className="text-sm">Destinataire<Input type="email" value={mail.to} onChange={e => setMail({ ...mail, to: e.target.value })}/></label>
-    <label className="text-sm">Objet<Input maxLength={200} value={mail.subject} onChange={e => setMail({ ...mail, subject: e.target.value })}/></label>
-    <label className="text-sm">Message<Textarea rows={7} maxLength={10000} value={mail.message} onChange={e => setMail({ ...mail, message: e.target.value })}/></label>
+    <label className="text-sm">Destinataire<Input disabled={busy} type="email" value={mail.to} onChange={e => setMail({ ...mail, to: e.target.value })}/></label>
+    <label className="text-sm">Objet<Input disabled={busy} maxLength={200} value={mail.subject} onChange={e => setMail({ ...mail, subject: e.target.value })}/></label>
+    <label className="text-sm">Message<Textarea disabled={busy} rows={7} maxLength={10000} value={mail.message} onChange={e => setMail({ ...mail, message: e.target.value })}/></label>
     <p className="text-xs text-muted-foreground">Pièce jointe : {data.number}.pdf · version émise. Aucun envoi automatique ni paiement en ligne activé. Le brouillon téléchargé n’est pas un courriel envoyé.</p>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     <Button disabled={busy} onClick={()=>void prepare()}>Préparer le courriel</Button>

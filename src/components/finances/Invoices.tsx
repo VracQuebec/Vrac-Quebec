@@ -293,7 +293,7 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
     {preview && <TaxSummary r={preview} className="rounded border border-border p-2" gstNumber={draft ? ctx.seller.gst_number : inv.seller_snapshot?.gst_number} qstNumber={draft ? ctx.seller.qst_number : inv.seller_snapshot?.qst_number} />}
     {preview && (preview.zero_rated_base || preview.exempt_base) ? <p className="text-xs text-muted-foreground">Montant avant taxes {money(preview.pre_tax)} = base taxable {money(preview.taxable_base)} + détaxé {money(preview.zero_rated_base)} + exonéré {money(preview.exempt_base)}.</p> : null}
     {draft && <p className="text-xs text-muted-foreground">Aperçu calculé avec le même moteur que le serveur; les montants enregistrés sont recalculés et figés à l'émission.</p>}
-    {err && <div role="alert" className="rounded border border-destructive/50 bg-destructive/10 p-2 text-sm">Émission refusée : {err}. La facture reste en brouillon.
+    {err && <div role="alert" className="rounded border border-destructive/50 bg-destructive/10 p-2 text-sm">{draft ? "Émission refusée : " : "Action impossible : "}{err}.{draft ? " La facture reste en brouillon." : " La facture émise reste inchangée."}
       {/Statut T(PS|VQ)/.test(err) && <> <Link className="underline" to={profileLink}>Compléter le profil fiscal</Link></>}{/Ligne au traitement/.test(err) && " Choisissez le traitement fiscal de chaque ligne (aucun choix automatique)."}</div>}
 
     <div className="flex flex-wrap gap-2">

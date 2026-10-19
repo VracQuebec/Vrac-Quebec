@@ -1,10 +1,12 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## EXEC-08 — consolidation (19 oct. 2026)
-- [ ] Distinguer sources intégrées, preuves locales, code incomplet et validation hébergée pour EXEC-01–07.
-- [ ] Examiner isolation gratuite disponible avant toute exécution; aucune nouvelle simulation en l’absence de stack adaptée.
-- [ ] Corriger les raccordements indépendants réalisables, vérifier uniquement les changements concernés.
-- [ ] Livrer matrice A–E, procédures reproductibles, dépendances, ordre et retour arrière; conserver hors connexion non livré.
+- [x] Distinguer sources intégrées, preuves locales, code incomplet et validation hébergée pour EXEC-01–07.
+- [x] Examiner isolation gratuite disponible : Cloud partagé, draft non probant, Podman temporaire inexécutable (`cannot set user namespace`); aucune nouvelle simulation créée.
+- [x] Corriger PDF/EML figé et aide contextuelle indépendante; 15 tests ciblés, trois assemblages Deno et absence du serveur TEST vérifiés.
+- [x] Livrer matrice A–E, procédures reproductibles, dépendances, ordre et retour arrière : docs/audit/exec08-bilan.md et exec08-reproduction.md; hors connexion non livré.
+- [ ] Validation A–E complète bloquée par stack distincte Auth/PostgREST/Storage/fonctions indisponible; ordinateur/CI conteneurs ou instance isolée avec coût/accessibilité confirmés requis.
+- [ ] Assemblage restant : writers courrier facture/invitation/aide, capture hébergée, commission/finances, collecte Storage; nécessite stack complète avant raccordement validable, pas seulement activation.
 - Interdits : publication, migration publique, données personnelles réelles, communication réelle, paiement ou dépense.
 
 ## EXEC-07 — aide intégrée et démonstrations (19 oct. 2026)
