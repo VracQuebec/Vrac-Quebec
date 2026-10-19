@@ -3,7 +3,6 @@ import { digest, randomSecret } from '../../src/lib/remblai/service';
 import { evaluateReception, receptionPolicySchema } from '../../src/lib/remblai/coordination';
 import type { MaterialOffer } from '../../src/lib/offers/types';
 import { conditionsSchema } from '../../src/lib/remblai/conditions';
-import { confirmationMessage } from './endpoint';
 import {localServiceMail,type ServiceMailContext} from './service-mail';
 const uuid=z.string().uuid(),time=z.string().datetime({offset:true});
 const schema=z.object({kind:z.enum(['list','policy','propose','accept','book','refuse','cancel','counter','change','exception','deliver','expire','mail','measure','correct','remind','communication']),requestId:uuid,
@@ -52,10 +51,8 @@ export function makeCoordinationEndpoint(deps:CoordinationDependencies){
     // Stable dedupe derived from actor + operation, not visitor contact. SQL commits link + queue + action together.
     const nextId=crypto.randomUUID(),secret=randomSecret();p.nextId=nextId;p.nextHash=await digest(secret);
     const url=`${deps.origin}/portail/remblai${deps.local?'?server=local':''}#${new URLSearchParams({requestId:data.requestId,linkId:nextId,secret})}`;
-    const message=confirmationMessage('', '',url);
     const subjects:Record<string,string>={propose:'Proposition de réception',accept:'Réception confirmée',book:'Rendez-vous confirmé',refuse:'Réception refusée',change:'Changement : nouvel accord requis',counter:'Autre moment proposé',expire:'Rappel : proposition expirée',cancel:'Réservation annulée',deliver:'Réception enregistrée',policy:'Conditions de réception enregistrées',exception:'Réception à vérifier',mail:'Confirmation de votre demande'};
     const subject=['accept','book','propose'].includes(data.kind)?'Décision de réception : consultez les conditions':subjects[data.kind]??(data.kind==='remind'?'Proposition sans réponse — aucune réception confirmée':'Suivi de réception');
-    const escape=(v:string)=>v.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]??c));
     const summary='Consultez le matériau, la quantité, le véhicule, l’horaire et la décision dans votre dossier. Le silence ne vaut jamais accord.';
     if(!deps.local&&!deps.prepareMail)throw Error('Managed mail preparation not connected');
     p.dedupeKey=data.kind==='mail'?`client-confirm-${data.requestId}`:`exec02-${staff?.actorId??data.linkId}-${data.operationId}`;

@@ -8,7 +8,7 @@ const output='/tmp/exec01c-package';
 await mkdir(`${output}/prepared/exec01b`,{recursive:true});
 await mkdir(`${output}/src/lib/remblai`,{recursive:true});
 await mkdir(`${output}/src/integrations/supabase`,{recursive:true});
-function imports(text:string){return text.replace(/(from ['"])(\.[^'"]+?)(['"])/g,(_whole,start,path,end)=>`${start}${path}${path.endsWith('.ts')?'':'.ts'}${end}`);}
+function imports(text:string){return text.replace(/(from ['"])(\.[^'"]+?)(['"])/g,(_whole,start,path,end)=>`${start}${path}${/\.tsx?$/.test(path)?'':'.ts'}${end}`);}
 for(const file of await readdir(`${project}/prepared/exec01b`)){
  if((!file.endsWith('.ts')&&!file.endsWith('.tsx'))||file==='package.ts')continue;
  await writeFile(`${output}/prepared/exec01b/${file}`,imports(await readFile(`${project}/prepared/exec01b/${file}`,'utf8')));
@@ -33,7 +33,7 @@ async function stage(path:string){
   let target=/\.tsx?$/.test(absolute)?absolute:`${absolute}.ts`;
   try{await access(target);}catch{target=resolve(absolute,'index.ts');await access(target);}
   const relative=target.slice(project.length+1);
-  if(!relative.startsWith('src/')&&!relative.startsWith('prepared/'))throw Error('Dependency outside prepared source graph');
+  if(!relative.startsWith('src/')&&!relative.startsWith('prepared/')&&!relative.startsWith('supabase/functions/_shared/transactional-email-templates/'))throw Error('Dependency outside prepared source graph');
   await stage(relative);
   const resolvedImport=relativePath(dirname(path),relative);const importPath=resolvedImport.startsWith('.')?resolvedImport:`./${resolvedImport}`;
   normalized=normalized.replaceAll(`'${dependency}'`,`'${importPath}'`).replaceAll(`"${dependency}"`,`"${importPath}"`);
