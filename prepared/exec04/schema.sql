@@ -150,7 +150,7 @@ CREATE FUNCTION exec04_dispatch(p jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY
 #variable_conflict use_variable
 DECLARE kind text:=p->>'kind'; admin boolean:=coalesce(p->>'role'='admin',false); subject uuid; audience text; contact jsonb; email text;
  prev mkt_communication_events; result jsonb; req mkt_quote_requests; camp mkt_campaigns; msg mkt_promo_sends; comm mkt_commissions;
- recipient jsonb; permission boolean; key text; qid bigint; part uuid; invoice fin_invoices; state text; reason text; cid uuid;
+ recipient jsonb; permission boolean; key text; qid bigint; part uuid; invoice fin_invoices; state text; reason text; cid uuid; consent_email text;
 BEGIN
  IF coalesce((p->>'testMode')::boolean,false) AND NOT exec04_test_database() THEN RAISE EXCEPTION 'Mode TEST interdit'; END IF;
  IF octet_length(p::text)>150000 THEN RAISE EXCEPTION 'Requête trop grande'; END IF;
@@ -198,8 +198,9 @@ BEGIN
   END IF;
   -- Rotate only a used promotion token after a fresh explicit grant. Old URL stays invalid.
   IF p->>'state'='granted' AND p->>'purpose'='promotion' AND p->>'channel'='email' THEN
-   UPDATE email_unsubscribe_tokens SET token=gen_random_uuid()::text,used_at=NULL WHERE email=email_unsubscribe_tokens.email AND email_unsubscribe_tokens.email=exec04_dispatch.email AND used_at IS NOT NULL;
-   IF FOUND THEN DELETE FROM suppressed_emails se WHERE se.email=exec04_dispatch.email AND se.reason='unsubscribe'; END IF;
+   consent_email:=email;
+   UPDATE email_unsubscribe_tokens t SET token=gen_random_uuid()::text,used_at=NULL WHERE t.email=consent_email AND t.used_at IS NOT NULL;
+   IF FOUND THEN DELETE FROM suppressed_emails se WHERE se.email=consent_email AND se.reason='unsubscribe'; END IF;
   END IF;
   result:=jsonb_build_object('ok',true,'state',p->>'state');
  ELSIF kind='campaign_save' THEN
