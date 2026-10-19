@@ -1,12 +1,12 @@
 
  RUN  v3.2.4 /dev-server
 
- ✓ src/test/exec08-document.test.ts (2 tests) 36ms
- ✓ src/test/exec07-help.test.ts (9 tests) 24ms
- ✓ src/test/exec05-rules.test.ts (4 tests) 15ms
+ ✓ src/test/exec08-document.test.ts (2 tests) 20ms
+ ✓ src/test/exec07-help.test.ts (9 tests) 21ms
+ ✓ src/test/exec05-rules.test.ts (4 tests) 14ms
 
  Test Files  3 passed (3)
       Tests  15 passed (15)
-   Start at  18:59:30
-   Duration  3.87s (transform 686ms, setup 541ms, collect 1.33s, tests 75ms, environment 3.28s, prepare 2.02s)
+   Start at  19:03:39
+   Duration  3.49s (transform 679ms, setup 523ms, collect 1.27s, tests 55ms, environment 3.10s, prepare 430ms)
 

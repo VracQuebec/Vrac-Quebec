@@ -1417,6 +1417,41 @@
       "sha256": "51d359f8c1d173ce0380ce02fee2f5c234ae235b39f46223b6dff5925feced56"
     },
     {
+      "file": "src/components/finances/FinanceLocalScreen.tsx",
+      "bytes": 2388,
+      "sha256": "186740f71ff773d52e749ff7a953f38a9bb41b6d21b828f1ef53e2c7482e2e12"
+    },
+    {
+      "file": "src/components/finances/InvoiceMailDialog.tsx",
+      "bytes": 3303,
+      "sha256": "e383d082a6dabfdd3d8676ef5db373b72a293a60f2ebf77dd2e2c850a23e8365"
+    },
+    {
+      "file": "src/components/finances/Invoices.tsx",
+      "bytes": 38711,
+      "sha256": "ad741cc062fb9bc1aaf947548e36b860918a7d8ba071aef1b0a18e8f9dafdc54"
+    },
+    {
+      "file": "src/components/help/ContextHelp.tsx",
+      "bytes": 1460,
+      "sha256": "60b5058625808ca88680a43ba8fe7c3498b9365ce25c10c1b61d89cdcfb3eef4"
+    },
+    {
+      "file": "src/lib/finances/invoiceMail.ts",
+      "bytes": 3357,
+      "sha256": "86e8e19fe4d39b5b8c7a282008a39013261da106e00f01e040d8aa8e079e85dc"
+    },
+    {
+      "file": "src/lib/help/catalog.ts",
+      "bytes": 16102,
+      "sha256": "4607c2a556fd480460507dc89f943b41360261b25367000c5082aafa3a4125dc"
+    },
+    {
+      "file": "src/pages/RemblaiFollowup.tsx",
+      "bytes": 20018,
+      "sha256": "350f163bd4f0d2df979e79b92e0a91edf6b9d0dbe05198c5a880fbb1b3da9193"
+    },
+    {
       "file": "src/test/entrepreneur-exec03.test.ts",
       "bytes": 8478,
       "sha256": "7f72d722f0a1007763c077582cbce965446930b2b0f5fb7ea51b077eced6c69c"
