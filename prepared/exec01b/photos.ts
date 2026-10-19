@@ -35,10 +35,12 @@ export async function preparePhotos(id:string,photos:Photo[],previous:Photo[],st
  }
  return result;
 }
-export async function signPhotos(id:string,photos:Photo[],storage:PhotoStorage):Promise<Photo[]> {
+export async function signPhotos(id:string,photos:Photo[],storage:PhotoStorage):Promise<(Photo & {signedUrl?:string})[]> {
  return Promise.all(photos.map(async p=>{
   const path=p.preview.slice(marker.length);
   if(!p.preview.startsWith(marker)||!scopedPhotoPath(id,path))throw Error('Photo hors dossier');
-  return {name:p.name,preview:await storage.sign(path,120)};
+  // The expiring URL is never persisted or used in an operation fingerprint.
+  try { return {name:p.name,preview:p.preview,signedUrl:await storage.sign(path,120)}; }
+  catch { return {name:p.name,preview:p.preview}; }
  }));
 }

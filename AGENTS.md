@@ -19,6 +19,7 @@
 - EXEC-04 shares owner/network permission history; dossier credentials override staff sessions to avoid identity collisions. Extend existing mkt records only; server consent keys include entity, subject, channel and partner/request scope. Immutable events prove acquisition; partner allowlists prevent internal disclosure; hosted adapters stay disabled.
 - EXEC-03/04/05 tests require verified disposable loopback DBs; geography uses exact references, never invented coordinates. EXEC-05 reuses fin_* and frozen PDFs; SQL stays prepared, mail capture-only, hosted disabled.
 <!-- LOVABLE:BEGIN -->
+- EXEC-01 owner/CRM photo reads retain canonical private references and attach transient signed URLs; edits and replay never persist expiring signatures.
 - Entrepreneur UI uses the existing shell to own safe areas and measured header/navigation heights; one owner prevents duplicate offsets without changing backend behavior.
 - Brand colors use one HSL token and presentation-only route scoping preserves excluded admin/fleet palettes; functional and tenant-configured colors remain independent.
 - Public category colors normalize known legacy brand values at display time through the shared helper; no stored colors are rewritten.
