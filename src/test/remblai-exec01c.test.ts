@@ -8,6 +8,7 @@ import {prepareExistingClientConfirmation} from '../../prepared/exec01b/mail-dis
 import {unknownConditions} from '../lib/remblai/conditions';
 import {legacyReception} from '../lib/remblai/cloud-contract';
 import {cloudPortalCall} from '../lib/remblai/cloud-client';
+import {digest} from '../lib/remblai/service';
 const enabled=process.env.EXEC01B_LOCAL_TEST==='1';
 const name=`exec01c_${crypto.randomUUID().replace(/-/g,'')}`;
 const admin=postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable',{ssl:false});
@@ -19,6 +20,7 @@ const handler=makeEndpoint(deps);
 async function call(p:Record<string,unknown>,trusted=false){const r=await handler(new Request('http://localhost/portal',{method:'POST',headers:{...(trusted?{authorization:'Bearer local-test-admin'}:{})},body:JSON.stringify(p)}));return {status:r.status,body:await r.json()};}
 async function fixture(direction='reception'){
  const id=crypto.randomUUID();await db`insert into submissions(id,materials,property_type,quantity,tonnage,address,name,email,request_type,parcours_direction,quantity_value,quantity_unit,exec01_contact_verified_at) values(${id},ARRAY['Terre'],'terrain','500','inconnu','Fictif','Exemple','contact@test.invalid','remblai',${direction},500,'m3',now())`;
+ await db`update submissions set exec01_verified_contact_hash=${await digest('contact@test.invalid')} where id=${id}`;
  await call({kind:'issue',requestId:id},true);
  if(direction!=='reception')return {requestId:id,linkId:crypto.randomUUID(),secret:'a'.repeat(64)};
  const url=mail.at(-1)?.text.split('Suivre ou modifier ma demande : ')[1];if(!url)throw Error('No capture');const p=new URLSearchParams(new URL(url).hash.slice(1));return {requestId:id,linkId:p.get('linkId'),secret:p.get('secret')};
