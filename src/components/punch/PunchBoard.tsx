@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { punchDb as db, punchUser, punchExtended, torontoInput, torontoInstant, torontoDay } from "@/lib/punch/runtime";
+import { punchDb as db, punchUser, punchExtended, torontoInput, torontoInstant, torontoDay, torontoMonday, intervalMinutes } from "@/lib/punch/runtime";
 import { downloadFinanceBlob } from "@/lib/finances/download";
 import EmployeeAccess from "./EmployeeAccess";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,6 @@ const MANAGERS = ["support", "proprietaire", "gestionnaire"];
 const fmtMin = (x: number) => { const m = Math.max(0, Number(x) || 0); return `${Math.floor(m / 60)} h ${String(Math.round(m % 60)).padStart(2, "0")}`; };
 const dt = (s: string) => new Date(s).toLocaleString("fr-CA", { timeZone: "America/Toronto", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const localInput = torontoInput;
-const monday = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
 const ymd = (d: Date) => torontoDay(d);
 
 type Entry = { id: string; user_id: string; kind: string; started_at: string; ended_at: string | null; place_type: string; site_label: string | null; status: string; source: string; note: string | null; decision_reason: string | null; geo_consent: boolean };
@@ -54,7 +53,7 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
   const [consent, setConsent] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [tab, setTab] = useState<"moi" | "equipe" | "paie" | "salaire">("moi");
-  const [from, setFrom] = useState(ymd(monday()));
+  const [from, setFrom] = useState(torontoMonday());
   const [to, setTo] = useState(ymd(new Date()));
   const [summary, setSummary] = useState<any[]>([]);
   const [manual, setManual] = useState<{ user: string; start: string; end: string; reason: string; replace?: string; key: string } | null>(null);
@@ -84,7 +83,7 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
   const pending = entries.filter((e) => e.status === "soumis" && e.ended_at);
 
   const run = async (fn: () => Promise<{ error: any }>, ok: string) => {
-    if (busy) return;
+    if (busy || !connected) return;
     setBusy(true);
     let error:any;try{({error}=await fn());}catch(e){error=e instanceof Error?e:new Error("Action interrompue");}
     setBusy(false);
@@ -108,7 +107,7 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
     const start = torontoInstant(manual.start), end = torontoInstant(manual.end);
     const r = manual.replace && !isMgr && extended
       ? await db.rpc("pun_correction_request",{_entry:manual.replace,_start:start,_end:end,_reason:manual.reason,_key:manual.key})
-      : await db.rpc("pun_manual",{_company:companyId,_user:manual.user,_kind:"travail",_start:start,_end:end,_place:"bureau",_site:null,_client:null,_reason:manual.reason,_replace:manual.replace??null});
+      : !manual.replace && extended ? await db.rpc("pun_manual_submit",{_company:companyId,_user:manual.user,_start:start,_end:end,_reason:manual.reason,_key:manual.key}) : await db.rpc("pun_manual",{_company:companyId,_user:manual.user,_kind:"travail",_start:start,_end:end,_place:"bureau",_site:null,_client:null,_reason:manual.reason,_replace:manual.replace??null});
     if(!r.error)setManual(null);return r;
   }, manual.replace && !isMgr ? "Correction demandée" : "Saisie enregistrée — à approuver");
 
@@ -128,7 +127,10 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
   },"Export des heures approuvées prêt");
 
   const elapsed = openWork ? Math.max(0, (now - new Date(openWork.started_at).getTime()) / 60000) : 0;
-  const weekMine = summary.filter(s=>s.user_id===me).reduce((t,s)=>t+Number(s.net_min),0);
+  const day=torontoDay();
+  const minutes=(a:string,b:string)=>mine.filter(e=>e.status!=="refuse").reduce((t,e)=>t+(e.kind==="travail"?1:-1)*intervalMinutes(e.started_at,e.ended_at,a,b,now),0);
+  const weekMine=Math.max(0,minutes(torontoMonday(),day));
+  const todayMine=Math.max(0,minutes(day,day));
 
   const EntryRow = ({ e, who }: { e: Entry; who?: boolean }) => (
     <li className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3 text-sm">
@@ -194,7 +196,7 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
                 {!canPunch && <p className="text-sm text-muted-foreground">Votre accès est en lecture seule.</p>}
               </>
             )}
-            <p className="text-sm text-muted-foreground">Période affichée : <strong>{fmtMin(Math.max(weekMine, 0))}</strong> net (pauses enregistrées seulement)</p>
+            <p className="text-sm text-muted-foreground">Aujourd’hui : <strong>{fmtMin(todayMine)}</strong> · Cette semaine : <strong>{fmtMin(weekMine)}</strong> net (pauses enregistrées seulement)</p>
           </section>
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">Mes heures · America/Toronto</h3>
@@ -232,7 +234,7 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
             <table className="w-full min-w-[560px] text-sm">
               <thead><tr className="text-left text-muted-foreground"><th className="p-2">Employé</th><th>Semaine du</th><th>Net</th><th>Approuvé</th><th>En attente</th><th>Régulier</th><th>Suppl.</th></tr></thead>
               <tbody>{summary.map((s, i) => (
-                <tr key={i} className="border-t border-border"><td className="p-2">{s.full_name ?? name(s.user_id)}</td><td>{s.week}</td><td>{fmtMin(s.net_min)}</td><td>{fmtMin(s.approved_min)}</td><td>{fmtMin(s.pending_min)}</td><td>{fmtMin(s.regular_min)}</td><td>{fmtMin(s.overtime_min)}</td></tr>
+                <tr key={i} className="border-t border-border"><td className="p-2">{s.full_name ?? name(s.user_id)}</td><td>{String(s.week).slice(0,10)}</td><td>{fmtMin(s.net_min)}</td><td>{fmtMin(s.approved_min)}</td><td>{fmtMin(s.pending_min)}</td><td>{fmtMin(s.regular_min)}</td><td>{fmtMin(s.overtime_min)}</td></tr>
               ))}</tbody>
             </table>
             {!summary.length && <p className="p-2 text-sm text-muted-foreground">Aucune heure sur cette période.</p>}
@@ -240,8 +242,9 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
         </section>
       )}
 
-      {tab === "salaire" && isMgr && <PayrollPanel companyId={companyId} canManage={isMgr} from={from} to={to} members={members} me={me} />}
+      {tab === "salaire" && isMgr && !extended && <PayrollPanel companyId={companyId} canManage={isMgr} from={from} to={to} members={members} me={me} />}
 
+      {tab === "salaire" && extended && <p className="text-muted-foreground">Aucune paie calculée ou transmise dans ce parcours de test. Les règlements de paie existants nécessitent leur validation séparée.</p>}
       {extended && corrections.length>0 && <section className="space-y-2"><h3 className="font-semibold">Demandes de correction</h3>{corrections.map(r=><div key={r.id} className="border-b border-border py-2 text-sm"><p>{isMgr?name(r.user_id)+" · ":""}{dt(r.started_at)} → {dt(r.ended_at)} · {r.reason} · {({pending:"En attente",accepted:"Acceptée — nouvelle entrée à approuver",refused:"Refusée"} as Record<string,string>)[r.status]}</p>{r.decision_reason && <p>{r.decision_reason}</p>}{isMgr && r.status==="pending" && <div className="flex gap-2">{[true,false].map(a=><Button key={String(a)} size="sm" variant="outline" disabled={busy} onClick={()=>{const reason=prompt("Motif de la décision")??"";if(reason.trim().length<3)return;run(()=>db.rpc("pun_correction_decide",{_id:r.id,_accept:a,_reason:reason}),"Correction traitée");}}>{a?"Accepter la correction":"Refuser la correction"}</Button>)}</div>}</div>)}</section>}
       {extended && isMgr && exports.length>0 && <section className="space-y-2"><h3 className="font-semibold">Historique des exports</h3>{exports.map(x=><p className={x.stale?"text-destructive text-sm":"text-sm"} key={x.id}>{x.period_from.slice(0,10)} → {x.period_to.slice(0,10)} · {x.stale?"Heures corrigées : export remplacé, ne pas réimporter":"Version conservée"} · {x.id}</p>)}<Button variant="outline" size="sm" onClick={()=>setExportKey(crypto.randomUUID())}>Nouvelle version d’export</Button></section>}
       {manual && (
