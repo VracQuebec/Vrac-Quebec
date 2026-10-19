@@ -1,5 +1,11 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## Finalisation ciblée EXEC-01
+- [x] Corriger les références photos privées et leur rendu portail/CRM/édition; aucun traitement hébergé modifié.
+- [x] Vérifications ciblées : 33 tests, navigateur fictif propriétaire→CRM, Deno minimal; installation courrier sans EXEC-02 préparée dans prepared/exec01b/finalisation-exec01.md.
+- [ ] Transport hébergé code/renouvellement, collecte photos orphelines et Analytics précoce : non validés, à résoudre avant activation publique.
+- [ ] Mise en service réelle : autorisation requise pour SQL, fonction de suivi et expéditeur partagé; aucune publication ni envoi réel.
+
 ## EXEC-08 — consolidation (19 oct. 2026)
 - [x] Distinguer sources intégrées, preuves locales, code incomplet et validation hébergée pour EXEC-01–07.
 - [x] Examiner isolation gratuite disponible : Cloud partagé, draft non probant, Podman temporaire inexécutable (`cannot set user namespace`); aucune nouvelle simulation créée.

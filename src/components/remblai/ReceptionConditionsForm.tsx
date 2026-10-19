@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { ReceptionConditions } from "@/lib/remblai/conditions";
+import ReceptionPhoto from './ReceptionPhoto';
 const selectClass = "h-11 w-full rounded-md border border-input bg-background px-3 text-sm";
 export default function ReceptionConditionsForm({ value, onChange }: { value: ReceptionConditions; onChange: (value: ReceptionConditions) => void }) {
   const patch = (p: Partial<ReceptionConditions>) => onChange({ ...value, ...p });
@@ -33,7 +34,7 @@ export default function ReceptionConditionsForm({ value, onChange }: { value: Re
       {value.mode === "creneaux" && text("slots", "Créneaux souhaités")}
       <p className="text-sm text-muted-foreground">Cette préférence ne réserve aucun créneau et n’autorise aucune livraison.</p>
     </fieldset>
-    <fieldset className="space-y-3"><legend className="font-display text-lg font-semibold">Photos</legend><Label htmlFor="photos">Site, entrée et zone de dépôt — JPEG, PNG ou WebP, 4 Mo maximum</Label><Input id="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e => void photos(e.target.files)} /><div className="grid grid-cols-2 gap-3">{value.photos.map((photo, i) => <div key={`${photo.name}-${i}`}><img src={photo.preview} alt={photo.name} className="aspect-video w-full rounded-md object-cover" /><Button type="button" variant="ghost" onClick={() => patch({ photos: value.photos.filter((_, j) => i !== j) })}>Retirer {i + 1}</Button></div>)}</div></fieldset>
+    <fieldset className="space-y-3"><legend className="font-display text-lg font-semibold">Photos</legend><Label htmlFor="photos">Site, entrée et zone de dépôt — JPEG, PNG ou WebP, 4 Mo maximum</Label><Input id="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e => void photos(e.target.files)} /><div className="grid grid-cols-2 gap-3">{value.photos.map((photo, i) => <div key={`${photo.name}-${i}`}><ReceptionPhoto photo={photo} /><Button type="button" variant="ghost" onClick={() => patch({ photos: value.photos.filter((_, j) => i !== j) })}>Retirer {i + 1}</Button></div>)}</div></fieldset>
     <label className="flex items-start gap-3 text-sm"><input type="checkbox" className="mt-1" checked={value.promotional} onChange={e => patch({ promotional: e.target.checked })} />Je souhaite recevoir les communications promotionnelles (facultatif, distinct du suivi de cette demande).</label>
   </div>;
 }

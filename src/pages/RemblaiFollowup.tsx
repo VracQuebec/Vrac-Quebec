@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import ReceptionConditionsForm from "@/components/remblai/ReceptionConditionsForm";
+import ReceptionPhoto from "@/components/remblai/ReceptionPhoto";
 import ReceptionCoordinationPanel from "@/components/remblai/ReceptionCoordinationPanel";
 import ContextHelp from "@/components/help/ContextHelp";
 import RelatedServicesPanel from "@/components/marketplace/RelatedServicesPanel";
@@ -71,6 +72,12 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
     const timer = (local || hosted) && crm ? window.setInterval(update, 2000) : null;
     return () => { window.removeEventListener(PREVIEW_EVENT, update); window.removeEventListener("storage", update); if (timer) window.clearInterval(timer); };
   }, [reload]);
+  // Refresh private read URLs without discarding unsaved owner conditions.
+  useEffect(() => {
+    if (!(local || hosted) || editing || !row?.conditions.photos.length) return;
+    const timer = window.setInterval(() => { void reload(); }, 90000);
+    return () => window.clearInterval(timer);
+  }, [local, hosted, editing, row?.conditions.photos.length, reload]);
   async function run(work: () => Promise<void>) {
     if (lock.current) return;
     lock.current = true; setBusy(true); setError("");
@@ -125,7 +132,7 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
           </>}
           {editing && draft ? <section className="mb-6 border-y border-border py-6"><ReceptionConditionsForm value={draft} onChange={setDraft} /><div className="mt-6 flex flex-wrap gap-3"><Button disabled={busy} onClick={save}>Enregistrer les conditions</Button><Button variant="outline" onClick={() => { setEditing(false); setDraft(row.conditions); }}>Annuler</Button></div></section> : <section className="space-y-4 border-b border-border pb-6"><h2 className="font-display text-xl font-semibold">Conditions de réception</h2><dl className="grid gap-3 text-sm sm:grid-cols-2">{[
             ["Quantité totale", quantityLabel(row.conditions.total, row.conditions.unit)], ["Minimum par livraison", quantityLabel(row.conditions.minimumDelivery, row.conditions.unit)], ["Minimum par journée", quantityLabel(row.conditions.minimumDay, row.conditions.unit)], ["Réception progressive", row.conditions.progressive], ["Taille maximale de roche", row.conditions.maxRockCm == null ? "Inconnue" : `${row.conditions.maxRockCm} cm`], ["Compositions mixtes", `${row.conditions.mixed} — ${row.conditions.mixedDetails ?? "Composition inconnue"}`], ["Accès", row.conditions.access ?? "Inconnu"], ["Horaires", row.conditions.hours ?? "Inconnus"], ["Présence nécessaire", row.conditions.presence], ["Consignes", row.conditions.instructions ?? "Inconnues"], ["Mode souhaité", row.conditions.mode], ["Période et créneaux", `${row.conditions.periodStart ?? "Inconnu"} → ${row.conditions.periodEnd ?? "Inconnu"}; ${row.conditions.slots ?? "Non renseignés"}`], ["Conditions explicites", row.conditions.explicitConditions ?? "Inconnues"], ["Admissibilité environnementale/documentaire", row.conditions.environmental], ["Adéquation au projet", row.conditions.projectFit], ["Communications promotionnelles", row.conditions.promotional ? "Consentement explicite" : "Aucun consentement"],
-          ].map(([label, value]) => <div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 break-words">{value}</dd></div>)}</dl><h3 className="font-semibold">Préférences propriétaire — matériaux</h3><div className="flex flex-wrap gap-2">{row.conditions.materials.map(m => <Badge variant="outline" key={m.name}>{m.name} : {m.stance.replace(/_/g, " ")}</Badge>)}</div><h3 className="font-semibold">Véhicules</h3><div className="flex flex-wrap gap-2">{row.conditions.vehicles.map(v => <Badge variant="outline" key={v.name}>{v.name} : {v.stance.replace(/_/g, " ")}</Badge>)}</div><p className="text-sm text-muted-foreground">Enregistrer ces préférences ne réserve ni n’autorise une livraison. L’admissibilité environnementale et l’adéquation au projet doivent être validées séparément.</p>{row.conditions.photos.length > 0 && <div className="grid grid-cols-2 gap-3">{row.conditions.photos.map((p, i) => <img className="aspect-video w-full rounded-md object-cover" key={i} src={p.preview} alt={p.name} />)}</div>}</section>}
+          ].map(([label, value]) => <div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 break-words">{value}</dd></div>)}</dl><h3 className="font-semibold">Préférences propriétaire — matériaux</h3><div className="flex flex-wrap gap-2">{row.conditions.materials.map(m => <Badge variant="outline" key={m.name}>{m.name} : {m.stance.replace(/_/g, " ")}</Badge>)}</div><h3 className="font-semibold">Véhicules</h3><div className="flex flex-wrap gap-2">{row.conditions.vehicles.map(v => <Badge variant="outline" key={v.name}>{v.name} : {v.stance.replace(/_/g, " ")}</Badge>)}</div><p className="text-sm text-muted-foreground">Enregistrer ces préférences ne réserve ni n’autorise une livraison. L’admissibilité environnementale et l’adéquation au projet doivent être validées séparément.</p>{row.conditions.photos.length > 0 && <div className="grid grid-cols-2 gap-3">{row.conditions.photos.map((p, i) => <ReceptionPhoto key={i} photo={p} />)}</div>}</section>}
           {row.operationalState && <p className="mt-5 text-sm text-muted-foreground">{row.operationalState}</p>}</>}
           {(local || hosted) && <ReceptionCoordinationPanel requestId={row.id} session={session} staff={crm} verified={verified} />}
           <RelatedServicesPanel session={session} staff={crm} verified={verified}/>
