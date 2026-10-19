@@ -236,3 +236,7 @@ CREATE UNIQUE INDEX mkt_consents_one_active ON mkt_consents(email,entity,scope) 
 ALTER TABLE mkt_commissions ADD COLUMN contested_at timestamptz;
 ALTER TABLE mkt_commissions ADD COLUMN model text;
 ALTER TABLE mkt_commissions ADD COLUMN label text;
+
+-- Exact municipal reference contract, empty except explicitly fictitious test cities.
+CREATE TABLE seo_cities(name text,province text,territory_type text,region_admin text);
+INSERT INTO seo_cities VALUES('Québec','QC','ville','Capitale-Nationale'),('Gatineau','QC','ville','Outaouais'),('Lévis','QC','ville','Chaudière-Appalaches');

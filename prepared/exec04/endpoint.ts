@@ -7,11 +7,11 @@ const input=z.object({kind:z.enum(['network','campaign_list','campaign_save','pr
  campaignId:uuid.optional(),name:z.string().min(1).max(150).optional(),template:z.enum(['confirmation','reconfirmation','offer','appointment','welcome','features']).optional(),segment:filterSchema.optional(),frequencyHours:z.number().int().min(1).max(8760).optional(),
  audience:z.enum(['owner','entrepreneur']).optional(),subjectId:uuid.optional(),purpose:z.enum(['service','promotion','partner_share']).optional(),channel:z.enum(['email','sms','app']).optional(),state:z.enum(['granted','withdrawn']).optional(),source:z.string().min(1).max(150).optional(),proof:z.string().max(2000).optional(),expiresAt:z.string().datetime().optional(),
  categoryId:uuid.optional(),serviceId:uuid.optional(),partnerId:uuid.optional(),companyId:uuid.optional(),title:z.string().min(3).max(200).optional(),description:z.string().min(3).max(2000).optional(),action:z.enum(['qualify','share','refuse_share','respond','quote','cancel','result','dispute','known','acquire']).optional(),qualification:z.string().min(3).max(1000).optional(),reason:z.string().min(3).max(1000).optional(),response:z.string().min(3).max(2000).optional(),amount:z.number().nonnegative().max(10000000).optional(),
- commissionId:uuid.optional(),ruleId:uuid.optional(),agreement:z.object({basis:z.string().min(1).max(150),trigger:z.string().min(1).max(100),attribution:z.string().min(1).max(200),dueDate:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),rate:z.number().nonnegative().max(100).nullable(),fixed:z.number().nonnegative().nullable()}).strict().optional(),event:z.string().max(100).optional(),invoiceId:uuid.optional(),billingCompanyId:uuid.optional()}).strict();
+ commissionId:uuid.optional(),ruleId:uuid.optional(),agreement:z.object({basis:z.string().min(1).max(150),trigger:z.string().min(1).max(100),attribution:z.string().min(1).max(200),dueDate:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),rate:z.number().nonnegative().max(100).nullable(),fixed:z.number().nonnegative().nullable()}).strict().optional(),event:z.string().min(1).max(100).optional(),eventId:uuid.optional(),invoiceId:uuid.optional(),billingCompanyId:uuid.optional()}).strict();
 export type CommDeps={enabled:boolean;local:boolean;origin:string;authenticate:(r:Request)=>Promise<{role:'admin'|'partner';actorId:string}|null>;rpc:(p:Record<string,unknown>)=>Promise<any>;captured?:(id:string)=>Promise<boolean>;quota?:(r:Request)=>Promise<boolean>;prepareMail?:(message:Record<string,unknown>,recipient:string,purpose:string)=>Promise<Record<string,unknown>>};
 const mutations=new Set(['campaign_save','prepare','capture','queue','agreement','commission','finance_link','permission','service_create','service_action']);
 export function makeCommunicationEndpoint(d:CommDeps){
- const reply=(v:unknown,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store','Referrer-Policy':'no-referrer','Access-Control-Allow-Origin':d.origin,'Access-Control-Allow-Credentials':'true','Access-Control-Allow-Headers':'Content-Type, Authorization','Access-Control-Allow-Methods':'POST,GET,OPTIONS','Vary':'Origin'}});
+ const reply=(v:unknown,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store','Referrer-Policy':'no-referrer','Access-Control-Allow-Origin':d.origin,'Access-Control-Allow-Credentials':'true','Access-Control-Allow-Headers':'Content-Type, Authorization, apikey, x-client-info','Access-Control-Allow-Methods':'POST,GET,OPTIONS','Vary':'Origin'}});
  return async(r:Request)=>{
   if(r.method==='OPTIONS')return reply({});if(!d.enabled)return reply({error:'Communications et services non activés.'},503);
   if(r.headers.get('origin')&&r.headers.get('origin')!==d.origin)return reply({error:'Accès refusé.'},403);
@@ -19,11 +19,14 @@ export function makeCommunicationEndpoint(d:CommDeps){
   const raw=await r.text();if(new TextEncoder().encode(raw).byteLength>100000)return reply({error:'Requête trop volumineuse'},413);
   let parsed;try{parsed=input.safeParse(JSON.parse(raw));}catch{return reply({error:'Requête invalide'},400);}if(!parsed.success)return reply({error:'Champs invalides'},400);
   const data=parsed.data;
+  if(d.local&&data.kind==='queue')return reply({error:'Aucune file réelle depuis une simulation'},403);
+  if(data.kind==='commission'&&data.action==='acquire'&&(!data.event||!data.eventId))return reply({error:'Événement métier vérifiable requis'},400);
+  if(!d.local&&data.kind==='permission'&&([data.source,data.proof].some(v=>v&&/test|ficti|simul/i.test(v))))return reply({error:'Preuve TEST interdite'},400);
   if(mutations.has(data.kind)&&(!data.operationId||data.confirmed!==true))return reply({error:'Confirmation explicite requise'},400);
   try{
    if(d.quota&&!await d.quota(r))return reply({error:'Trop de tentatives'},429);
    const staff=await d.authenticate(r);if(!staff&&(!data.linkId||!data.secret||!data.requestId))return reply({error:'Accès refusé'},403);
-   const p:Record<string,unknown>={...data,role:staff?.role??'owner',actorId:staff?.actorId??data.linkId};delete p.secret;
+   const p:Record<string,unknown>={...data,testMode:d.local,role:staff?.role??'owner',actorId:staff?.actorId??data.linkId};delete p.secret;
    // Personal credentials remain in process memory/request body only; SQL receives the fingerprint.
    if(data.secret)p.secretHash=await digest(data.secret);
    p.inputHash=await digest(JSON.stringify({...data,secret:undefined}));
@@ -41,7 +44,7 @@ export function makeCommunicationEndpoint(d:CommDeps){
     const rendered=[];
     for(let n=0;n<200;n++){
      const claim=await d.rpc({...p,kind:'campaign_claim'});if(claim.empty)break;if(claim.excluded)continue;
-     if(claim.recover){if(capturing&&d.captured){const captured=await d.captured(claim.id);await d.rpc({...p,kind:'campaign_ack',messageId:claim.id,operationId:crypto.randomUUID(),state:captured?'captured_test':'failed',reason:captured?null:'capture_locale_indisponible'});}else break;continue;}
+     if(claim.recover){if(capturing&&d.captured){const captured=await d.captured(claim.id);await d.rpc({...p,kind:'campaign_ack',messageId:claim.id,operationId:crypto.randomUUID(),state:captured?'captured_test':'failed',reason:captured?null:'capture_locale_indisponible'});}else continue;continue;}
      if(!claim.render)break;
      const nextId=crypto.randomUUID(),secret=randomSecret();
      const url=claim.audience==='owner'?`${d.origin}/portail/remblai${d.local?'?server=local&exec04=local':''}#${new URLSearchParams({requestId:claim.subjectId,linkId:nextId,secret})}`:`${d.origin}/entrepreneur`;

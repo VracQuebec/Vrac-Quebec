@@ -1,12 +1,14 @@
 import postgres from 'postgres';
 import {readFile} from 'node:fs/promises';
 import {unknownConditions} from '../../src/lib/remblai/conditions';
-export const scripts=['src/test/fixtures/exec01b-base.sql','src/test/fixtures/exec01c-relations.sql','src/test/fixtures/exec02-base.sql','prepared/exec01b/schema.sql','prepared/exec01b/quota.sql','prepared/exec01b/coordination.sql','prepared/exec01b/lifecycle.sql','prepared/exec04/local-fixture.sql','prepared/exec04/schema.sql'];
+export const scripts=['src/test/fixtures/exec01b-base.sql','src/test/fixtures/exec01c-relations.sql','src/test/fixtures/exec02-base.sql','prepared/exec01b/schema.sql','prepared/exec01b/quota.sql','prepared/exec01b/coordination.sql','prepared/exec01b/lifecycle.sql','prepared/exec04/local-fixture.sql','prepared/exec03/geography.sql','prepared/exec04/schema.sql'];
 export async function createLocal(){
  const name='exec04_'+crypto.randomUUID().replace(/-/g,'');
  const root=postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable',{ssl:false});
  await root.unsafe(`CREATE DATABASE ${name} ENCODING 'UTF8' TEMPLATE template0`);await root.end();
  const db=postgres(`postgresql://lovable@127.0.0.1:55439/${name}?sslmode=disable`,{ssl:false});
+ const isolation=(await db`select inet_server_addr()::text host,inet_server_port() port,current_setting('data_directory') path`)[0];
+ if(isolation.host!=='127.0.0.1'||isolation.port!==55439||!isolation.path.startsWith('/tmp/exec-correctifs/'))throw Error('Disposable cluster isolation not proven');
  for(const f of scripts)await db.unsafe(await readFile(f,'utf8'));
  const admin=crypto.randomUUID(),partner=crypto.randomUUID(),foreignUser=crypto.randomUUID(),company=crypto.randomUUID(),foreignCompany=crypto.randomUUID(),owner=crypto.randomUUID(),unknown=crypto.randomUUID(),entrepreneur=crypto.randomUUID(),category=crypto.randomUUID(),rule=crypto.randomUUID();
  for(const [id,label] of [[company,'Excavation Fictive — TEST'],[foreignCompany,'Partenaire hors secteur — TEST']])await db`insert into jsc_companies values(${id},${label})`;
@@ -25,7 +27,7 @@ export async function createLocal(){
  }
  await db`insert into mkt_pricing_rules(id,label,model,status,agreement) values(${rule},'Entente à compléter — aucun taux','entente_personnalisee','brouillon',${db.json({basis:null,trigger:null,attribution:null,dueDate:null,rate:null,fixed:null})})`;
  // Existing consent record; explicit fictitious operational permission, not inherited from address.
- await db`insert into mkt_consents(email,scope,consent_text,consent_version,sender_snapshot,source,subject_type,subject_id) values('camille@test.invalid','service','Recevoir le suivi opérationnel de ma demande.','exec04-v1','{}','formulaire_TEST','owner',${owner})`;
- const rpc=async(p:Record<string,unknown>)=>(await db`select exec04_dispatch(${db.json(p as any)}) result`)[0].result;
+ await db`insert into mkt_consents(email,scope,consent_text,consent_version,sender_snapshot,source,subject_type,subject_id) values('camille@test.invalid','service','Recevoir le suivi opérationnel de ma demande.','exec04-v1','{}','formulaire_vérifié','owner',${owner})`;
+ const rpc=async(p:Record<string,unknown>)=>(await db`select exec04_dispatch(${db.json({...p,testMode:true} as any)}) result`)[0].result;
  return {name,db,rpc,ids:{admin,partner,foreignUser,company,foreignCompany,owner,unknown,entrepreneur,category,rule}};
 }
