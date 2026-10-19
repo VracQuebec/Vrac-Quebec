@@ -33,7 +33,7 @@ describe('EXEC-01 finalisation ciblée',()=>{
   for(const fn of [rpc,captureOrSend,quota,isAdmin])expect(fn).not.toHaveBeenCalled();
  });
  const sub={id,request_type:'remblai',parcours_direction:'reception',email:'fiction@capture.internal',name:'Fictif'};
- const deps=()=>({enabled:true,portalOrigin:'https://validation.invalid',rpc:vi.fn(async()=>({ok:true})),envelope:{messageId:crypto.randomUUID(),from:'TEST',senderDomain:'capture.internal',unsubscribeToken:'fictional-only'}});
+ const deps=()=>({enabled:true,portalOrigin:'https://validation.invalid',rpc:vi.fn(async(_input:Record<string,unknown>)=>({ok:true})),envelope:{messageId:crypto.randomUUID(),from:'TEST',senderDomain:'capture.internal',unsubscribeToken:'fictional-only'}});
  it('prepares one canonical queue operation and never returns the bearer',async()=>{
   const d=deps();expect(await enqueueOwnerConfirmation(sub,d)).toEqual({queued:true,replay:false});
   expect(d.rpc).toHaveBeenCalledTimes(1);const p=d.rpc.mock.calls[0][0] as Record<string,any>;
