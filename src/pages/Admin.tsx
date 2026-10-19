@@ -8,6 +8,7 @@ import { LeadPhotos } from "@/components/admin/LeadPhotos";
 import LeadParcoursPanel from "@/components/admin/LeadParcoursPanel";
 import DompeAvailabilityPanel from "@/components/admin/DompeAvailabilityPanel";
 import MaterialInterpretationPanel from "@/components/admin/MaterialInterpretationPanel";
+import CrmReceptionPanel from "@/components/remblai/CrmReceptionPanel";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES, serviceTypeMeta, normalizeRequestType, requestTypeMeta } from "@/lib/questionnaire-data";
@@ -1526,6 +1527,7 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               const toConfirm = siteToConfirm(sub);
               return (
                 <>
+                <CrmReceptionPanel submissionId={sub.id} />
                 <MaterialInterpretationPanel
                   submissionId={sub.id}
                   historicalMaterials={sub.materials ?? null}
