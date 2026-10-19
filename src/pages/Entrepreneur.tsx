@@ -13,7 +13,7 @@ import {
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useSearchIdentity } from "@/hooks/useSearchIdentity";
 import { useSearchSector, searchRoute } from "@/hooks/useSearchSector";
-import { inSector, validPoint, type RouteFact } from "@/lib/entrepreneur/search-sector";
+import { inSector, validPoint, canDrawSector, type RouteFact } from "@/lib/entrepreneur/search-sector";
 import { routingBatches } from "@/lib/entrepreneur/comparateur-candidates";
 import { isolatedSearch, localSearchCall, SEARCH_CLOUD_ENABLED } from "@/lib/entrepreneur/search-runtime";
 import SearchSectorPanel from "@/components/entrepreneur/SearchSectorPanel";
@@ -275,7 +275,7 @@ const Entrepreneur = () => {
         infoRef.current = new g.maps.InfoWindow();
         setMapReady(true);
         mapRef.current.addListener("click", (event: google.maps.MapMouseEvent) => {
-          if (!drawingRef.current || sectorModeRef.current!=='polygon' || !event.latLng) return;
+          if (!canDrawSector(drawingRef.current,sectorModeRef.current) || !event.latLng) return;
           const p={lat:event.latLng.lat(),lng:event.latLng.lng()};
           search.setSector(s=>({...s,mode:"polygon",polygon:[...s.polygon,p].slice(0,200)}));
         });

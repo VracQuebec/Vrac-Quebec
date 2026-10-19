@@ -100,6 +100,7 @@ CREATE FUNCTION exec04_permission(_email text,_purpose text,_at timestamptz DEFA
 $$;
 CREATE FUNCTION exec04_consent_guard() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$
 BEGIN
+ IF TG_OP='UPDATE' AND OLD.evidence_mode='test' AND NEW.evidence_mode<>'test' THEN RAISE EXCEPTION 'Preuve TEST non convertible'; END IF;
  IF NEW.source ~* '(test|ficti|simul)' OR NEW.consent_text ~* '(test|ficti|simul)' OR NEW.evidence_mode='test' THEN
   IF NOT exec04_test_database() THEN RAISE EXCEPTION 'Preuve TEST interdite hors base locale jetable'; END IF;
   NEW.evidence_mode:='test';
@@ -190,14 +191,15 @@ BEGIN
   IF p->>'purpose' IS NULL OR p->>'channel' IS NULL OR p->>'state' IS NULL OR p->>'purpose' NOT IN ('service','promotion','partner_share') OR p->>'channel' NOT IN ('email','sms','app') OR p->>'state' NOT IN ('granted','withdrawn') THEN RAISE EXCEPTION 'Finalité/canal invalide'; END IF;
   IF p->>'role'='owner' THEN audience:='owner';subject:=(p->>'requestId')::uuid; ELSE audience:=p->>'audience';subject:=(p->>'subjectId')::uuid; END IF;
   contact:=exec04_contact(audience,subject);email:=lower(trim(contact->>'email'));IF email IS NULL THEN RAISE EXCEPTION 'Contact réseau absent'; END IF;
-  IF p->>'state'='granted' AND (coalesce(p->>'proof','')='' OR coalesce(p->>'source','')='' OR (p->>'expiresAt' IS NOT NULL AND (p->>'expiresAt')::timestamptz<=now())) THEN RAISE EXCEPTION 'Preuve et source requises'; END IF;
-  UPDATE mkt_consents c SET withdrawn_at=now(),withdrawn_source=p->>'source',permission_state='withdrawn' WHERE c.email=email AND c.entity='vrac_quebec' AND c.subject_type=audience AND c.subject_id=subject AND c.scope=CASE p->>'purpose' WHEN 'promotion' THEN 'promotions_courriel' ELSE p->>'purpose' END AND c.channel=p->>'channel' AND withdrawn_at IS NULL AND partner_company_id IS NOT DISTINCT FROM (p->>'partnerId')::uuid AND service_request_id IS NOT DISTINCT FROM (p->>'serviceId')::uuid;
+  IF nullif(trim(p->>'source'),'') IS NULL THEN RAISE EXCEPTION 'Source requise'; END IF;
+  IF p->>'state'='granted' AND (nullif(trim(p->>'proof'),'') IS NULL OR (p->>'expiresAt' IS NOT NULL AND (p->>'expiresAt')::timestamptz<=now())) THEN RAISE EXCEPTION 'Preuve et source requises'; END IF;
+  UPDATE mkt_consents c SET withdrawn_at=now(),withdrawn_source=p->>'source',permission_state='withdrawn' WHERE c.email=email AND c.entity='vrac_quebec' AND c.subject_type=audience AND c.subject_id=subject AND c.scope=CASE p->>'purpose' WHEN 'promotion' THEN 'promotions_courriel' ELSE p->>'purpose' END AND c.channel=p->>'channel' AND c.evidence_mode=CASE WHEN coalesce((p->>'testMode')::boolean,false) AND (coalesce(p->>'source','') ~* '(test|ficti|simul)' OR coalesce(p->>'proof','') ~* '(test|ficti|simul)') THEN 'test' ELSE 'real' END AND withdrawn_at IS NULL AND partner_company_id IS NOT DISTINCT FROM (p->>'partnerId')::uuid AND service_request_id IS NOT DISTINCT FROM (p->>'serviceId')::uuid;
   IF p->>'state'='granted' THEN
    INSERT INTO mkt_consents(email,subject_type,subject_id,scope,channel,consent_text,consent_version,sender_snapshot,source,accepted_at,expires_at,partner_company_id,service_request_id)
    VALUES(email,audience,subject,CASE p->>'purpose' WHEN 'promotion' THEN 'promotions_courriel' ELSE p->>'purpose' END,p->>'channel',p->>'proof','exec04-v1',jsonb_build_object('entity','vrac_quebec'),p->>'source',now(),(p->>'expiresAt')::timestamptz,(p->>'partnerId')::uuid,(p->>'serviceId')::uuid);
   END IF;
   -- Rotate only a used promotion token after a fresh explicit grant. Old URL stays invalid.
-  IF p->>'state'='granted' AND p->>'purpose'='promotion' AND p->>'channel'='email' THEN
+  IF p->>'state'='granted' AND p->>'purpose'='promotion' AND p->>'channel'='email' AND coalesce(p->>'source','') !~* '(test|ficti|simul)' AND coalesce(p->>'proof','') !~* '(test|ficti|simul)' THEN
    consent_email:=email;
    UPDATE email_unsubscribe_tokens t SET token=gen_random_uuid()::text,used_at=NULL WHERE t.email=consent_email AND t.used_at IS NOT NULL;
    IF FOUND THEN DELETE FROM suppressed_emails se WHERE se.email=consent_email AND se.reason='unsubscribe'; END IF;

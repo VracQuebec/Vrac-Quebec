@@ -28,6 +28,6 @@ export async function createLocal(){
  await db`insert into mkt_pricing_rules(id,label,model,status,agreement) values(${rule},'Entente à compléter — aucun taux','entente_personnalisee','brouillon',${db.json({basis:null,trigger:null,attribution:null,dueDate:null,rate:null,fixed:null})})`;
  // Existing consent record; explicit fictitious operational permission, not inherited from address.
  await db`insert into mkt_consents(email,scope,consent_text,consent_version,sender_snapshot,source,subject_type,subject_id) values('camille@test.invalid','service','Recevoir le suivi opérationnel de ma demande.','exec04-v1','{}','formulaire_vérifié','owner',${owner})`;
- const rpc=async(p:Record<string,unknown>)=>(await db`select exec04_dispatch(${db.json({...p,testMode:true} as any)}) result`)[0].result;
+ const rpc=async(p:Record<string,unknown>)=>(await db`select exec04_dispatch(${db.json({testMode:true,...p} as any)}) result`)[0].result;
  return {name,db,rpc,ids:{admin,partner,foreignUser,company,foreignCompany,owner,unknown,entrepreneur,category,rule}};
 }
