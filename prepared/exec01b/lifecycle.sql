@@ -77,7 +77,7 @@ BEGIN
     IF previous.id IS NULL OR previous.id IS DISTINCT FROM (p->>'measurementId')::uuid OR previous.reservation_id<>r.id OR coalesce(p->>'reason','')='' THEN RETURN jsonb_build_object('denied',true);END IF;
     old_quantity:=previous.quantity;
    ELSIF previous.id IS NOT NULL THEN RETURN jsonb_build_object('denied',true);
-   ELSIF r.state<>'reserved' OR r.expires_at<=now() OR t.status::text NOT IN ('termine','facture','paye') OR t.delivered_at IS NULL OR s.availability_status IN ('suspended','owner_closed') OR r.policy_version IS DISTINCT FROM (SELECT reception_policy_version FROM submission_fill_profile WHERE submission_id=s.id) OR (r.conditions_snapshot->'conditions'-'remaining') IS DISTINCT FROM (c-'remaining') OR r.fingerprint IS DISTINCT FROM (SELECT encode(digest(to_jsonb(o)::text,'sha256'),'hex') FROM material_offers o WHERE o.id=r.offer_id) THEN RETURN jsonb_build_object('denied',true);END IF;
+   ELSIF r.state<>'reserved' OR r.expires_at<=now() OR t.status::text NOT IN ('termine','facture','paye') OR t.delivered_at IS NULL OR s.availability_status IN ('suspended','owner_closed') OR r.policy_version IS DISTINCT FROM (SELECT reception_policy_version FROM submission_fill_profile WHERE submission_id=s.id) OR ((r.conditions_snapshot->'conditions')-'remaining') IS DISTINCT FROM (c-'remaining') OR r.fingerprint IS DISTINCT FROM (SELECT encode(digest(to_jsonb(o)::text,'sha256'),'hex') FROM material_offers o WHERE o.id=r.offer_id) THEN RETURN jsonb_build_object('denied',true);END IF;
    IF EXISTS(SELECT 1 FROM submission_reception_measurements WHERE submission_id=s.id AND ticket_ref=p->>'ticketRef' AND trip_id<>t.id) THEN RETURN jsonb_build_object('denied',true);END IF;
    delta:=(p->>'quantity')::numeric-old_quantity;
    SELECT coalesce(sum(mm.quantity),0) INTO effective FROM submission_reception_measurements mm WHERE mm.reservation_id=r.id AND NOT EXISTS(SELECT 1 FROM submission_reception_measurements newer WHERE newer.corrects=mm.id);
@@ -87,7 +87,7 @@ BEGIN
    UPDATE trips SET received_quantity=m.quantity,received_unit=m.unit,received_ticket_ref=m.ticket_ref,received_at=m.received_at,received_outcome=m.outcome WHERE id=t.id;
    UPDATE submission_fill_profile SET reception_conditions=jsonb_set(c,'{remaining}',to_jsonb((c->>'remaining')::numeric-delta)) WHERE submission_id=s.id;
    UPDATE submissions SET remaining_capacity=((c->>'remaining')::numeric-delta)::text||' '||r.unit WHERE id=s.id;
-   UPDATE submission_reception_reservations SET state=CASE WHEN effective+delta=quantity THEN 'delivered' WHEN m.outcome='refused' THEN 'exception' WHEN expires_at<=now() THEN 'expired' ELSE 'reserved' END WHERE id=r.id;
+   UPDATE submission_reception_reservations rr SET state=CASE WHEN effective+delta=rr.quantity THEN 'delivered' WHEN m.outcome='refused' THEN 'exception' WHEN rr.expires_at<=now() THEN 'expired' ELSE 'reserved' END WHERE rr.id=r.id;
    IF m.outcome='refused' THEN PERFORM exec02_exception(s.id,'refus_arrivee','Vérifier le billet et les conditions avant reprise',r.id);END IF;
    result:=jsonb_build_object('ok',true,'measurementId',m.id,'delta',delta);
   END IF;
