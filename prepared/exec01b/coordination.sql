@@ -26,7 +26,7 @@ ALTER TABLE public.submission_reception_operations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY reception_operation_service ON public.submission_reception_operations TO service_role USING(true) WITH CHECK(true);
 CREATE TABLE public.submission_reception_debits (
  trip_id uuid PRIMARY KEY REFERENCES trips(id),reservation_id uuid UNIQUE NOT NULL REFERENCES submission_reception_reservations(id),
- submission_id uuid NOT NULL REFERENCES submissions(id),quantity numeric NOT NULL,unit text NOT NULL,ticket_ref text NOT NULL,created_at timestamptz NOT NULL DEFAULT now()
+ submission_id uuid NOT NULL REFERENCES submissions(id),quantity numeric NOT NULL,unit text NOT NULL,ticket_ref text NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(submission_id,ticket_ref)
 );
 GRANT SELECT,INSERT ON public.submission_reception_debits TO service_role;
 ALTER TABLE public.submission_reception_debits ENABLE ROW LEVEL SECURITY;
