@@ -1,5 +1,16 @@
 # EXEC-01B — serveur préparé, aucune activation publique
 
+## Mise à jour EXEC-01C
+Le schéma Cloud a été inspecté structurellement (pas de contacts). Les traitements et
+le client désactivé sont adaptés aux champs existants, au vrai rôle `app_role`, aux
+déclencheurs de disponibilité et au bucket **privé** `lead-photos`.
+`schema.sql` et `quota.sql` servent au local et au futur Cloud sans variante SQL.
+Les constats B ci-dessous restent historiques; le périmètre actuel, les limites corrigées
+et les étapes précises sont dans [activation-checklist.md](activation-checklist.md).
+Ne pas lire les projections vides ou le mapping des conditions matérielles de B comme
+le comportement actuel : C lit `trips` explicitement lié, sépare `cpn_trips` reçu et
+ne modifie plus les conditions documentaires avec les préférences propriétaire.
+
 ## Environnement effectivement utilisé
 PostgreSQL 17.9 local, écoute `127.0.0.1:55439`, données dans `/tmp/exec01b/pg`; serveur HTTP Bun de test à `127.0.0.1:55440`, capture locale sans appel à un prestataire. Tous les contacts sont fictifs `@test.invalid`. Aucun client Cloud dans le serveur local. Ce n'est pas `?test=1` : les écritures SQL sont réellement persistées dans une base distincte.
 

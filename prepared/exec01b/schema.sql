@@ -43,7 +43,7 @@ CREATE FUNCTION public.exec01_projection(_id uuid, _crm boolean DEFAULT false) R
  SELECT jsonb_build_object('id',s.id,'reference','Demande #'||coalesce(s.submission_number::text,'TEST'),
  'name',s.name,'city',s.city,'status',s.status,'version',s.exec01_version,
  'availability',CASE WHEN s.availability_status IN ('suspended','owner_closed') THEN s.availability_status
- WHEN s.revalidation_requested_at IS NOT NULL OR s.exec01_owner_confirmed_at IS NULL THEN 'a_confirmer' ELSE s.availability_status END,
+ WHEN s.revalidation_requested_at IS NOT NULL OR s.exec01_owner_confirmed_at IS NULL OR s.availability_status<>'available' THEN 'a_confirmer' ELSE 'available' END,
  'lastConfirmed',CASE WHEN s.revalidation_requested_at IS NULL THEN s.exec01_owner_confirmed_at ELSE NULL END,
  'conditions',p.reception_conditions,
  'legacy',jsonb_build_object('quantity_value',s.quantity_value,'quantity_unit',s.quantity_unit,'opening_hours',s.opening_hours,'capacity_kind',p.capacity_kind,'capacity_value',p.capacity_value,'capacity_unit',p.capacity_unit,'access_notes',p.access_notes),
