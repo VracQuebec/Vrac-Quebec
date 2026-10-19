@@ -4877,6 +4877,153 @@ export type Database = {
         }
         Relationships: []
       }
+      exec01_mail_capture: {
+        Row: {
+          created_at: string
+          dedupe_key: string
+          id: string
+          payload: Json
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          dedupe_key: string
+          id?: string
+          payload: Json
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          dedupe_key?: string
+          id?: string
+          payload?: Json
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec01_mail_capture_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "exec01_mail_capture_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exec01_mail_receipts: {
+        Row: {
+          created_at: string
+          dedupe_key: string
+          delivery: string
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          dedupe_key: string
+          delivery: string
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          dedupe_key?: string
+          delivery?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec01_mail_receipts_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "exec01_mail_receipts_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exec01_photo_files: {
+        Row: {
+          claim_id: string | null
+          created_at: string
+          lease_until: string
+          path: string
+          state: string
+          submission_id: string
+        }
+        Insert: {
+          claim_id?: string | null
+          created_at?: string
+          lease_until: string
+          path: string
+          state?: string
+          submission_id: string
+        }
+        Update: {
+          claim_id?: string | null
+          created_at?: string
+          lease_until?: string
+          path?: string
+          state?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec01_photo_files_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "exec01_photo_files_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exec01_test_dossiers: {
+        Row: {
+          created_at: string
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec01_test_dossiers_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "exec01_test_dossiers_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount_before_tax: number | null
@@ -27413,6 +27560,7 @@ export type Database = {
           heavy_truck_access: string | null
           id: string
           original_text: string | null
+          reception_conditions: Json | null
           source: string
           submission_id: string
           updated_at: string
@@ -27432,6 +27580,7 @@ export type Database = {
           heavy_truck_access?: string | null
           id?: string
           original_text?: string | null
+          reception_conditions?: Json | null
           source?: string
           submission_id: string
           updated_at?: string
@@ -27451,6 +27600,7 @@ export type Database = {
           heavy_truck_access?: string | null
           id?: string
           original_text?: string | null
+          reception_conditions?: Json | null
           source?: string
           submission_id?: string
           updated_at?: string
@@ -27531,6 +27681,180 @@ export type Database = {
             columns: ["submission_id"]
             isOneToOne: false
             referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_portal_confirmations: {
+        Row: {
+          created_at: string
+          link_id: string
+          queue_id: number
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          link_id: string
+          queue_id: number
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          link_id?: string
+          queue_id?: number
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_portal_confirmations_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "submission_portal_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_portal_confirmations_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_portal_confirmations_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_portal_events: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          submission_id: string
+          version: number
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          submission_id: string
+          version: number
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          submission_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_portal_events_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_portal_events_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_portal_links: {
+        Row: {
+          code_expires_at: string | null
+          code_hash: string | null
+          code_requested_at: string | null
+          contact_hash: string
+          created_at: string
+          expires_at: string
+          failures: number
+          id: string
+          revoked_at: string | null
+          secret_hash: string
+          submission_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          code_expires_at?: string | null
+          code_hash?: string | null
+          code_requested_at?: string | null
+          contact_hash: string
+          created_at?: string
+          expires_at: string
+          failures?: number
+          id?: string
+          revoked_at?: string | null
+          secret_hash: string
+          submission_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          code_expires_at?: string | null
+          code_hash?: string | null
+          code_requested_at?: string | null
+          contact_hash?: string
+          created_at?: string
+          expires_at?: string
+          failures?: number
+          id?: string
+          revoked_at?: string | null
+          secret_hash?: string
+          submission_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_portal_links_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_portal_links_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_portal_operations: {
+        Row: {
+          created_at: string
+          input_hash: string
+          link_id: string
+          operation_id: string
+          result: Json
+        }
+        Insert: {
+          created_at?: string
+          input_hash: string
+          link_id: string
+          operation_id: string
+          result: Json
+        }
+        Update: {
+          created_at?: string
+          input_hash?: string
+          link_id?: string
+          operation_id?: string
+          result?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_portal_operations_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "submission_portal_links"
             referencedColumns: ["id"]
           },
         ]
@@ -27638,6 +27962,10 @@ export type Database = {
           desired_date: string | null
           dompe_number: string | null
           email: string
+          exec01_contact_verified_at: string | null
+          exec01_owner_confirmed_at: string | null
+          exec01_verified_contact_hash: string | null
+          exec01_version: number
           formatted_address: string | null
           geocoding_provider: string | null
           geocoding_status: string
@@ -27754,6 +28082,10 @@ export type Database = {
           desired_date?: string | null
           dompe_number?: string | null
           email: string
+          exec01_contact_verified_at?: string | null
+          exec01_owner_confirmed_at?: string | null
+          exec01_verified_contact_hash?: string | null
+          exec01_version?: number
           formatted_address?: string | null
           geocoding_provider?: string | null
           geocoding_status?: string
@@ -27870,6 +28202,10 @@ export type Database = {
           desired_date?: string | null
           dompe_number?: string | null
           email?: string
+          exec01_contact_verified_at?: string | null
+          exec01_owner_confirmed_at?: string | null
+          exec01_verified_contact_hash?: string | null
+          exec01_version?: number
           formatted_address?: string | null
           geocoding_provider?: string | null
           geocoding_status?: string
@@ -31193,6 +31529,18 @@ export type Database = {
           qa_before: number
         }[]
       }
+      exec01_dispatch: { Args: { p: Json }; Returns: Json }
+      exec01_dispatch_mail: {
+        Args: { capture?: boolean; message: Json; p: Json }
+        Returns: Json
+      }
+      exec01_enqueue_confirmation: { Args: { p: Json }; Returns: Json }
+      exec01_photo_manage: { Args: { p: Json }; Returns: Json }
+      exec01_projection: {
+        Args: { _crm?: boolean; _id: string }
+        Returns: Json
+      }
+      exec01_quota: { Args: { _identity: string }; Returns: boolean }
       fin__alloc: {
         Args: {
           _allocs: Json
@@ -34575,6 +34923,10 @@ export type Database = {
           desired_date: string | null
           dompe_number: string | null
           email: string
+          exec01_contact_verified_at: string | null
+          exec01_owner_confirmed_at: string | null
+          exec01_verified_contact_hash: string | null
+          exec01_version: number
           formatted_address: string | null
           geocoding_provider: string | null
           geocoding_status: string
