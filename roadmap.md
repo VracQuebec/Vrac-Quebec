@@ -135,7 +135,7 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [ ] EN ATTENTE : export, staging, migrations, copie du module dans supabase/functions, restrictions (autorisation)
 
 ## EXEC-01 — publication et activation autorisées (19 octobre)
-- [ ] Publier version complète et vérifier page personnelle directe et navigation sans traceurs.
-- [ ] Activer portail et vérifier dossier fictif complet sur site publié, même CRM et photo privée.
-- [ ] Activer courriel réel seulement après succès; sinon conserver parcours désactivé et préciser le blocage.
-- [ ] Conserver EXEC-02 à 06 désactivés et consigner état réel, sans restauration globale.
+- [x] Publier version complète et vérifier page personnelle directe et navigation sans traceurs.
+- [x] Activer portail et vérifier dossier fictif complet sur site publié, même identifiant CRM serveur et photo privée réellement affichée; écran CRM admin non revérifié.
+- [x] Activer transport réel et bouton après succès; captures fictives conservées, nouvelles confirmations seulement depuis 21:50:07 UTC.
+- [x] Conserver EXEC-02 à 06 désactivés et consigner état réel, sans restauration globale.
