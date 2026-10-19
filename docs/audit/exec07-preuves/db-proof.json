@@ -1,0 +1,57 @@
+{
+  "sessions": [
+    {
+      "id": "34ab392c-e8f0-4ecd-b8e9-0c4c01f4fb24",
+      "mode": "humain",
+      "page": "/entrepreneur/aide"
+    },
+    {
+      "id": "0835e6ed-6e52-43d5-b6ce-66899e7a3ac7",
+      "mode": "humain",
+      "page": "/entrepreneur/aide"
+    }
+  ],
+  "messages": [
+    {
+      "session_id": "34ab392c-e8f0-4ecd-b8e9-0c4c01f4fb24",
+      "role": "systeme",
+      "content": "Capture TEST uniquement. Aucun agent averti, aucun envoi, aucune réponse IA."
+    },
+    {
+      "session_id": "34ab392c-e8f0-4ecd-b8e9-0c4c01f4fb24",
+      "role": "visiteur",
+      "content": "TEST · appel · Rappel aide TEST sans disponibilité promise"
+    },
+    {
+      "session_id": "0835e6ed-6e52-43d5-b6ce-66899e7a3ac7",
+      "role": "systeme",
+      "content": "Capture TEST uniquement. Aucun agent averti, aucun envoi, aucune réponse IA."
+    },
+    {
+      "session_id": "0835e6ed-6e52-43d5-b6ce-66899e7a3ac7",
+      "role": "visiteur",
+      "content": "TEST · appel · Présentation du parcours TEST"
+    }
+  ],
+  "events": [
+    {
+      "id": "cd9929ab-5c46-43b6-bee6-0af87ec75bfc",
+      "title": "Accompagnement Vrac Québec — TEST",
+      "status": "confirme",
+      "start_at": "2026-10-21T13:00:00.000Z",
+      "notify_client": false,
+      "reminders": []
+    }
+  ],
+  "log": [
+    {
+      "event_id": "cd9929ab-5c46-43b6-bee6-0af87ec75bfc",
+      "action": "creation"
+    }
+  ],
+  "deliveries": [
+    {
+      "n": "0"
+    }
+  ]
+}
