@@ -22,10 +22,10 @@ export function makeServiceMailPreparer(deps:MailDependencies){
  };
 }
 // The local capture uses the same payload contract. It never calls an email provider.
-export function localServiceMail(){
+export function localServiceMail(render?:MailDependencies['render']){
  const escape=(v:string)=>v.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]??c));
  return makeServiceMailPreparer({captureOnly:true,sender:{from:'Vrac Québec <capture@test.invalid>',domain:'test.invalid'},
   lookup:async()=>({suppressed:false,unsubscribeToken:'local-capture-only'}),
-  render:async p=>({text:`${p.subject}\n${p.summary}\nSuivre ou modifier ma demande : ${p.url}`,
-   html:`<!DOCTYPE html><html lang="fr"><body><h1>Vrac Québec</h1><h2>${escape(p.subject)}</h2><p>${escape(p.summary)}</p><a href="${escape(p.url)}">Suivre ou modifier ma demande</a></body></html>`})});
+  render:render??(async p=>({text:`${p.subject}\n${p.summary}\nSuivre ou modifier ma demande : ${p.url}`,
+    html:`<!DOCTYPE html><html lang="fr"><body><h1>Vrac Québec</h1><h2>${escape(p.subject)}</h2><p>${escape(p.summary)}</p><a href="${escape(p.url)}">Suivre ou modifier ma demande</a></body></html>`}))});
 }
