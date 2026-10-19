@@ -16,7 +16,7 @@ export async function createFinanceLocal() {
     await db.unsafe(await readFile("prepared/exec05/local-base.sql", "utf8"));
     // Full original CRM/finance migrations, not replacement calculation or receipt stubs.
     const files = (await readdir("drizzle/migrations")).sort();
-    const ids = [45,47,48,57,67,75,76,82,83,...Array.from({length:65},(_,i)=>84+i).filter(i=>![118,119,120].includes(i))];
+    const ids = [45,47,48,57,67,68,69,70,71,72,73,75,76,77,82,83,...Array.from({length:65},(_,i)=>84+i).filter(i=>![118,119,120].includes(i))];
     for (const id of ids) { const f = files.find(f => Number(f.slice(0,4)) === id); if (!f) throw Error(`Migration ${id} absent`);
       console.log("Applying local", f); await db.unsafe(await readFile(`drizzle/migrations/${f}`, "utf8")); }
     await db.unsafe(await readFile("prepared/exec05/invoices.sql", "utf8"));
