@@ -25,7 +25,10 @@ export function useCompanyRole(storageKey = "vq.todo.company") {
     if (!companyId || !user) return;
     localStorage.setItem(`${storageKey}.${user.id}`, companyId);
     setRole(null);
-    (supabase as any).rpc("entcrm_role", { _company_id: companyId }).then(({ data }: any) => setRole(data ?? "aucun"));
+    let active = true;
+    const check = () => (supabase as any).rpc("entcrm_role", { _company_id: companyId }).then(({ data }: any) => {if(active)setRole(data ?? "aucun");});
+    check(); const timer=setInterval(check,30000); window.addEventListener("focus",check);
+    return ()=>{active=false;clearInterval(timer);window.removeEventListener("focus",check);};
   }, [companyId, user, storageKey]);
   return { companies, companyId, setCompanyId, role, ready, isAdmin, loading: !isReady || loading };
 }

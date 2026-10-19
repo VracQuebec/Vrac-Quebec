@@ -132,8 +132,9 @@ export default function EntrepreneurAppShell({
   headerActions,
   showFab = false,
   allowCompanyMembers = false,
+  employeeMode = false,
   children,
-}: Props & { allowCompanyMembers?: boolean }) {
+}: Props & { allowCompanyMembers?: boolean; employeeMode?: boolean }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isReady: authReady, isEntrepreneur, isAdmin, loading: roleLoading, isolated } = useSearchIdentity();
@@ -196,6 +197,8 @@ export default function EntrepreneurAppShell({
       </div>
     );
   }
+
+  if(employeeMode)return <div className="min-h-dvh bg-background"><header className="border-b border-border bg-card"><div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 p-4"><div><h1 className="font-display text-lg font-bold">{title??"Mes heures"}</h1><p className="text-sm text-muted-foreground">{subtitle}</p></div><nav className="flex gap-2" aria-label="Navigation employé"><Button variant="outline" asChild><Link to="/entrepreneur/punch">Mes heures</Link></Button><Button variant="outline" onClick={handleLogout}><LogOut className="mr-1 h-4 w-4"/>Quitter</Button></nav></div></header><main className="mx-auto max-w-5xl p-4 sm:p-6">{children}</main></div>;
 
   const badge = unreadCount;
   const currentLocation = `${location.pathname}${location.search}${location.hash}`;
