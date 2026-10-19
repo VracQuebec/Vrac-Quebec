@@ -4,6 +4,7 @@
 import { digest,randomSecret } from '../../src/lib/remblai/service';
 import { confirmationMessage,type Dependencies } from './endpoint';
 export async function prepareSubmissionConfirmation(requestId:string,deps:Dependencies) {
+ if(deps.enabled===false) throw Error('Follow-up disabled');
  const linkId=crypto.randomUUID(),secret=randomSecret();
  const result=await deps.rpc({kind:'issue',requestId,linkId,secretHash:await digest(secret)});
  if(result.denied||typeof result.contact!=='string') throw Error('Confirmation unavailable');
