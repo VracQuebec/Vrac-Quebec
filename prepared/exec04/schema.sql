@@ -172,7 +172,8 @@ BEGIN
   -- Candidate IDs are computed by the shared domain on a fresh server network projection; SQL rechecks permission/contact.
   FOR recipient IN SELECT value FROM jsonb_array_elements(p->'recipients') LOOP
    audience:=recipient->>'audience';subject:=(recipient->>'id')::uuid; contact:=exec04_contact(audience,subject); email:=lower(trim(contact->>'email'));
-   IF email IS NULL OR contact->>'verified' IS DISTINCT FROM 'true' OR NOT exec04_permission(email,camp.purpose) OR (camp.template_key IN ('offer','appointment')) THEN CONTINUE; END IF;
+   IF email IS NULL OR contact->>'verified' IS DISTINCT FROM 'true' OR NOT exec04_permission(email,camp.purpose) OR (camp.template_key IN ('offer','appointment'))
+    OR (audience='owner' AND EXISTS(SELECT 1 FROM submissions s WHERE s.id=subject AND s.availability_status IN ('owner_closed','suspended'))) THEN CONTINUE; END IF;
    PERFORM pg_advisory_xact_lock(hashtext('exec04-mail:'||email));key:='exec04:'||camp.id||':'||encode(digest(email,'sha256'),'hex');
    IF EXISTS(SELECT 1 FROM mkt_promo_sends WHERE message_key=key) THEN CONTINUE;END IF;
    IF EXISTS(SELECT 1 FROM mkt_promo_sends ms WHERE ms.email=email AND ms.purpose=camp.purpose AND ms.state IN ('prepared','queued','captured_test','sent','delivered') AND coalesce(ms.captured_at,ms.sent_at,(SELECT created_at FROM mkt_campaigns WHERE id::text=ms.campaign))>now()-make_interval(hours=>camp.frequency_hours)) THEN CONTINUE; END IF;

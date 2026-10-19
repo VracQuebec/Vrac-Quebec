@@ -5,6 +5,8 @@
 // L'isolation par entreprise est appliquée par la base (RLS).
 // ============================================================
 import { useCallback, useEffect, useMemo, useState } from "react";
+import RelatedServicesPanel from '@/components/marketplace/RelatedServicesPanel';
+import {isExec04Local} from '@/lib/marketplace/communications';
 import { Link } from "react-router-dom";
 import { ArrowLeft, Loader2, Plus, Send, Trash2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -78,6 +80,10 @@ function Badge({ children }: { children: React.ReactNode }) {
 }
 
 export default function PartenaireSoumissions() {
+  if(isExec04Local())return <div className="mx-auto max-w-5xl p-4"><RelatedServicesPanel session={null} partner/></div>;
+  return <ExistingPartnerSoumissions/>;
+}
+function ExistingPartnerSoumissions(){
   const { user, isReady, isAuthenticated } = useAuthReady();
   const { isAdmin, loading: roleLoading } = useUserRoles(user, isReady);
   const tenant = useFleetTenant(isAdmin, isReady && !roleLoading && isAuthenticated);
