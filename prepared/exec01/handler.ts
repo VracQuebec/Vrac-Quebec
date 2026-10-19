@@ -24,7 +24,11 @@ export function makeHandler(service: RemblaiService, deliverCode: Parameters<Rem
       if (value.kind === "read") return response(await service.read(value.linkId, value.secret, value.requestId));
       if (value.kind === "code") await service.requestCode(value.linkId, value.secret, value.requestId, deliverCode);
       if (value.kind === "verify") await service.verifyCode(value.linkId, value.secret, value.requestId, value.code);
-      if (value.kind === "act") return response(await service.act(value));
+      if (value.kind === "act") {
+        const { linkId, secret, requestId, action, operationId, version, confirmed, conditions } = value;
+        if (!linkId || !secret || !requestId || !action || !operationId || version == null || confirmed !== true) return response({ error: "Requête invalide." }, 400);
+        return response(await service.act({ linkId, secret, requestId, action, operationId, version, confirmed, conditions }));
+      }
       return response({ ok: true });
     } catch {
       // Never return database errors, credentials, hashes or dossier existence.
