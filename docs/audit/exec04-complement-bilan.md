@@ -50,6 +50,7 @@ Les promotions exigent leur permission distincte; retrait promotionnel sans ferm
 - Isolation démontrée avant écritures : `127.0.0.1:55439`, répertoire `/tmp/exec-correctifs/pg`, bases neuves `exec04_<uuid>` créées par le harnais avec vérification de ces trois critères. Aucun identifiant Cloud utilisé. Des erreurs attendues des tests négatifs restent dans les journaux locaux.
 - Parcours navigateur à **1280×1800 et 420×757** : permission réseau → campagne admissible → capture TEST → lien personnel → code → besoin connexe → qualification → refus de partage → autorisation → partenaire → réponse → soumission fictive → résultat terminal/historique → entente sans taux sauvegardée/rechargée.
 - Délai anti-abus de 60 secondes respecté pour le second code; pas de contournement. Le premier essai a révélé la collision d’identité corrigée; les reprises de campagne ont utilisé une nouvelle base pour respecter la fréquence.
+- Nettoyage : serveur HTTP local arrêté et 13 bases fictives EXEC-04 des essais successifs supprimées après nouvelle vérification de l’isolation; aucune donnée conservée dans Cloud.
 - Dernier parcours : **0 tentative externe et 0 erreur JavaScript**. Aucun état envoyé/livré utilisé pour une capture. Journal des captures vérifié par l’écran.
 - `deno check` de l’entrée préparée EXEC-04 réussi; dernier signal aperçu : `build OK` du 19 octobre à 17:27:53 UTC. Contrôles futurs Cloud non couverts par ces résultats.
 
