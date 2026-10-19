@@ -90,8 +90,9 @@ BEGIN
   key:=p->>'dedupeKey';SELECT * INTO d FROM submission_portal_dispatches WHERE dedupe_key=key;
   IF FOUND THEN IF d.submission_id<>s.id OR d.input_hash<>p->>'inputHash' THEN RETURN jsonb_build_object('denied',true);END IF;RETURN jsonb_build_object('ok',true,'queued',true,'replay',true);END IF;
   IF s.email IS NULL OR s.email!~'^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' THEN PERFORM exec02_exception(s.id,'Contact invalide','Vérifier le contact');RETURN jsonb_build_object('denied',true);END IF;
-  INSERT INTO submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at) VALUES((p->>'nextId')::uuid,s.id,p->>'nextHash',encode(digest(lower(trim(s.email)),'sha256'),'hex'),now()+interval '30 days');
   IF p->'message'->>'blocked'='true' THEN RETURN jsonb_build_object('ok',true,'suppressed',true);END IF;
+  IF lower(trim(p->'message'->>'to')) IS DISTINCT FROM lower(trim(s.email)) THEN RETURN jsonb_build_object('denied',true);END IF;
+  INSERT INTO submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at) VALUES((p->>'nextId')::uuid,s.id,p->>'nextHash',encode(digest(lower(trim(s.email)),'sha256'),'hex'),now()+interval '30 days');
   qh:=enqueue_email('transactional_emails',(p->'message')||jsonb_build_object('to',s.email,'recipientEmail',s.email,'idempotency_key',key,'purpose','transactional','tracking',false));
   INSERT INTO submission_portal_dispatches(dedupe_key,submission_id,input_hash,queue_id) VALUES(key,s.id,p->>'inputHash',qh);
   RETURN jsonb_build_object('ok',true,'queued',true);
@@ -180,8 +181,10 @@ BEGIN
   END IF;
  END IF;
  IF res IS NULL THEN RETURN jsonb_build_object('denied',true);END IF;
+ IF kind='change' THEN UPDATE submission_reception_reservations SET last_reminded_at=NULL,created_at=now() WHERE id=r.id;END IF;
  -- Link creation and queue insertion in THIS transaction: an enqueue failure rolls back all mutations.
  IF p->'message' IS NOT NULL AND p->'message'->>'blocked' IS DISTINCT FROM 'true' THEN
+  IF lower(trim(p->'message'->>'to')) IS DISTINCT FROM lower(trim(s.email)) THEN RAISE EXCEPTION 'mail_contact_changed';END IF;
   -- Subject/html/text were rendered together; never mutate only the subject after rendering.
   IF s.exec01_contact_verified_at IS NULL OR s.email!~'^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' THEN PERFORM exec02_exception(s.id,'Contact invalide','Vérifier le contact',r.id);
   ELSE

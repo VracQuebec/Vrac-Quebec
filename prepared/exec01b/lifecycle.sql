@@ -104,6 +104,7 @@ BEGIN
   END IF;
  END IF;
  IF p->'message' IS NOT NULL AND p->'message'->>'blocked' IS DISTINCT FROM 'true' AND s.exec01_contact_verified_at IS NOT NULL THEN
+  IF lower(trim(p->'message'->>'to')) IS DISTINCT FROM lower(trim(s.email)) THEN RAISE EXCEPTION 'mail_contact_changed';END IF;
   INSERT INTO submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at) VALUES((p->>'nextId')::uuid,s.id,p->>'nextHash',encode(digest(lower(trim(s.email)),'sha256'),'hex'),now()+interval '30 days');
   key:=p->>'dedupeKey';qh:=enqueue_email('transactional_emails',p->'message'||jsonb_build_object('to',s.email,'idempotency_key',key,'purpose','transactional','tracking',false,'reception_guard',jsonb_build_object('submissionId',s.id,'reservationId',r.id,'kind',kind,'expiresAt',r.expires_at,'linkId',p->>'nextId')));
   INSERT INTO submission_portal_dispatches(dedupe_key,submission_id,input_hash,queue_id) VALUES(key,s.id,p->>'inputHash',qh);
@@ -119,10 +120,24 @@ CREATE FUNCTION exec02_message_current(p jsonb) RETURNS boolean LANGUAGE sql SEC
  WHERE s.id=(p->'reception_guard'->>'submissionId')::uuid AND l.id=(p->'reception_guard'->>'linkId')::uuid
  AND s.exec01_contact_verified_at IS NOT NULL AND lower(trim(s.email))=lower(trim(p->>'to'))
  AND l.contact_hash=encode(digest(lower(trim(s.email)),'sha256'),'hex') AND l.revoked_at IS NULL AND l.expires_at>now()
- AND (p->'reception_guard'->>'kind'<>'remind' OR EXISTS(SELECT 1 FROM submission_reception_reservations r JOIN submission_fill_profile f ON f.submission_id=r.submission_id WHERE r.id=(p->'reception_guard'->>'reservationId')::uuid AND r.submission_id=s.id AND r.state='pending' AND r.expires_at>now() AND r.expires_at=(p->'reception_guard'->>'expiresAt')::timestamptz AND f.reception_communication->>'serviceEmail'='true'
- AND extract(isodow FROM now() AT TIME ZONE 'America/Toronto')::int IN (SELECT jsonb_array_elements_text(f.reception_communication->'weekdays')::int)
- AND extract(hour FROM now() AT TIME ZONE 'America/Toronto')>=(f.reception_communication->>'startHour')::int
- AND extract(hour FROM now() AT TIME ZONE 'America/Toronto')<(f.reception_communication->>'endHour')::int)));
+ AND (p->'reception_guard'->>'kind'<>'remind' OR EXISTS(SELECT 1 FROM submission_reception_reservations r JOIN submission_fill_profile f ON f.submission_id=r.submission_id WHERE r.id=(p->'reception_guard'->>'reservationId')::uuid AND r.submission_id=s.id AND r.state='pending' AND r.expires_at>now() AND r.expires_at=(p->'reception_guard'->>'expiresAt')::timestamptz AND f.reception_communication->>'serviceEmail'='true')));
 $$;
 REVOKE ALL ON FUNCTION exec02_message_current(jsonb) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION exec02_message_current(jsonb) TO service_role;
+-- Deferred reminders stay in the existing bounded queue, never a second queue or sweeper.
+CREATE FUNCTION exec02_message_delay(p jsonb) RETURNS integer LANGUAGE sql SECURITY DEFINER SET search_path=public AS $$
+ SELECT CASE WHEN p->'reception_guard'->>'kind'='remind' THEN coalesce((
+ SELECT greatest(0,extract(epoch FROM min(candidate)-now())::int)
+ FROM submission_fill_profile f CROSS JOIN LATERAL generate_series(date_trunc('day',now() AT TIME ZONE 'America/Toronto'),date_trunc('day',now() AT TIME ZONE 'America/Toronto')+interval '7 days',interval '1 day') d
+ CROSS JOIN LATERAL (SELECT greatest(now(),(d+make_interval(hours=>(f.reception_communication->>'startHour')::int)) AT TIME ZONE 'America/Toronto') candidate) c
+ WHERE f.submission_id=(p->'reception_guard'->>'submissionId')::uuid
+ AND extract(isodow FROM d)::int IN (SELECT jsonb_array_elements_text(f.reception_communication->'weekdays')::int)
+ AND candidate<(d+make_interval(hours=>(f.reception_communication->>'endHour')::int)) AT TIME ZONE 'America/Toronto'),604800) ELSE 0 END;
+$$;
+REVOKE ALL ON FUNCTION exec02_message_delay(jsonb) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION exec02_message_delay(jsonb) TO service_role;
+-- Installed only where the EXISTING managed queue infrastructure is available.
+CREATE FUNCTION exec02_defer_message(message_id bigint,seconds integer) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pgmq AS $$
+BEGIN PERFORM pgmq.set_vt('transactional_emails',message_id,greatest(30,least(seconds,604800)));END $$;
+REVOKE ALL ON FUNCTION exec02_defer_message(bigint,integer) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION exec02_defer_message(bigint,integer) TO service_role;
