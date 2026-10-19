@@ -4,6 +4,8 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 import { logEvent, logEventAsync } from '../_shared/observability.ts'
+import { enqueueOwnerConfirmation } from '../_shared/exec01/confirmation-queue.ts'
+const EXEC01_CONFIRMATION_ENABLED = false // Autorisation requise avant activation; le bouton reste hors des vrais courriels.
 
 // Configuration baked in at scaffold time — do NOT change these manually.
 // To update, re-run the email domain setup flow.
@@ -157,6 +159,7 @@ Deno.serve(async (req) => {
   // with the service role, and derive both the recipient and the email
   // payload from the database row. This prevents anyone holding the public
   // anon key from sending arbitrary emails to arbitrary addresses.
+  let ownerSubmission: {id:string;request_type:string;parcours_direction:string|null;email:string|null;name:string|null} | null = null
   let effectiveRecipient: string | undefined = template.to || recipientEmail
 
   if (PUBLIC_TEMPLATES.has(templateName)) {
@@ -227,6 +230,7 @@ Deno.serve(async (req) => {
       }
       effectiveRecipient = sub.email
       templateData = { name: sub.name ?? '' }
+      ownerSubmission = sub
     }
   }
 
@@ -401,6 +405,25 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
+  }
+
+  // Même confirmation, même file : après tous les contrôles suppression/désinscription.
+  if (EXEC01_CONFIRMATION_ENABLED && ownerSubmission) {
+    try {
+      const queued = await enqueueOwnerConfirmation(ownerSubmission, {
+        enabled: true, portalOrigin: Deno.env.get('EXEC01_PORTAL_ORIGIN') || '',
+        envelope: { messageId, from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`, senderDomain: SENDER_DOMAIN, unsubscribeToken },
+        rpc: async p => {
+          const { data, error } = await supabase.rpc('exec01_enqueue_confirmation', { p })
+          if (error) throw Error('Confirmation enqueue unavailable')
+          return data
+        },
+      })
+      if (queued) return new Response(JSON.stringify({ success: true, ...queued }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    } catch {
+      // Jamais de second courriel sans lien en cas de commit incertain.
+      return new Response(JSON.stringify({ error: 'Failed to prepare confirmation' }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
   }
 
   // 4. Render React Email template to HTML and plain text
