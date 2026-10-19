@@ -115,7 +115,7 @@ CREATE FUNCTION exec04_available(_submission uuid,_category uuid) RETURNS jsonb 
  WHERE s.id=_submission AND p.is_active AND p.is_public AND p.archived_at IS NULL
  AND p.availability_status='disponible' AND p.onboarding_status='approuve'
  AND EXISTS(SELECT 1 FROM mkt_partner_territories t WHERE t.company_id=p.company_id AND t.is_active
- AND ((t.scope='province' AND t.region='Québec') OR (t.scope='ville' AND exec03_geo_key(t.city)=exec03_geo_key(s.city))
+ AND ((t.scope='province' AND exec03_geo_key(t.region)='quebec') OR (t.scope='ville' AND nullif(trim(t.city),'') IS NOT NULL AND nullif(trim(s.city),'') IS NOT NULL AND exec03_geo_key(t.city)=exec03_geo_key(s.city))
  OR (t.scope='region' AND t.region IS NOT NULL AND exec03_geo_key(t.region)=exec03_geo_key(coalesce(nullif(trim(s.exec04_region),''),exec03_region(s.city))) AND nullif(trim(coalesce(s.exec04_region,exec03_region(s.city))),'') IS NOT NULL)))
  AND NOT EXISTS(SELECT 1 FROM mkt_partner_availability a WHERE a.company_id=p.company_id AND a.is_active
  AND a.quantity=0 AND a.starts_on<=current_date AND a.ends_on>=current_date);
@@ -132,6 +132,7 @@ CREATE FUNCTION exec04_message_current(p jsonb) RETURNS boolean LANGUAGE sql STA
  AND c.archived_at IS NULL AND c.template_key NOT IN ('offer','appointment')
  AND m.state IN ('queued','failed') AND m.email=lower(trim(p->>'to'))
  AND exec04_send_eligible(m.subject_type,m.subject_id,m.email,m.purpose,false)
+ AND (m.purpose<>'promotion' OR EXISTS(SELECT 1 FROM email_unsubscribe_tokens t WHERE t.email=m.email AND t.used_at IS NULL AND t.token=p->>'unsubscribe_token'))
  AND (p->>'purpose')=CASE m.purpose WHEN 'service' THEN 'transactional' ELSE 'marketing' END);
 $$;
 REVOKE ALL ON FUNCTION exec04_message_current(jsonb) FROM PUBLIC,anon,authenticated;
@@ -194,6 +195,11 @@ BEGIN
   IF p->>'state'='granted' THEN
    INSERT INTO mkt_consents(email,subject_type,subject_id,scope,channel,consent_text,consent_version,sender_snapshot,source,accepted_at,expires_at,partner_company_id,service_request_id)
    VALUES(email,audience,subject,CASE p->>'purpose' WHEN 'promotion' THEN 'promotions_courriel' ELSE p->>'purpose' END,p->>'channel',p->>'proof','exec04-v1',jsonb_build_object('entity','vrac_quebec'),p->>'source',now(),(p->>'expiresAt')::timestamptz,(p->>'partnerId')::uuid,(p->>'serviceId')::uuid);
+  END IF;
+  -- Rotate only a used promotion token after a fresh explicit grant. Old URL stays invalid.
+  IF p->>'state'='granted' AND p->>'purpose'='promotion' AND p->>'channel'='email' THEN
+   UPDATE email_unsubscribe_tokens SET token=gen_random_uuid()::text,used_at=NULL WHERE email=email_unsubscribe_tokens.email AND email_unsubscribe_tokens.email=exec04_dispatch.email AND used_at IS NOT NULL;
+   IF FOUND THEN DELETE FROM suppressed_emails se WHERE se.email=exec04_dispatch.email AND se.reason='unsubscribe'; END IF;
   END IF;
   result:=jsonb_build_object('ok',true,'state',p->>'state');
  ELSIF kind='campaign_save' THEN
