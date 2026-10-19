@@ -27538,6 +27538,49 @@ export type Database = {
           },
         ]
       }
+      submission_portal_confirmations: {
+        Row: {
+          created_at: string
+          link_id: string
+          queue_id: number
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          link_id: string
+          queue_id: number
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          link_id?: string
+          queue_id?: number
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_portal_confirmations_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "submission_portal_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_portal_confirmations_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_portal_confirmations_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submission_portal_events: {
         Row: {
           action: string
@@ -31340,6 +31383,7 @@ export type Database = {
         }[]
       }
       exec01_dispatch: { Args: { p: Json }; Returns: Json }
+      exec01_enqueue_confirmation: { Args: { p: Json }; Returns: Json }
       exec01_projection: {
         Args: { _crm?: boolean; _id: string }
         Returns: Json
