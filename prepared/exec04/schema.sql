@@ -104,6 +104,15 @@ CREATE FUNCTION exec04_message_current(p jsonb) RETURNS boolean LANGUAGE sql STA
 $$;
 REVOKE ALL ON FUNCTION exec04_message_current(jsonb) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION exec04_message_current(jsonb) TO service_role;
+CREATE FUNCTION exec04_message_result(p jsonb,_state text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+ IF _state NOT IN ('sent','delivered','failed','excluded') THEN RAISE EXCEPTION 'Etat invalide';END IF;
+ UPDATE mkt_promo_sends SET state=_state,sent_at=CASE WHEN _state='sent' THEN now() ELSE sent_at END,
+ last_error=CASE WHEN _state='failed' THEN 'echec_prestataire' WHEN _state='excluded' THEN 'permission_ou_capture_seulement' END
+ WHERE id=(p->'exec04_guard'->>'messageId')::uuid AND email=lower(trim(p->>'to')) AND state NOT IN ('delivered','captured_test');
+END $$;
+REVOKE ALL ON FUNCTION exec04_message_result(jsonb,text) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION exec04_message_result(jsonb,text) TO service_role;
 CREATE FUNCTION exec04_dispatch(p jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,extensions AS $$
 #variable_conflict use_variable
 DECLARE kind text:=p->>'kind'; admin boolean:=coalesce(p->>'role'='admin',false); subject uuid; audience text; contact jsonb; email text;

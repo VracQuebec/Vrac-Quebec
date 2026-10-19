@@ -40,6 +40,7 @@ describe.skipIf(!enabled)('EXEC04 same SQL isolated',()=>{
   const list=await p('partner_list',{role:'partner',actorId:ids.partner,companyId:ids.company});expect(list[0].shared).toEqual({name:'Camille Exemple',email:'camille@test.invalid',city:'Québec',need:'Besoin local fictif'});
   const quote={role:'partner',actorId:ids.partner,companyId:ids.company,serviceId:created.id,action:'quote',amount:123,response:'Soumission fictive documentée',operationId:crypto.randomUUID(),inputHash:'same'};
   await p('service_action',quote);await p('service_action',quote);expect(Number((await db`select count(*) n from mkt_bids where request_id=${created.id}`)[0].n)).toBe(1);
+  await p('agreement',{ruleId:ids.rule,agreement:{basis:'Soumission acceptée',trigger:'result',attribution:'Autorisation du besoin et partenaire sélectionné',dueDate:null,rate:null,fixed:null}});
   await p('service_action',{serviceId:created.id,action:'result',response:'Projet terminé fictif',ruleId:ids.rule});
   const commissions=await db`select * from mkt_commissions where request_id=${created.id}`;expect(commissions.length).toBe(1);expect(commissions[0].amount).toBeNull();
   await own('service_action',{...creds,serviceId:created.id,action:'cancel',reason:'Projet annulé'});expect((await db`select status from mkt_commissions where request_id=${created.id}`)[0].status).toBe('annulee');

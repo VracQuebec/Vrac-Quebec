@@ -264,6 +264,7 @@ Deno.serve(async (req) => {
 
       try {
         if(!await targetedMessageAllowed(payload,async p=>{const {data,error}=await supabase.rpc('exec04_message_current',{p});if(error)throw Error('Target permission check unavailable');return data===true;})){
+          const excluded=await supabase.rpc('exec04_message_result',{p:payload,_state:'excluded'});if(excluded.error)throw Error('Target journal unavailable');
           await supabase.rpc('delete_email',{queue_name:queue,message_id:msg.msg_id});
           continue;
         }
@@ -303,6 +304,7 @@ Deno.serve(async (req) => {
           { apiKey, sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
         )
 
+        if(payload.exec04_guard){const logged=await supabase.rpc('exec04_message_result',{p:payload,_state:'sent'});if(logged.error)throw Error('Target journal unavailable');}
         // Log success
         await supabase.from('email_send_log').insert({
           message_id: payload.message_id,
