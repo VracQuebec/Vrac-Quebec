@@ -4,7 +4,7 @@ import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
 import {Label} from '@/components/ui/label';
 import {Checkbox} from '@/components/ui/checkbox';
-import {exec04Call,isExec04Local} from '@/lib/marketplace/communications';
+import {exec04Call,isExec04Local,EXEC04_CLOUD_ENABLED} from '@/lib/marketplace/communications';
 import type {PortalSession} from '@/lib/remblai/isolated-client';
 
 export default function RelatedServicesPanel({session,verified=false,staff=false,partner=false}:{session:PortalSession|null;verified?:boolean;staff?:boolean;partner?:boolean}){
@@ -14,9 +14,9 @@ export default function RelatedServicesPanel({session,verified=false,staff=false
   if(staff||partner){const rows=await exec04Call(partner?'partner_list':'service_admin',partner?{companyId:company}:{});setData({available:[],requests:rows});}
   else if(session)setData(await exec04Call('services',credentials));
  };
- useEffect(()=>{if(isExec04Local()&&(session||staff))void load().catch(e=>setError(e.message));},[session?.requestId,staff]);
+ useEffect(()=>{if((isExec04Local()||EXEC04_CLOUD_ENABLED)&&(session||staff))void load().catch(e=>setError(e.message));},[session?.requestId,staff]);
  const run=async(kind:string,fields:any)=>{if(busy)return;setBusy(true);setError('');try{await exec04Call(kind,{...credentials,...fields,...(fields.action==='share'?{proof:'J’autorise le partage de mon nom, courriel, ville et description de ce besoin au partenaire sélectionné.'}:{}),confirmed:true,operationId:crypto.randomUUID()});setShare(false);await load();}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
- if(!isExec04Local())return null;
+ if(!isExec04Local()&&!EXEC04_CLOUD_ENABLED)return null;
  const categories=Array.from(new Map<string,any>(data.available.map((a:any)=>[a.categoryId,a])).values());
  return <section className="space-y-4 border-y border-border py-6"><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-display text-xl font-semibold">Services connexes</h2><Button variant="outline" aria-label="Actualiser les services" onClick={()=>void load().catch(e=>setError(e.message))}>Actualiser</Button></div>{error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
  {partner&&<div className="flex gap-2"><Input aria-label="Entreprise partenaire" value={company} onChange={e=>setCompany(e.target.value)} placeholder="Référence de votre entreprise"/><Button onClick={()=>void load().catch(e=>setError(e.message))}>Consulter</Button></div>}

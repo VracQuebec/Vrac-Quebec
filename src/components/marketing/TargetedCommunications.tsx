@@ -7,13 +7,13 @@ import {Label} from '@/components/ui/label';
 import {Badge} from '@/components/ui/badge';
 import {Checkbox} from '@/components/ui/checkbox';
 import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
-import {campaignTemplates,exec04Call,isExec04Local,matchesSegment,type NetworkContact,type Segment,type TemplateKey} from '@/lib/marketplace/communications';
+import {campaignTemplates,exec04Call,isExec04Local,EXEC04_CLOUD_ENABLED,matchesSegment,type NetworkContact,type Segment,type TemplateKey} from '@/lib/marketplace/communications';
 
 export default function TargetedCommunications(){
  const [contacts,setContacts]=useState<NetworkContact[]>([]),[campaigns,setCampaigns]=useState<any[]>([]),[messages,setMessages]=useState<any[]>([]),[capture,setCapture]=useState<any[]>([]);
  const [filters,setFilters]=useState<Segment>({audience:'owner'}),[template,setTemplate]=useState<TemplateKey>('reconfirmation'),[name,setName]=useState(''),[frequency,setFrequency]=useState('168'),[campaign,setCampaign]=useState(''),[preview,setPreview]=useState(false),[selected,setSelected]=useState(''),[permission,setPermission]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  const load=async()=>{const [n,c]=await Promise.all([exec04Call<NetworkContact[]>('network'),exec04Call('campaign_list')]);setContacts(n);setCampaigns(c.campaigns);setMessages(c.messages);};
- useEffect(()=>{if(isExec04Local())void load().catch(e=>setError(e.message));},[]);
+ useEffect(()=>{if(isExec04Local()||EXEC04_CLOUD_ENABLED)void load().catch(e=>setError(e.message));},[]);
  const run=async(work:()=>Promise<void>)=>{if(busy)return;setBusy(true);setError('');try{await work();}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
  const mutate=(kind:string,data:any)=>exec04Call(kind,{...data,confirmed:true,operationId:crypto.randomUUID()});
  const field=(key:keyof Segment,label:string,type='text')=><Label className="space-y-2">{label}<Input aria-label={label} type={type} value={String(filters[key]??'')} onChange={e=>setFilters({...filters,[key]:e.target.value?(key==='remainingMin'?Number(e.target.value):key==='confirmedBefore'||key==='activeAfter'?new Date(e.target.value).toISOString():e.target.value):undefined})}/></Label>;

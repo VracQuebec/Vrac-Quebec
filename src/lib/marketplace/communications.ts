@@ -39,6 +39,14 @@ export function renderCampaign(key:TemplateKey,name:string,url:string,unsubscrib
 }
 export async function exec04Call<T=any>(kind:string,data:Record<string,unknown>={}) : Promise<T> {
  if(!isExec04Local()&&!EXEC04_CLOUD_ENABLED)throw Error('Communications et services préparés, non activés pour les dossiers réels.');
- const response=await fetch('http://localhost:55440/communications',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,...data})});
+ let url='http://localhost:55440/communications';const headers:Record<string,string>={'Content-Type':'application/json'};
+ if(!isExec04Local()){
+  const {supabase}=await import('@/integrations/supabase/client');
+  const {data:{session}}=await supabase.auth.getSession();
+  url=`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/network-communications`;
+  headers.apikey=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if(session)headers.Authorization=`Bearer ${session.access_token}`;
+ }
+ const response=await fetch(url,{method:'POST',credentials:isExec04Local()?'include':'omit',headers,body:JSON.stringify({kind,...data})});
  const result=await response.json();if(!response.ok)throw Error(result.error??'Action refusée.');return result;
 }

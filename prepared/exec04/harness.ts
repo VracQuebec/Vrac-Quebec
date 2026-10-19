@@ -16,7 +16,7 @@ Bun.serve({hostname:'127.0.0.1',port:55440,fetch:async r=>{
  const u=new URL(r.url);
  if(r.headers.get('origin')&&r.headers.get('origin')!=='http://localhost:8080')return new Response('Origin refused',{status:403,headers});
  if(r.method==='OPTIONS')return new Response('',{headers});
- if(u.pathname==='/harness/login'&&r.method==='POST'){const p=await r.json(),key=crypto.randomUUID();const a=p.role==='partner'?{role:'partner' as const,actorId:ids.partner}:p.role==='foreign'?{role:'partner' as const,actorId:ids.foreignUser}:{role:'admin' as const,actorId:ids.admin};sessions.set(key,a);return Response.json({role:a.role},{headers:{...headers,'Set-Cookie':`exec04_session=${key}; HttpOnly; SameSite=Lax; Path=/`}});}
+ if(u.pathname==='/harness/login'&&r.method==='POST'){const p=await r.json();if(!['admin','partner','foreign'].includes(p.role))return new Response('Fictional identity required',{status:400,headers});const key=crypto.randomUUID();const a=p.role==='partner'?{role:'partner' as const,actorId:ids.partner}:p.role==='foreign'?{role:'partner' as const,actorId:ids.foreignUser}:{role:'admin' as const,actorId:ids.admin};sessions.set(key,a);return Response.json({role:a.role},{headers:{...headers,'Set-Cookie':`exec04_session=${key}; HttpOnly; SameSite=Lax; Path=/`}});}
  if(u.pathname==='/harness/fixture'&&(await actor(r))?.role==='admin')return Response.json(ids,{headers});
  if(u.pathname==='/harness/messages'&&(await actor(r))?.role==='admin')return Response.json(messages,{headers});
  if(u.pathname==='/portal')return portal(r);
