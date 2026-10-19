@@ -124,6 +124,9 @@ const Entrepreneur = () => {
   const [drawing, setDrawing] = useState(false);
   const drawingRef = useRef(false);
   drawingRef.current = drawing;
+  const sectorModeRef=useRef(search.sector.mode);
+  sectorModeRef.current=search.sector.mode;
+  useEffect(()=>{drawingRef.current=false;setDrawing(false);},[search.sector.mode,search.companyId]);
   const [routes, setRoutes] = useState<Record<string, RouteFact | null>>({});
   const polygonRef = useRef<google.maps.Polygon | null>(null);
   const circleRef = useRef<google.maps.Circle | null>(null);
@@ -246,7 +249,7 @@ const Entrepreneur = () => {
     setLoading(true);
     const { sites, error } = isolated
       ? await localSearchCall<{sites: EntLead[];error:null}>("sites").catch(()=>({sites:[],error:"Serveur isolé indisponible"}))
-      : SEARCH_CLOUD_ENABLED ? await (async()=>{const {data,error}=await (supabase as any).rpc('exec03_search_sites');return {sites:data??[],error:error?.message??null};})() : await getEligibleEntrepreneurDumpSites();
+      : await getEligibleEntrepreneurDumpSites();
     if (error) toast({ title: "Erreur", description: error, variant: "destructive" });
     else setLeads((sites as any[]).filter((d) => crmDompeNumber(d) !== null));
     setLoading(false);
@@ -272,7 +275,7 @@ const Entrepreneur = () => {
         infoRef.current = new g.maps.InfoWindow();
         setMapReady(true);
         mapRef.current.addListener("click", (event: google.maps.MapMouseEvent) => {
-          if (!drawingRef.current || !event.latLng) return;
+          if (!drawingRef.current || sectorModeRef.current!=='polygon' || !event.latLng) return;
           const p={lat:event.latLng.lat(),lng:event.latLng.lng()};
           search.setSector(s=>({...s,mode:"polygon",polygon:[...s.polygon,p].slice(0,200)}));
         });

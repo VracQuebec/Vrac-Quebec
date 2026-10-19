@@ -12,4 +12,4 @@ const endpoint=makeSearchEndpoint({enabled,origin:env('EXEC03_APP_ORIGIN'),
  route:async body=>{const p=body as {origin:{lat:number;lng:number};destination:{latitude:number;longitude:number}};const destination={lat:p.destination?.latitude,lng:p.destination?.longitude};if(!validPoint(p.origin)||!validPoint(destination))throw Error('Invalid route');return maps.route(p.origin,destination);},
  address:async input=>maps.address(input),
 });
-Deno.serve(r=>{if(!enabled)return Response.json({error:'Activation disabled'},{status:503});return endpoint(r);});
+Deno.serve(endpoint);

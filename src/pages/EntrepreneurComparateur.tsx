@@ -216,7 +216,7 @@ export default function EntrepreneurComparateur() {
     void (async () => {
       const { sites, error } = isolated
         ? await localSearchCall<{sites: Lead[];error:null}>("sites").catch(()=>({sites:[],error:"Serveur isolé indisponible"}))
-        : SEARCH_CLOUD_ENABLED ? await (async()=>{const {data,error}=await (supabase as any).rpc('exec03_search_sites');return {sites:data??[],error:error?.message??null};})() : await getEligibleEntrepreneurDumpSites();
+        : await getEligibleEntrepreneurDumpSites();
       if (error) toast({ title: "Erreur", description: error, variant: "destructive" });
       else setLeads((sites as unknown as Lead[]).filter((d) => crmDompeNumber(d) !== null));
       setLoading(false);

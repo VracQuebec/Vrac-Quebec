@@ -35,11 +35,20 @@ export function insidePolygon(p:Point,vertices:Point[]) {
   return inside;
 }
 export interface SearchSite {id:string;latitude:number|null;longitude:number|null;city?:string|null;region?:string|null}
+export const canDrawSector = (drawing:boolean,mode:Sector['mode']) => drawing && mode==='polygon';
+export function searchGeography<T extends SearchSite>(site:T):T {
+ const city=site.city?.trim()||null;
+ return {...site,city,region:site.region?.trim()||resolveCity(city)?.region||null};
+}
 export interface RouteFact {distanceKm:number|null;minutes:number|null;source:string;calculatedAt:string;heavyTruckValidated:false;approximateDestination:boolean}
 export function inSector(site:SearchSite,s:Sector,route?:RouteFact|null) {
   const point=site.latitude!==null&&site.longitude!==null?{lat:site.latitude,lng:site.longitude}:null;
   let match=true;
-  if(s.mode==='places') match=s.cities.some(c=>geoKey(c)===geoKey(site.city??''))||s.regions.some(r=>geoKey(r)===geoKey(site.region??resolveCity(site.city)?.region??''));
+  if(s.mode==='places') {
+ const region=site.region?.trim()||resolveCity(site.city)?.region;
+ const unknown=(!site.city?.trim()&&s.cities.length>0)||(!region&&s.regions.length>0);
+ match=unknown||s.cities.some(c=>geoKey(c)===geoKey(site.city??''))||s.regions.some(r=>geoKey(r)===geoKey(region??''));
+ }
   if(s.mode==='radius')match=validPoint(point)&&validPoint(s.center)&&s.radiusKm!==null&&geographicKm(point,s.center)<=s.radiusKm;
   if(s.mode==='polygon')match=validPoint(point)&&s.polygon.length>=3&&insidePolygon(point,s.polygon);
   // Unknown route stays visible as pending, never becomes zero or an invented exclusion.
