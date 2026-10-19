@@ -8,7 +8,7 @@ import { useEntrepreneurNotifications } from "@/hooks/useEntrepreneurNotificatio
 import { Button } from "@/components/ui/button";
 import FullPageState from "@/components/FullPageState";
 import InstallAppCard from "@/components/entrepreneur-app/InstallAppCard";
-import { PUBLIC_PHONE_E164 } from "@/lib/public-phone";
+import ContextHelp from "@/components/help/ContextHelp";
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -111,6 +111,7 @@ const MORE_SECTIONS: { title: string; items: MoreItem[] }[] = [
       { to: "/entrepreneur/compte#mon-compte", label: "Mon compte", hint: "", icon: User },
       { to: "/entrepreneur/notifications", label: "Notifications", hint: "Ce qui demande votre attention", icon: Bell },
       { to: "/entrepreneur/compte#preferences", label: "Préférences", hint: "", icon: SlidersHorizontal },
+      { to: "/entrepreneur/aide", label: "Aide et démonstrations", hint: "", icon: LifeBuoy },
     ],
   },
 ];
@@ -198,7 +199,7 @@ export default function EntrepreneurAppShell({
     );
   }
 
-  if(employeeMode)return <div className="min-h-dvh bg-background"><header className="border-b border-border bg-card"><div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 p-4"><div><h1 className="font-display text-lg font-bold">{title??"Mes heures"}</h1><p className="text-sm text-muted-foreground">{subtitle}</p></div><nav className="flex gap-2" aria-label="Navigation employé"><Button variant="outline" asChild><Link to="/entrepreneur/punch">Mes heures</Link></Button><Button variant="outline" onClick={handleLogout}><LogOut className="mr-1 h-4 w-4"/>Quitter</Button></nav></div></header><main className="mx-auto max-w-5xl p-4 sm:p-6">{children}</main></div>;
+  if(employeeMode)return <div className="min-h-dvh bg-background"><header className="border-b border-border bg-card"><div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 p-4"><div><h1 className="font-display text-lg font-bold">{title??"Mes heures"}</h1><p className="text-sm text-muted-foreground">{subtitle}</p></div><nav className="flex gap-2" aria-label="Navigation employé"><Button variant="outline" asChild><Link to="/entrepreneur/punch">Mes heures</Link></Button><Button variant="outline" asChild><Link to="/entrepreneur/aide">Aide et démonstrations</Link></Button><ContextHelp role="operateur" userId={user.id} articleId="punch"/><Button variant="outline" onClick={handleLogout}><LogOut className="mr-1 h-4 w-4"/>Quitter</Button></nav></div></header><main className="mx-auto max-w-5xl p-4 sm:p-6">{children}</main></div>;
 
   const badge = unreadCount;
   const currentLocation = `${location.pathname}${location.search}${location.hash}`;
@@ -224,7 +225,7 @@ export default function EntrepreneurAppShell({
             <p className="px-3 py-2 font-body text-[11px] font-medium uppercase text-muted-foreground">{section.title}</p>
             {section.items.map(navigationLink)}
           </div>)}
-          <Button asChild variant="ghost" className="min-h-11 w-full justify-start gap-3 hover:bg-secondary hover:text-foreground"><a href={`tel:${PUBLIC_PHONE_E164}`}><LifeBuoy />Aide</a></Button>
+          
         </nav>
         <div className="shrink-0 border-t border-border p-3">
           <Button variant="ghost" onClick={handleLogout} className="min-h-11 w-full justify-start text-muted-foreground hover:bg-secondary hover:text-foreground"><LogOut />Déconnexion</Button>
@@ -241,7 +242,7 @@ export default function EntrepreneurAppShell({
               {!isHome && subtitle && <p className="break-words font-body text-xs leading-snug text-muted-foreground">{subtitle}</p>}
               {isHome && <span className="hidden font-body text-sm text-muted-foreground lg:inline">Accueil</span>}
             </div>
-            <div className="flex shrink-0 items-center gap-1">{headerActions}</div>
+            <div className="flex shrink-0 items-center gap-1">{headerActions}<ContextHelp role={isEntrepreneur||isAdmin?"entrepreneur":"operateur"} userId={user.id}/></div>
             <Button asChild variant="ghost" size="icon" className="relative h-11 w-11 shrink-0 hover:bg-secondary hover:text-foreground">
               <Link to="/entrepreneur/notifications" aria-label={`Notifications${badge ? ` (${badge} non lues)` : ""}`}><Bell className="!h-[18px] !w-[18px]" strokeWidth={1.7} />
                 {badge > 0 && <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-secondary px-1 font-body text-[9px] font-semibold text-foreground">{badge > 99 ? "99+" : badge}</span>}
@@ -282,7 +283,7 @@ export default function EntrepreneurAppShell({
                 </Button>;
               })}
               {section.title === "Compte" && <>
-                <Button asChild variant="ghost" className="min-h-11 w-full justify-start gap-3 px-2 font-body text-[13px] hover:bg-secondary hover:text-foreground"><a href={`tel:${PUBLIC_PHONE_E164}`} onClick={() => setMoreOpen(false)}><LifeBuoy className="text-muted-foreground" strokeWidth={1.6} /><span>Aide</span></a></Button>
+                
                 <Button variant="ghost" onClick={handleLogout} className="min-h-11 w-full justify-start gap-3 px-2 font-body text-[13px] text-muted-foreground hover:bg-secondary hover:text-foreground"><LogOut strokeWidth={1.6} />Déconnexion</Button>
               </>}
               </div>}

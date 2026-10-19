@@ -15,6 +15,7 @@ import { useSearchIdentity } from "@/hooks/useSearchIdentity";
 import { useSearchSector, searchRoute } from "@/hooks/useSearchSector";
 import { inSector, validPoint, canDrawSector, type RouteFact } from "@/lib/entrepreneur/search-sector";
 import { routingBatches } from "@/lib/entrepreneur/comparateur-candidates";
+import {recordAction} from "@/lib/help/progress";
 import { isolatedSearch, localSearchCall, SEARCH_CLOUD_ENABLED } from "@/lib/entrepreneur/search-runtime";
 import SearchSectorPanel from "@/components/entrepreneur/SearchSectorPanel";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
@@ -251,7 +252,7 @@ const Entrepreneur = () => {
       ? await localSearchCall<{sites: EntLead[];error:null}>("sites").catch(()=>({sites:[],error:"Serveur isolé indisponible"}))
       : await getEligibleEntrepreneurDumpSites();
     if (error) toast({ title: "Erreur", description: error, variant: "destructive" });
-    else setLeads((sites as any[]).filter((d) => crmDompeNumber(d) !== null));
+    else {setLeads((sites as any[]).filter((d) => crmDompeNumber(d) !== null));}
     setLoading(false);
   };
 
@@ -458,7 +459,7 @@ const Entrepreneur = () => {
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {setQuery(e.target.value);if(!loading&&e.target.value.trim())recordAction(user?.id,search.companyId,"search");}}
                 placeholder="Secteur, matériau, numéro de dompe…"
                 aria-label="Rechercher une dompe"
                 className="h-11 w-full rounded-lg border border-transparent bg-secondary/45 pl-11 pr-3 font-body text-sm outline-none placeholder:text-muted-foreground/75 focus:border-primary"

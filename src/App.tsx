@@ -15,6 +15,7 @@ import { trackPageView } from "./lib/analytics/ga4";
 import { useAdminNotifications } from "./hooks/useAdminNotifications";
 import { isolatedSearch } from "@/lib/entrepreneur/search-runtime";
 import {isExec04Local} from "@/lib/marketplace/communications";
+import {isHelpLocal} from "@/lib/help/progress";
 import {isPunchLocal} from "@/lib/punch/runtime";
 import {isExec05Local} from "@/lib/finances/exec05";
 import { EntrepreneurDataProvider } from "./lib/entrepreneur-app/EntrepreneurDataProvider";
@@ -176,6 +177,8 @@ const AdminOrchestrator = lazy(() => import("./pages/AdminOrchestrator"));
 
 const queryClient = new QueryClient();
 const EmployeeInviteScreen = lazy(() => import("./components/punch/EmployeeInviteScreen"));
+const EntrepreneurAide = lazy(() => import("./pages/EntrepreneurAide"));
+const HelpLocalScreen = lazy(() => import("./components/help/HelpLocalScreen"));
 const PunchLocalScreen = lazy(() => import("./components/punch/PunchLocalScreen"));
 const FinanceLocalScreen = lazy(() => import("./components/finances/FinanceLocalScreen"));
 
@@ -221,6 +224,7 @@ const PrivateNoIndex = () => {
 // Personal links and EXEC-01 tests are isolated from analytics, session keepers,
 // notification mounts and production data providers. No bearer token in URLs.
 const App = () => {
+  if(isHelpLocal())return <TooltipProvider><BrowserRouter><BrandPaletteScope/><Suspense fallback={<p className="p-6">Chargement…</p>}><HelpLocalScreen/></Suspense></BrowserRouter></TooltipProvider>;
   if(window.location.pathname==="/entrepreneur/punch" && new URLSearchParams(window.location.hash.slice(1)).has("invitation"))return <TooltipProvider><Suspense fallback={<p className="p-6">Chargement…</p>}><EmployeeInviteScreen/></Suspense></TooltipProvider>;
   if(isPunchLocal())return <TooltipProvider><BrowserRouter><BrandPaletteScope/><Toaster/><Suspense fallback={<p className="p-6">Chargement…</p>}><PunchLocalScreen/></Suspense></BrowserRouter></TooltipProvider>;
   if(isExec05Local())return <TooltipProvider><BrowserRouter><BrandPaletteScope/><Toaster/><Suspense fallback={<p className="p-6">Chargement…</p>}><FinanceLocalScreen/></Suspense></BrowserRouter></TooltipProvider>;
@@ -287,6 +291,7 @@ const App = () => {
             <Route path="/entrepreneur/activites" element={<EntrepreneurActivites />} />
             <Route path="/entrepreneur/taches" element={<EntrepreneurTaches />} />
             <Route path="/entrepreneur/agenda" element={<EntrepreneurAgenda />} />
+            <Route path="/entrepreneur/aide" element={<EntrepreneurAide />} />
             <Route path="/entrepreneur/punch" element={<EntrepreneurPunch />} />
             <Route path="/entrepreneur/obligations" element={<EntrepreneurObligations />} />
             <Route path="/entrepreneur/documents" element={<EntrepreneurDocuments />} />
