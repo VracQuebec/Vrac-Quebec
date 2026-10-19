@@ -41,3 +41,5 @@
 ## Fichiers
 Nouveaux : `src/lib/help/{catalog,progress}.ts`, `src/components/help/{HelpWorkspace,ContextHelp,HelpLocalScreen}.tsx`, `src/pages/EntrepreneurAide.tsx`, `prepared/exec07/{local-db,harness}.ts`, scripts navigateur et règles AGENTS locales, tests `exec07-help`/`exec07-local`, articles/scripts/bilan/captures et tableau commun.
 Modifiés : App, EntrepreneurAppShell, Entrepreneur, EntrepreneurCrm, PunchBoard, punch/runtime, useSearchSector, main (pas d’outbox réelle en TEST), Vite (CSP locale), suivi d’activation et roadmap. Ni schéma Cloud ni settings ni tarifs modifiés.
+
+Nettoyage final : bases uniques de fixture supprimées après vérification host/port/data_directory; aucun service de démonstration laissé actif.
