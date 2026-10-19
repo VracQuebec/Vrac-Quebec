@@ -18,6 +18,7 @@ GRANT USAGE ON SCHEMA auth,public TO authenticated;
 CREATE SCHEMA storage;
 CREATE TABLE storage.objects(bucket_id text,name text);
 CREATE FUNCTION storage.foldername(text) RETURNS text[] LANGUAGE sql AS $$ SELECT string_to_array($1,'/') $$;
+CREATE FUNCTION storage.extension(text) RETURNS text LANGUAGE sql AS $$ SELECT lower(substring($1 from '\.([^./]+)$')) $$;
 CREATE TABLE public.jsc_trucks(id uuid PRIMARY KEY);
 GRANT SELECT ON public.jsc_trucks TO authenticated; GRANT ALL ON public.jsc_trucks TO service_role;
 ALTER TABLE public.jsc_trucks ENABLE ROW LEVEL SECURITY;
