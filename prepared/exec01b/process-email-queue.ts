@@ -1,5 +1,6 @@
 // PREPARED COPY ONLY; install after isolated validation and explicit deployment authorization.
 import {receptionMessageAllowed} from './queue-reception-guard.ts';
+import {targetedMessageAllowed} from '../exec04/queue-guard.ts';
 import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 
@@ -262,6 +263,10 @@ Deno.serve(async (req) => {
       }
 
       try {
+        if(!await targetedMessageAllowed(payload,async p=>{const {data,error}=await supabase.rpc('exec04_message_current',{p});if(error)throw Error('Target permission check unavailable');return data===true;})){
+          await supabase.rpc('delete_email',{queue_name:queue,message_id:msg.msg_id});
+          continue;
+        }
         if (!await receptionMessageAllowed(payload, {
           current: async p => { const {data,error}=await supabase.rpc('exec02_message_current',{p}); if(error)throw Error('Reception validation unavailable');return data===true; },
           suppressed: async recipient => { const {data,error}=await supabase.from('suppressed_emails').select('id').eq('email',recipient.toLowerCase()).maybeSingle();if(error)throw Error('Suppression unavailable');return !!data; },

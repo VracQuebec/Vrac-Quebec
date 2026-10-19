@@ -40,6 +40,7 @@ export function makeCommunicationEndpoint(d:CommDeps){
     const rendered=[];
     for(let n=0;n<200;n++){
      const claim=await d.rpc({...p,kind:'campaign_claim'});if(claim.empty)break;if(claim.excluded)continue;
+     if(claim.recover){const captured=await d.captured(claim.id);await d.rpc({...p,kind:'campaign_ack',messageId:claim.id,operationId:crypto.randomUUID(),state:captured?'captured_test':'failed',reason:captured?null:'capture_locale_indisponible'});continue;}
      if(!claim.render)break;
      const nextId=crypto.randomUUID(),secret=randomSecret();
      const url=claim.audience==='owner'?`${d.origin}/portail/remblai?server=local&exec04=local#${new URLSearchParams({requestId:claim.subjectId,linkId:nextId,secret})}`:`${d.origin}/entrepreneur`;
@@ -51,6 +52,6 @@ export function makeCommunicationEndpoint(d:CommDeps){
     return reply({state:'captured_test',messages:rendered});
    }
    const result=await d.rpc(p);return reply(result);
-  }catch(e){return reply({error:e instanceof Error?e.message:'Action indisponible'},403);}
+  }catch{return reply({error:'Action refusée : droits, permission, état ou conditions à vérifier.'},403);}
  };
 }

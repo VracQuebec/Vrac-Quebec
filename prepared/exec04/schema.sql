@@ -90,7 +90,7 @@ CREATE FUNCTION exec04_available(_submission uuid,_category uuid) RETURNS jsonb 
  FROM submissions s JOIN mkt_service_categories c ON c.is_active AND (_category IS NULL OR c.id=_category)
  JOIN mkt_partner_services ps ON ps.category_id=c.id AND ps.is_active JOIN mkt_partners p ON p.company_id=ps.company_id
  WHERE s.id=_submission AND p.is_active AND p.is_public AND p.archived_at IS NULL
- AND p.availability_status IN ('disponible','available')
+ AND p.availability_status='disponible' AND p.onboarding_status='approuve'
  AND EXISTS(SELECT 1 FROM mkt_partner_territories t WHERE t.company_id=p.company_id AND t.is_active
  AND ((t.scope='province' AND t.region='Québec') OR (t.scope='ville' AND lower(t.city)=lower(s.city))
  OR (t.scope='region' AND t.region IS NOT NULL AND t.region=s.exec04_region)))
@@ -117,12 +117,13 @@ BEGIN
  END IF;
  IF kind='preferences' THEN
   SELECT s.email INTO email FROM submissions s WHERE s.id=(p->>'requestId')::uuid;
-  RETURN coalesce((SELECT jsonb_agg(jsonb_build_object('purpose',scope,'channel',channel,'state',CASE WHEN withdrawn_at IS NOT NULL THEN 'withdrawn' ELSE permission_state END,'source',source,'proof',consent_text,'at',accepted_at,'expiresAt',expires_at,'withdrawnAt',withdrawn_at)) FROM mkt_consents c WHERE c.email=email),'[]');
+  RETURN coalesce((SELECT jsonb_agg(jsonb_build_object('purpose',scope,'channel',channel,'state',CASE WHEN withdrawn_at IS NOT NULL THEN 'withdrawn' ELSE permission_state END,'source',source,'proof',consent_text,'at',accepted_at,'expiresAt',expires_at,'withdrawnAt',withdrawn_at)) FROM mkt_consents c WHERE c.email=email AND c.subject_type='owner' AND c.subject_id=(p->>'requestId')::uuid),'[]');
  END IF;
  IF kind='services' THEN RETURN jsonb_build_object('available',exec04_available((p->>'requestId')::uuid,NULL),
  'requests',coalesce((SELECT jsonb_agg(to_jsonb(r)-'internal_notes'-'contact_email'-'contact_phone'-'contact_name') FROM mkt_quote_requests r WHERE origin_submission_id=(p->>'requestId')::uuid),'[]')); END IF;
  IF kind IN ('partner_list','service_admin') THEN RETURN coalesce((SELECT jsonb_agg(jsonb_build_object('id',r.id,'title',r.title,'city',r.city,'status',r.status,'answers',r.answers-'shared',
- 'shared',CASE WHEN admin THEN r.answers->'shared' WHEN exec04_permission(r.contact_email,'partner_share',now(),(p->>'companyId')::uuid,r.id) AND r.answers->>'partnerId'=p->>'companyId' AND r.status NOT IN ('annulee','litige') THEN r.answers->'shared' END)) FROM mkt_quote_requests r WHERE r.origin_submission_id IS NOT NULL AND (admin OR r.answers->>'partnerId'=p->>'companyId')),'[]'); END IF;
+ 'description',CASE WHEN admin THEN r.description END,
+ 'shared',CASE WHEN admin THEN r.answers->'shared' WHEN exec04_permission(r.contact_email,'partner_share',now(),(p->>'companyId')::uuid,r.id) AND r.answers->>'partnerId'=p->>'companyId' AND r.status NOT IN ('annulee','litige') THEN r.answers->'shared' END)) FROM mkt_quote_requests r WHERE r.origin_submission_id IS NOT NULL AND (admin OR (r.answers->>'partnerId'=p->>'companyId' AND exec04_permission(r.contact_email,'partner_share',now(),(p->>'companyId')::uuid,r.id) AND r.status NOT IN ('annulee','litige')))),'[]'); END IF;
  -- Lock network subject/commission/campaign before replay check, preventing concurrent duplicates.
  IF p->>'campaignId' IS NOT NULL THEN SELECT * INTO camp FROM mkt_campaigns WHERE id=(p->>'campaignId')::uuid FOR UPDATE; END IF;
  IF p->>'requestId' IS NOT NULL THEN PERFORM 1 FROM submissions WHERE id=(p->>'requestId')::uuid FOR UPDATE; END IF;
@@ -151,20 +152,21 @@ BEGIN
   -- Candidate IDs are computed by the shared domain on a fresh server network projection; SQL rechecks permission/contact.
   FOR recipient IN SELECT value FROM jsonb_array_elements(p->'recipients') LOOP
    audience:=recipient->>'audience';subject:=(recipient->>'id')::uuid; contact:=exec04_contact(audience,subject); email:=lower(trim(contact->>'email'));
-   IF email IS NULL OR contact->>'verified'<>'true' OR NOT exec04_permission(email,camp.purpose) THEN CONTINUE; END IF;
+   IF email IS NULL OR contact->>'verified' IS DISTINCT FROM 'true' OR NOT exec04_permission(email,camp.purpose) OR (camp.template_key IN ('offer','appointment')) THEN CONTINUE; END IF;
    PERFORM pg_advisory_xact_lock(hashtext('exec04-mail:'||email));key:='exec04:'||camp.id||':'||encode(digest(email,'sha256'),'hex');
    IF EXISTS(SELECT 1 FROM mkt_promo_sends WHERE message_key=key) THEN CONTINUE;END IF;
-   IF EXISTS(SELECT 1 FROM mkt_promo_sends ms WHERE ms.email=email AND ms.purpose=camp.purpose AND ms.state IN ('prepared','queued','captured_test','sent','delivered') AND coalesce(ms.captured_at,ms.sent_at,(SELECT created_at FROM mkt_campaigns WHERE id=ms.campaign::uuid))>now()-make_interval(hours=>camp.frequency_hours)) THEN CONTINUE; END IF;
+   IF EXISTS(SELECT 1 FROM mkt_promo_sends ms WHERE ms.email=email AND ms.purpose=camp.purpose AND ms.state IN ('prepared','queued','captured_test','sent','delivered') AND coalesce(ms.captured_at,ms.sent_at,(SELECT created_at FROM mkt_campaigns WHERE id::text=ms.campaign))>now()-make_interval(hours=>camp.frequency_hours)) THEN CONTINUE; END IF;
    INSERT INTO mkt_promo_sends(email,campaign,message_key,state,purpose,subject_type,subject_id) VALUES(email,camp.id::text,key,'prepared',camp.purpose,audience,subject);
   END LOOP;
   result:=jsonb_build_object('ok',true);
  ELSIF kind='campaign_claim' THEN
   IF camp.id IS NULL THEN RAISE EXCEPTION 'Campagne absente';END IF;
-  SELECT * INTO msg FROM mkt_promo_sends ms WHERE ms.campaign=camp.id::text AND ms.state IN ('prepared','failed') AND ms.attempts<3 ORDER BY ms.id LIMIT 1 FOR UPDATE SKIP LOCKED;
+  SELECT * INTO msg FROM mkt_promo_sends ms WHERE ms.campaign=camp.id::text AND ms.state IN ('prepared','failed','queued') AND ms.attempts<3 ORDER BY ms.id LIMIT 1 FOR UPDATE SKIP LOCKED;
   IF msg.id IS NULL THEN RETURN jsonb_build_object('empty',true);END IF;
   IF NOT exec04_permission(msg.email,msg.purpose) THEN UPDATE mkt_promo_sends SET state='excluded',last_error='permission_retirée_ou_absente' WHERE id=msg.id;RETURN jsonb_build_object('excluded',true);END IF;
+  IF msg.queue_id IS NOT NULL THEN RETURN jsonb_build_object('recover',true,'id',msg.id); END IF;
   IF p->'message' IS NULL THEN RETURN jsonb_build_object('render',true,'id',msg.id,'contact',exec04_contact(msg.subject_type,msg.subject_id),'subjectId',msg.subject_id,'audience',msg.subject_type,'template',camp.template_key,'key',msg.message_key);END IF;
-  IF p->>'messageId'<>msg.id::text THEN RAISE EXCEPTION 'Message modifié'; END IF;
+  IF p->>'messageId' IS DISTINCT FROM msg.id::text THEN RAISE EXCEPTION 'Message modifié'; END IF;
   IF msg.subject_type='owner' THEN
    INSERT INTO submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at) VALUES((p->>'nextId')::uuid,msg.subject_id,p->>'nextHash',encode(digest(msg.email,'sha256'),'hex'),now()+interval '30 days');
   END IF;
@@ -186,11 +188,11 @@ BEGIN
   state:=p->>'action';reason:=p->>'reason';part:=(p->>'partnerId')::uuid;
   IF state='qualify' THEN IF NOT admin THEN RAISE EXCEPTION 'Qualification équipe';END IF;UPDATE mkt_quote_requests SET status='a_matcher',answers=answers||jsonb_build_object('qualified',true,'qualification',p->>'qualification') WHERE id=req.id;
   ELSIF state IN ('share','refuse_share') THEN
-   IF p->>'role'<>'owner' OR req.answers->>'qualified'<>'true' OR part IS NULL THEN RAISE EXCEPTION 'Autorisation propriétaire et qualification requises';END IF;
+   IF p->>'role' IS DISTINCT FROM 'owner' OR req.answers->>'qualified' IS DISTINCT FROM 'true' OR part IS NULL OR (state='share' AND length(coalesce(p->>'proof',''))<3) THEN RAISE EXCEPTION 'Autorisation propriétaire et qualification requises';END IF;
    IF NOT EXISTS(SELECT 1 FROM jsonb_array_elements(exec04_available(req.origin_submission_id,req.category_id)) a WHERE a->>'companyId'=part::text) THEN RAISE EXCEPTION 'Partenaire hors secteur';END IF;
    UPDATE mkt_quote_requests SET answers=answers||jsonb_build_object('partnerId',part,'shareDecision',state,'shared',CASE WHEN state='share' THEN jsonb_build_object('name',req.contact_name,'email',req.contact_email,'city',req.city,'need',req.description) ELSE '{}'::jsonb END),status=CASE WHEN state='share' THEN 'distribuee' ELSE 'a_matcher' END WHERE id=req.id;
    UPDATE mkt_consents SET withdrawn_at=now(),permission_state='withdrawn',withdrawn_source='portail' WHERE scope='partner_share' AND service_request_id=req.id AND withdrawn_at IS NULL;
-   IF state='share' THEN INSERT INTO mkt_consents(email,scope,consent_text,consent_version,sender_snapshot,source,partner_company_id,service_request_id,subject_type,subject_id) VALUES(lower(req.contact_email),'partner_share','Autorisation explicite : nom, courriel, ville et besoin transmis au partenaire sélectionné.','exec04-v1','{}','portail_vérifié',part,req.id,'owner',req.origin_submission_id);END IF;
+   IF state='share' THEN INSERT INTO mkt_consents(email,scope,consent_text,consent_version,sender_snapshot,source,partner_company_id,service_request_id,subject_type,subject_id) VALUES(lower(req.contact_email),'partner_share',p->>'proof','exec04-v1','{}','portail_vérifié',part,req.id,'owner',req.origin_submission_id);END IF;
   ELSIF state IN ('respond','quote') THEN
    IF p->>'role'<>'partner' OR req.answers->>'partnerId' IS DISTINCT FROM p->>'companyId' OR NOT EXISTS(SELECT 1 FROM jsc_company_members WHERE company_id=(p->>'companyId')::uuid AND user_id=(p->>'actorId')::uuid AND is_active AND archived_at IS NULL) OR NOT exec04_permission(req.contact_email,'partner_share',now(),(p->>'companyId')::uuid,req.id) THEN RAISE EXCEPTION 'Partage absent ou autre entreprise' USING ERRCODE='42501';END IF;
    IF req.status IN ('annulee','litige') THEN RAISE EXCEPTION 'Demande non active';END IF;
@@ -207,7 +209,7 @@ BEGIN
   UPDATE mkt_quote_requests SET exec04_rev=exec04_rev+1 WHERE id=req.id;result:=jsonb_build_object('ok',true);
  ELSIF kind='agreement' THEN
   IF p->'agreement' IS NULL OR p->'agreement'->>'basis' IS NULL OR p->'agreement'->>'trigger' IS NULL OR p->'agreement'->>'attribution' IS NULL THEN RAISE EXCEPTION 'Entente à compléter';END IF;
-  UPDATE mkt_pricing_rules SET agreement=p->'agreement' WHERE id=(p->>'ruleId')::uuid;
+   UPDATE mkt_pricing_rules SET agreement=p->'agreement' WHERE id=(p->>'ruleId')::uuid;
   result:=jsonb_build_object('ok',true);
  ELSIF kind='commission' THEN
   state:=p->>'action';IF comm.id IS NULL THEN RAISE EXCEPTION 'Commission absente';END IF;
