@@ -1,8 +1,9 @@
--- PREPARED ONLY. Never apply to the shared backend during EXEC-01B.
+-- PREPARED ONLY. Never apply to the shared backend during EXEC-01B/01C.
 -- Additive extension of the existing dossier, not a second CRM.
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS exec01_version integer NOT NULL DEFAULT 1;
 ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS exec01_contact_verified_at timestamptz;
+ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS exec01_owner_confirmed_at timestamptz;
 ALTER TABLE public.submission_fill_profile ADD COLUMN IF NOT EXISTS reception_conditions jsonb;
 CREATE TABLE public.submission_portal_links (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), submission_id uuid NOT NULL REFERENCES public.submissions(id),
@@ -43,8 +44,13 @@ CREATE FUNCTION public.exec01_projection(_id uuid, _crm boolean DEFAULT false) R
  'name',s.name,'city',s.city,'status',s.status,'version',s.exec01_version,
  'availability',CASE WHEN s.availability_status IN ('suspended','owner_closed') THEN s.availability_status
  WHEN s.revalidation_requested_at IS NOT NULL OR s.exec01_contact_verified_at IS NULL THEN 'a_confirmer' ELSE s.availability_status END,
- 'lastConfirmed',CASE WHEN s.revalidation_requested_at IS NULL THEN s.availability_updated_at ELSE NULL END,
- 'conditions',p.reception_conditions,'proposals','[]'::jsonb,'deliveries','[]'::jsonb) ||
+ 'lastConfirmed',CASE WHEN s.revalidation_requested_at IS NULL THEN s.exec01_owner_confirmed_at ELSE NULL END,
+ 'conditions',p.reception_conditions,
+ 'legacy',jsonb_build_object('quantity_value',s.quantity_value,'quantity_unit',s.quantity_unit,'opening_hours',s.opening_hours,'capacity_kind',p.capacity_kind,'capacity_value',p.capacity_value,'capacity_unit',p.capacity_unit,'access_notes',p.access_notes),
+ 'proposals',coalesce((SELECT jsonb_agg(jsonb_build_object('id',t.id,'label','Voyage proposé','status',t.status)) FROM trips t WHERE t.submission_id=s.id AND t.status::text IN ('demande','soumission_envoyee','accepte')),'[]'::jsonb),
+ 'deliveries',coalesce((SELECT jsonb_agg(jsonb_build_object('id',t.id,'label','Voyage lié','status',t.status)) FROM trips t WHERE t.submission_id=s.id AND t.status::text NOT IN ('demande','soumission_envoyee','accepte','annule')),'[]'::jsonb),
+ 'operationalState','Voyages explicitement liés seulement; une planification ne confirme pas une réception. EXEC-02 : compatibilité et autorisation de livraison.',
+ 'receivedEvidence',coalesce((SELECT jsonb_agg(jsonb_build_object('id',t.id,'date',t.trip_date,'count',t.count,'kind',t.kind)) FROM cpn_trips t WHERE t.submission_id=s.id AND t.side='recu' AND t.voided_at IS NULL),'[]'::jsonb)) ||
  CASE WHEN _crm THEN jsonb_build_object('history',coalesce((SELECT jsonb_agg(jsonb_build_object('id',id,'action',action,'at',created_at,'version',version) ORDER BY created_at) FROM public.submission_portal_events WHERE submission_id=_id),'[]'::jsonb)) ELSE '{}'::jsonb END
  FROM public.submissions s LEFT JOIN public.submission_fill_profile p ON p.submission_id=s.id WHERE s.id=_id
 $$;
@@ -58,7 +64,7 @@ DECLARE s public.submissions; l public.submission_portal_links; old_conditions j
  kind text:=p->>'kind'; a text:=p->>'action'; result jsonb; previous public.submission_portal_operations; item jsonb;
 BEGIN
  SELECT * INTO s FROM public.submissions WHERE id=(p->>'requestId')::uuid FOR UPDATE;
- IF s.id IS NULL THEN RETURN jsonb_build_object('denied',true); END IF;
+ IF s.id IS NULL OR s.request_type <> 'remblai' OR s.parcours_direction IS DISTINCT FROM 'reception' OR coalesce(s.deliver_or_remove,'') ILIKE '%sortir%' THEN RETURN jsonb_build_object('denied',true); END IF;
  IF kind='crm' THEN RETURN public.exec01_projection(s.id,true); END IF;
  IF kind='issue' THEN
   IF s.email IS NULL THEN RETURN jsonb_build_object('denied',true); END IF;
@@ -94,6 +100,10 @@ BEGIN
  END IF;
  IF s.exec01_contact_verified_at IS NULL THEN RETURN jsonb_build_object('denied',true); END IF;
  IF kind='read' THEN RETURN public.exec01_projection(s.id); END IF;
+ IF kind='photo_authorize' THEN
+  IF l.verified_at IS NULL OR l.verified_at<now()-interval '10 minutes' OR s.exec01_version<>(p->>'version')::integer THEN RETURN jsonb_build_object('denied',true); END IF;
+  RETURN jsonb_build_object('ok',true,'conditions',(SELECT reception_conditions FROM submission_fill_profile WHERE submission_id=s.id));
+ END IF;
  IF kind NOT IN ('act','revoke') OR p->'confirmed' IS DISTINCT FROM 'true'::jsonb OR l.verified_at IS NULL OR l.verified_at<now()-interval '10 minutes' THEN RETURN jsonb_build_object('denied',true); END IF;
  IF kind='revoke' THEN
   UPDATE public.submission_portal_links SET revoked_at=now() WHERE id=l.id;
@@ -113,20 +123,17 @@ BEGIN
   INSERT INTO public.submission_fill_profile(submission_id,reception_conditions,capacity_kind,capacity_value,capacity_unit,accepted_truck_codes,access_notes,source)
   VALUES(s.id,c,CASE WHEN c->>'total' IS NULL THEN 'unknown' ELSE 'known' END,(c->>'total')::numeric,nullif(c->>'unit','inconnu'),ARRAY(SELECT x->>'name' FROM jsonb_array_elements(c->'vehicles') x WHERE x->>'stance'='accepte'),c->>'access','user_manual')
   ON CONFLICT(submission_id) DO UPDATE SET reception_conditions=excluded.reception_conditions,capacity_kind=excluded.capacity_kind,capacity_value=excluded.capacity_value,capacity_unit=excluded.capacity_unit,accepted_truck_codes=excluded.accepted_truck_codes,access_notes=excluded.access_notes,source='user_manual',updated_at=now();
-  FOR item IN SELECT value FROM jsonb_array_elements(c->'materials') LOOP
-   INSERT INTO public.submission_material_conditions(submission_id,condition_key,stance,source)
-   VALUES(s.id,item->>'name',CASE item->>'stance' WHEN 'accepte' THEN 'accepted' WHEN 'refuse' THEN 'forbidden' ELSE 'unknown' END,'user_manual')
-   ON CONFLICT(submission_id,condition_key) DO UPDATE SET stance=excluded.stance,source='user_manual',updated_at=now();
-  END LOOP;
+  -- Owner materials remain preferences in reception_conditions. Never overwrite
+  -- submission_material_conditions (documentary/regulatory conditions) or catalog IDs.
   UPDATE public.submissions SET quantity_value=(c->>'total')::numeric,quantity_unit=nullif(c->>'unit','inconnu'),
    remaining_capacity=CASE WHEN c->>'remaining' IS NULL THEN NULL ELSE (c->>'remaining')||' '||(c->>'unit') END,
-   opening_hours=c->>'hours',truck_types_allowed=ARRAY(SELECT x->>'name' FROM jsonb_array_elements(c->'vehicles') x WHERE x->>'stance'='accepte'),
+   exec01_owner_confirmed_at=NULL,opening_hours=c->>'hours',truck_types_allowed=ARRAY(SELECT x->>'name' FROM jsonb_array_elements(c->'vehicles') x WHERE x->>'stance'='accepte'),
    access_details=coalesce(access_details,'{}'::jsonb)||jsonb_build_object('ownerReception',c->>'access'),availability_status='unavailable',revalidation_requested_at=now(),availability_updated_at=NULL,availability_source='owner_portal' WHERE id=s.id;
  ELSIF a IN ('pause','reprendre','fermer','confirmer') THEN
   IF a='confirmer' AND s.availability_status='suspended' THEN RETURN jsonb_build_object('denied',true); END IF;
   UPDATE public.submissions SET availability_status=CASE a WHEN 'pause' THEN 'suspended' WHEN 'fermer' THEN 'owner_closed' WHEN 'reprendre' THEN 'unavailable' ELSE 'available' END,
    revalidation_requested_at=CASE WHEN a='reprendre' THEN now() WHEN a='confirmer' THEN NULL ELSE revalidation_requested_at END,
-   availability_updated_at=CASE WHEN a='confirmer' THEN now() ELSE availability_updated_at END,availability_source='owner_portal' WHERE id=s.id;
+   exec01_owner_confirmed_at=CASE WHEN a='confirmer' THEN now() ELSE NULL END,availability_updated_at=CASE WHEN a='confirmer' THEN now() ELSE availability_updated_at END,availability_source='owner_portal' WHERE id=s.id;
  ELSE RETURN jsonb_build_object('denied',true); END IF;
  SELECT target.* INTO s FROM public.submissions target WHERE target.id=(p->>'requestId')::uuid;
  INSERT INTO public.submission_portal_events(submission_id,action,version) VALUES(s.id,a,s.exec01_version);
