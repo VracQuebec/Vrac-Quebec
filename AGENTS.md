@@ -16,6 +16,7 @@
 - EXEC-01B SQL and edge adapters stay in prepared/exec01b; loopback PostgreSQL tests use an empty schema fixture and the same submission-bound RPC, never the shared backend, so hosted activation remains a separate authorized operation.
 - EXEC-01C/02/02B keep CRM, sender and queue-worker adapters disabled in prepared sources. Reservations lock dossier/offer capacity and commit link/message atomically; immutable trip corrections debit only the delta. The existing queue rechecks reminder eligibility and suppression. Preferences never override regulatory rules; private photos require dossier authorization.
 - Personal follow-up entrypoints bypass analytics, production providers and notification mounts; this prevents bearer credentials and test actions reaching existing telemetry or business services.
+- EXEC-03 reuses map/comparator filters and membership-checked preferences; loopback tests share domain code, hosted adapters stay disabled.
 <!-- LOVABLE:BEGIN -->
 - Entrepreneur UI uses the existing shell to own safe areas and measured header/navigation heights; one owner prevents duplicate offsets without changing backend behavior.
 - Brand colors use one HSL token and presentation-only route scoping preserves excluded admin/fleet palettes; functional and tenant-configured colors remain independent.

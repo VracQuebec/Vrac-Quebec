@@ -56,3 +56,5 @@ Reproduction : démarrer PostgreSQL local déjà disponible; `bun prepared/exec0
 5. **Storage/documents et proxy** : tester bucket privé, signatures/expiry, upload et nettoyage d’orphelins; pièces historiques exigent rapprochement explicite. Valider `cf-connecting-ip` nettoyé au proxy; absence = refus. Aucun upload public ni quota en bordure validé.
 
 Code des fonctions EXEC-02 demandé présent; validation locale réussie. **Activation Cloud non terminée**, pas de prétention de livraison réelle. Facturation, punch et paiements intouchés. Liste commune : `prepared/exec01b/activation-checklist.md`.
+
+Suite EXEC-03 : secteurs et économies ajoutés aux écrans entrepreneur existants; validations Cloud ci-dessus conservées. Bilan séparé : [EXEC-03](exec03-bilan.md).

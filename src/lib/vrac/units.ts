@@ -66,9 +66,10 @@ export function useTruckCapacity() {
 /** Camions offerts au client (administrables : jsc_trucks actifs et tarifés). */
 export type PublicTruck = { id: string; name: string; truck_type: string | null; capacity_tonnes: number };
 
-export function usePublicTrucks() {
+export function usePublicTrucks(enabled = true) {
   const [trucks, setTrucks] = useState<PublicTruck[]>([]);
   useEffect(() => {
+    if (!enabled) return;
     void (async () => {
       const { data } = await supabase.rpc("jsc_public_trucks");
       const rows = (data ?? []) as Array<{ id: string; name: string; truck_type: string | null; capacity_tonnes: number | string }>;
@@ -79,7 +80,7 @@ export function usePublicTrucks() {
           .sort((a, b) => a.capacity_tonnes - b.capacity_tonnes),
       );
     })();
-  }, []);
+  }, [enabled]);
   return trucks;
 }
 

@@ -6,7 +6,7 @@ import type { User } from "@supabase/supabase-js";
 // aucun transporteur ni propriétaire n'est codé en dur.
 export type AppRole = "admin" | "entrepreneur" | "proprietaire" | "transporteur" | "user";
 
-export const useUserRoles = (authUser?: User | null, authReady?: boolean) => {
+export const useUserRoles = (authUser?: User | null, authReady?: boolean, enabled = true) => {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
   const loadedFor = useRef<string | null>(null);
@@ -42,6 +42,7 @@ export const useUserRoles = (authUser?: User | null, authReady?: boolean) => {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
     const loadFromStoredSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -70,7 +71,7 @@ export const useUserRoles = (authUser?: User | null, authReady?: boolean) => {
     });
     return () => { active = false; subscription.unsubscribe(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authReady, authUser?.id, load]);
+  }, [authReady, authUser?.id, load, enabled]);
 
   return {
     roles,
