@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { photoDisplayUrl } from '@/lib/remblai/photo-display';
 
-export default function ReceptionPhoto({ photo }: { photo: { name: string; preview: string } }) {
+export default function ReceptionPhoto({ photo }: { photo: { name?: string; preview?: string } }) {
   const url = photoDisplayUrl(photo);
   const [failed, setFailed] = useState(false);
   useEffect(() => { setFailed(false); }, [url]);

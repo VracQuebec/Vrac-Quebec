@@ -16,7 +16,8 @@ describe('EXEC-01 finalisation ciblée',()=>{
   expect(photoDisplayUrl(read)).toBe('https://test.invalid/private-read');
   const parsed=conditionsSchema.parse({...unknownConditions(),photos:[read]});
   expect(parsed.photos[0]).toEqual(photo);
-  expect(await preparePhotos(id,parsed.photos,[photo],storage)).toEqual([photo]);expect(storage.put).not.toHaveBeenCalled();
+  const canonical=parsed.photos.map(p=>{if(typeof p.name!=='string'||typeof p.preview!=='string')throw Error('Invalid photo');return {name:p.name,preview:p.preview};});
+  expect(await preparePhotos(id,canonical,[photo],storage)).toEqual([photo]);expect(storage.put).not.toHaveBeenCalled();
  });
  it('never exposes a raw private path or external unsigned photo on signing failure',async()=>{
   const [read]=await signPhotos(id,[photo],{put:vi.fn(),sign:async()=>{throw Error('private error');}});

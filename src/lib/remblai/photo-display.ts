@@ -1,5 +1,6 @@
 // Keep read URLs separate from canonical private dossier references.
-export function photoDisplayUrl(photo: { preview: string; signedUrl?: unknown }): string | null {
+export function photoDisplayUrl(photo: { preview?: string; signedUrl?: unknown }): string | null {
+  if (typeof photo.preview !== 'string') return null;
   if (photo.preview.startsWith('private:')) {
     if (typeof photo.signedUrl !== 'string') return null;
     try {
