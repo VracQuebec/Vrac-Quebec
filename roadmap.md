@@ -1,9 +1,10 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## EXEC-06 — accès employés et punch opérationnel (19 oct. 2026)
-- [ ] Compléter accès/contexte employé et punch/corrections dans les écrans existants, sans activation réelle.
-- [ ] Vérifier identité fictive, permissions, révocation, pauses, dates Toronto, corrections et export en base locale jetable.
-- [ ] Livrer preuves mobile/ordinateur et dépendances communes; signaler toute capacité hors connexion non disponible.
+- [x] Compléter sources accès/contexte employé et punch/corrections, sans activation réelle.
+- [x] Vérifier identité fictive, permissions, révocation, pauses, dates Toronto, corrections/export : 17 tests ciblés et parcours navigateur isolé.
+- [x] Livrer preuves mobile/ordinateur et dépendances communes : docs/audit/exec06-bilan.md; hors connexion indisponible signalé.
+- [ ] Activation EXEC-06 : Cloud isolé autorisé pour schéma/JWT/RLS, invitation/confirmation/connexion, concurrence et rapprochement coûts/paie; aucun envoi ou transmission autorisé.
 
 ## EXEC-05 — facturation entrepreneur (19 oct. 2026)
 - [x] Compléter les liens CRM/soumission/chantier/facture et préparation de courriel sans envoi.
