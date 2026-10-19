@@ -1,5 +1,7 @@
 # EXEC-01C — configuration et raccordements, activation interdite dans ce lot
 
+> **EXEC-08, état prioritaire du 19 octobre 2026 :** voir `docs/audit/exec08-bilan.md`. Certaines formulations historiques « seules validations/activation restantes » sont trop larges : courrier applicatif facture avec lien privé, invitation vers file, accompagnement via writers autorisés et capture hébergée restent du **code non raccordé**, pas seulement des réglages. Les anciens contrôles locaux ne certifient pas A–E sur une stack complète. Backend courant confirmé `production`, `has_development=false`, `has_production=true`; aucune migration ni exécution métier autorisée ici. Les verrous demeurent en place.
+
 ## Sources réellement inspectées (19 octobre 2026, lecture seule)
 Métadonnées Cloud : colonnes, défauts, contraintes et clés étrangères de `submissions`,
 `submission_fill_profile`, `submission_material_conditions`, `submission_accepted_materials`,

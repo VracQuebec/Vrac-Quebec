@@ -2,6 +2,9 @@
 
 19 octobre 2026. **Développement intégré et validation locale réalisés; GO limité à une validation d'intégration isolée autorisée, NO-GO production.** Aucune migration Cloud, publication, modification de données historiques, communication externe, activation de paiement ni modification d'abonnement.
 
+### Mise à jour EXEC-08
+Le défaut de PDF/EML aux octets différents relevé ci-dessous est corrigé dans les sources : téléchargement et brouillon EML réutilisent le même fichier privé enregistré, sans nouveau rendu pour le courrier. Deux tests ciblés vérifient identité des octets et refus en cas de fichier absent/inaccessible. Le chemin Storage hébergé et le parcours navigateur complet restent non revalidés; les captures ci-dessous restent les preuves historiques d’EXEC-05, pas des preuves de la correction EXEC-08.
+
 ## Accès et manques résolus
 - `/entrepreneur/crm?tab=clients` : actions soumission et facture depuis le client.
 - `/entrepreneur/crm?tab=quotes` : soumission → acceptation documentée → chantier et conversion contrôlée en facture; accès client, chantier et factures/encaissements.

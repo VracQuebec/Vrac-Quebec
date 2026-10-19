@@ -1,0 +1,13 @@
+{
+  "environment": "production",
+  "has_development": false,
+  "has_production": true,
+  "managed_by_lovable": true,
+  "draft": "existing, behind main, not opened or modified",
+  "dockerAvailable": false,
+  "podmanAvailable": "temporary Nix CLI available; container execution failed",
+  "userNamespaceProbe": "podman run --network=none Alpine returned cannot set user namespace",
+  "fullStackAvailable": false,
+  "businessExecutionPerformed": false,
+  "localDatabaseCreated": false
+}

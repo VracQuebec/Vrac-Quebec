@@ -20,6 +20,8 @@ import ProgressPlanDialog, { ProgressPlans } from "@/components/finances/Progres
 import InvoiceMailDialog from "@/components/finances/InvoiceMailDialog";
 import { downloadFinanceBlob } from "@/lib/finances/download";
 import { EXEC05_HOSTED_ENABLED, isExec05Local } from "@/lib/finances/exec05";
+import { frozenInvoicePdf } from "@/lib/finances/invoiceMail";
+import ContextHelp from "@/components/help/ContextHelp";
 
 const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const BUCKET = "fin-invoices";
@@ -155,7 +157,7 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
   const [clients, setClients] = useState<Inv[]>([]); const [projects, setProjects] = useState<Inv[]>([]); const [inflows, setInflows] = useState<Inv[]>([]);
   const [quote, setQuote] = useState<Inv | null>(null); const [busy, setBusy] = useState(false); const [ctaxLock, setCtaxLock] = useState(false); const [confirm, setConfirm] = useState(false); const [replace, setReplace] = useState("");
   const [err, setErr] = useState<string | null>(null);
-  const actionLock = useRef(false); const [mailData, setMailData] = useState<InvoicePdfData | null>(null);
+  const actionLock = useRef(false); const [mailData, setMailData] = useState<{data:InvoicePdfData;pdf:Blob} | null>(null);
   const [refresh, setRefresh] = useState(0); const [bal, setBal] = useState<Sum | null>(null); // solde : source commune (fin_invoice_receipt_summary)
 
   const load = useCallback(async () => {
@@ -209,22 +211,28 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
     await load(); onChanged();
     } catch (e) { setErr((e as Error).message); } finally { actionLock.current = false; setBusy(false); }
   };
+  const issuedPdf = async () => {
+    let path = inv.pdf_path as string | null;
+    if (!path && canWrite) {
+      const blob = renderInvoicePdf(await pdfData(inv)).output("blob");
+      path = `${companyId}/pdf/${id}-${inv.number}.pdf`;
+      const up = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: "application/pdf", upsert: false });
+      if (up.error && !/exists|Duplicate/i.test(up.error.message)) throw up.error;
+      const saved = await db.from("fin_invoices").update({ pdf_path: path }).eq("id", id).eq("company_id",companyId).is("pdf_path", null);
+      if (saved.error) throw saved.error;
+      // A concurrent first render may have won: read the canonical path back.
+      const stored = await db.from("fin_invoices").select("pdf_path").eq("id",id).eq("company_id",companyId).single();
+      if(stored.error)throw stored.error;path=stored.data?.pdf_path??null;
+      await load();
+    }
+    return frozenInvoicePdf(path, p=>supabase.storage.from(BUCKET).download(p));
+  };
   const openPdf = async (download: boolean) => {
     const tab = download ? null : window.open("", "_blank");
     setBusy(true);
     try {
-      let path = inv.pdf_path as string | null;
-      if (!draft && !path && !canWrite) { const doc = renderInvoicePdf(await pdfData(inv)); const blob = doc.output("blob"); if (download) downloadFinanceBlob(blob, `${inv.number}.pdf`); else if (tab) { const url = URL.createObjectURL(blob); tab.location.href = url; setTimeout(() => URL.revokeObjectURL(url), 30000); } return; }
-      if (!draft && !path) { // premier rendu d'une facture émise : figé dans le stockage privé
-        const blob = renderInvoicePdf(await pdfData(inv)).output("blob"); path = `${companyId}/pdf/${id}-${inv.number}.pdf`;
-        const up = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: "application/pdf", upsert: false });
-        if (up.error && !/exists|Duplicate/i.test(up.error.message)) throw up.error;
-        await db.from("fin_invoices").update({ pdf_path: path }).eq("id", id).is("pdf_path", null); await load();
-      }
       if (draft) { const blob = renderInvoicePdf(await pdfData({ ...inv, lines }, { seller: ctx.seller, template: ctx.template, tax: preview })).output("blob"); if (download) downloadFinanceBlob(blob, "brouillon-facture.pdf"); else if (tab) { const url = URL.createObjectURL(blob); tab.location.href = url; setTimeout(() => URL.revokeObjectURL(url), 30000); } return; }
-      if (!path) throw Error("PDF absent");
-      const { data, error } = await supabase.storage.from(BUCKET).download(path);
-      if (error || !data) throw error ?? Error("PDF absent");
+      const data = await issuedPdf();
       if (download) downloadFinanceBlob(data, `${inv.number}.pdf`); else if (tab) { const url = URL.createObjectURL(data); tab.location.href = url; setTimeout(() => URL.revokeObjectURL(url), 30000); }
     } catch (e) { tab?.close(); toast({ title: "PDF indisponible", description: (e as Error).message, variant: "destructive" }); } finally { setBusy(false); }
   };
@@ -237,6 +245,7 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
     <DialogHeader><DialogTitle>{inv.number ? `Facture ${inv.number}` : "Facture — brouillon"}{inv.is_test ? " (TEST)" : ""}</DialogTitle></DialogHeader>
     <nav aria-label="Dossiers liés" className="flex flex-wrap gap-2 text-xs">
+      <ContextHelp role={canWrite?"proprietaire":"lecture"} companyId={companyId} articleId={draft?"facture":"reglement"}/>
       {inv.client_id && <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/crm?company=${companyId}&tab=clients&client=${inv.client_id}`}>Client</Link></Button>}
       {inv.quote_id && <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/crm?company=${companyId}&tab=quotes&quote=${inv.quote_id}`}>Soumission</Link></Button>}
       {inv.project_id && <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/crm?company=${companyId}&tab=projects&chantier=${inv.project_id}`}>Chantier</Link></Button>}
@@ -284,20 +293,20 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
     {preview && <TaxSummary r={preview} className="rounded border border-border p-2" gstNumber={draft ? ctx.seller.gst_number : inv.seller_snapshot?.gst_number} qstNumber={draft ? ctx.seller.qst_number : inv.seller_snapshot?.qst_number} />}
     {preview && (preview.zero_rated_base || preview.exempt_base) ? <p className="text-xs text-muted-foreground">Montant avant taxes {money(preview.pre_tax)} = base taxable {money(preview.taxable_base)} + détaxé {money(preview.zero_rated_base)} + exonéré {money(preview.exempt_base)}.</p> : null}
     {draft && <p className="text-xs text-muted-foreground">Aperçu calculé avec le même moteur que le serveur; les montants enregistrés sont recalculés et figés à l'émission.</p>}
-    {err && <div role="alert" className="rounded border border-destructive/50 bg-destructive/10 p-2 text-sm">Émission refusée : {err}. La facture reste en brouillon.
+    {err && <div role="alert" className="rounded border border-destructive/50 bg-destructive/10 p-2 text-sm">{draft ? "Émission refusée : " : "Action impossible : "}{err}.{draft ? " La facture reste en brouillon." : " La facture émise reste inchangée."}
       {/Statut T(PS|VQ)/.test(err) && <> <Link className="underline" to={profileLink}>Compléter le profil fiscal</Link></>}{/Ligne au traitement/.test(err) && " Choisissez le traitement fiscal de chaque ligne (aucun choix automatique)."}</div>}
 
     <div className="flex flex-wrap gap-2">
       <Button variant="outline" disabled={busy} onClick={() => openPdf(false)}>{draft ? "Aperçu PDF (BROUILLON)" : "Ouvrir le PDF"}</Button>
       <Button variant="outline" disabled={busy} onClick={() => openPdf(true)}>Télécharger</Button>
       {editable && <><Button variant="outline" disabled={busy || ctaxLock} onClick={() => save()}>Enregistrer le brouillon</Button><Button disabled={busy || ctaxLock} onClick={() => setConfirm(true)}>Émettre…</Button><Button variant="ghost" onClick={del}>Supprimer le brouillon</Button></>}
-      {!draft && <Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); try { setMailData(await pdfData(inv)); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); } }}>Préparer le courriel…</Button>}
+      {!draft && <Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); try { const pdf=await issuedPdf();setMailData({data:await pdfData(inv),pdf}); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); } }}>Préparer le courriel…</Button>}
       {!draft && canWrite && !inv.sent_at && <Button variant="outline" onClick={markSent}>Marquer « Envoyée »</Button>}
     </div>
     {confirm && <div className="rounded border border-border p-2 text-sm"><p className="font-semibold">Émettre la facture ?</p><p className="text-xs">Un numéro unique sera attribué et le contenu sera figé (plus de modification ni de suppression). Une entrée attendue sera créée dans la trésorerie.</p>
       {inflows.length > 0 && <label className="mt-1 block text-xs">Remplacer une prévision existante (encaissements conservés) :<select className={`${sel} mt-1 w-full`} value={replace} onChange={(e) => setReplace(e.target.value)}><option value="">Non, créer une nouvelle entrée attendue</option>{inflows.map((x) => <option key={x.id} value={x.id}>{x.counterparty || "Entrée"} · {money(x.amount)} · {fmtDate(x.expected_on)}{Number(x.received) ? ` · déjà encaissé ${money(x.received)}` : ""}</option>)}</select></label>}
       <div className="mt-2 flex gap-2"><Button disabled={busy || ctaxLock} onClick={issue}>Confirmer l'émission</Button><Button variant="ghost" onClick={() => setConfirm(false)}>Annuler</Button></div></div>}
-    {mailData && <InvoiceMailDialog data={mailData} invoiceId={id} onClose={() => setMailData(null)} />}
+    {mailData && <InvoiceMailDialog data={mailData.data} pdf={mailData.pdf} invoiceId={id} onClose={() => setMailData(null)} />}
   </DialogContent></Dialog>;
 }
 

@@ -1,0 +1,1560 @@
+{
+  "purpose": "Reproduction sources only; no data, secrets or credentials",
+  "entries": [
+    {
+      "file": "drizzle/migrations/0000_geo_territory_registry.sql",
+      "bytes": 8156,
+      "sha256": "88b1a7348e0e145378f821c5237da7717d0769f3bbf9c732e736eb4e47f33a60"
+    },
+    {
+      "file": "drizzle/migrations/0001_geo_territorial_correction.sql",
+      "bytes": 6153,
+      "sha256": "02c80dc5f854e9871d2be3ef23b9c111faf4e1dcda4a9caae58f965ce767eea5"
+    },
+    {
+      "file": "drizzle/migrations/0002_fix_geo_hay_padding.sql",
+      "bytes": 404,
+      "sha256": "1717b83aded9d20291fa9bd917e75eac55ffd4352d3b65b286e5c08e14b5dbc4"
+    },
+    {
+      "file": "drizzle/migrations/0003_geo_resolve_city_variants.sql",
+      "bytes": 2308,
+      "sha256": "944cf80d86ee4a00b5d7980d80f9df5b4899c1c7e083e512201fcb9b0d6bc263"
+    },
+    {
+      "file": "drizzle/migrations/0004_geo_hierarchy_rollup.sql",
+      "bytes": 2527,
+      "sha256": "5cb8bfedaefb214fc1b7e46ea1dadaede49d0caabe5260ebce98a5c042f097bb"
+    },
+    {
+      "file": "drizzle/migrations/0005_seo_cities_sync_from_territories.sql",
+      "bytes": 6319,
+      "sha256": "665844187e941956c4d96370e42bd4eed63ac58aeda761180935d41eba9cc4cd"
+    },
+    {
+      "file": "drizzle/migrations/0006_seo_generator_registry_eligibility.sql",
+      "bytes": 10256,
+      "sha256": "b31e2329cbd4ed69e46ff3b5cb46c3277414771b1edc9c8820005d5f2be29f61"
+    },
+    {
+      "file": "drizzle/migrations/0007_seo_control_center_registry_counts.sql",
+      "bytes": 4788,
+      "sha256": "68eb3dd4371fd30ba4d61ccc90b6fa7f468d070f4d904b6f5d2afe4d6115db65"
+    },
+    {
+      "file": "drizzle/migrations/0008_blog_seo_structural_backfill.sql",
+      "bytes": 2147,
+      "sha256": "d67a0a72ab80afeab498bbddec8ca0d15f8e57eb2b34b3632975a3610685bc33"
+    },
+    {
+      "file": "drizzle/migrations/0009_seo_opportunity_and_index_diagnosis.sql",
+      "bytes": 12131,
+      "sha256": "576f59a512163121023a1527cda063996e6fdb1a5d899a3d5950c5cd085abd43"
+    },
+    {
+      "file": "drizzle/migrations/0010_seo_index_causes_refine_and_orphan_links.sql",
+      "bytes": 4539,
+      "sha256": "ddd47a3460dd9d9c5f77b8e3b5caf2235bd59a91642478e271bb9568cbcb09d2"
+    },
+    {
+      "file": "drizzle/migrations/0011_seo_metrics_single_source_of_truth.sql",
+      "bytes": 13065,
+      "sha256": "a7f6f3b041844749d3d164d16755cb8901f1d8faefc5fcc5cc9536793dfa771e"
+    },
+    {
+      "file": "drizzle/migrations/0012_seo_clear_stale_meta_title_blockers.sql",
+      "bytes": 212,
+      "sha256": "fda56369aa7f32e61ebf692987295421ed696f7af2c88757ad1f7b075dea4fc4"
+    },
+    {
+      "file": "drizzle/migrations/0013_seo_city_by_city_generator.sql",
+      "bytes": 17237,
+      "sha256": "c9197f1beba0704d2cd33cd6cd839e3b53cb12cac919ed0c52d038755a51c849"
+    },
+    {
+      "file": "drizzle/migrations/0014_seo_city_qa_alignment.sql",
+      "bytes": 5494,
+      "sha256": "3af78f0e44b7380e662bb341e69841b3f6ab02a7f1372d72a427a16a9c582355"
+    },
+    {
+      "file": "drizzle/migrations/0015_seo_city_report_valid_count.sql",
+      "bytes": 6119,
+      "sha256": "5d8baa021d03d6b2b30394f9297d66360d0082a7cea1cf416550589fb99ba5a5"
+    },
+    {
+      "file": "drizzle/migrations/0016_seo_city_live_run_progress.sql",
+      "bytes": 8835,
+      "sha256": "cee3c656ab7122eefe0703c5964714e352cd00320f5bffd55ebbff1a908363da"
+    },
+    {
+      "file": "drizzle/migrations/0017_seo_control_center_generation_vs_publication.sql",
+      "bytes": 5074,
+      "sha256": "338b73d8918e284a5773072c93b5275dc4c23afdb662f0eee2edca4abc258308"
+    },
+    {
+      "file": "drizzle/migrations/0018_seo_slot_rows_relevant_combinations.sql",
+      "bytes": 8021,
+      "sha256": "3d9227ff68038b7d0af5afddeae230fd8bf8dc9bf5b1d5f2ffebada3267141c5"
+    },
+    {
+      "file": "drizzle/migrations/0019_seo_slot_rows_shared_qa_rules.sql",
+      "bytes": 4925,
+      "sha256": "8ba2672de636569f017f0ee0ce889a216ebece55c6521bac6c185ab44dc49f30"
+    },
+    {
+      "file": "drizzle/migrations/0020_seo_copilot_opportunity_engine.sql",
+      "bytes": 5276,
+      "sha256": "d75bb1fa0d6fc83ca0c74b147fdd5cec024dbe2647ddecd8a5115c710d765aaf"
+    },
+    {
+      "file": "drizzle/migrations/0021_seo_copilot_prioritization_engine.sql",
+      "bytes": 4496,
+      "sha256": "6f0185e4875fae6e842fdfa1a38af9bdb4ec69297e7264ac02dd6cd1c52a9bc7"
+    },
+    {
+      "file": "drizzle/migrations/0022_seo_opportunity_actions.sql",
+      "bytes": 2298,
+      "sha256": "ce45a6250e3e3aba962113a8f1ec8a57b6093dda7f542a3357d43f577239690b"
+    },
+    {
+      "file": "drizzle/migrations/0023_seo_copilot_state_full_counters.sql",
+      "bytes": 4622,
+      "sha256": "8bf66bb18a20614dc2d108f5c4a1cdc61bbcda05cecb8133882bc293f47c6609"
+    },
+    {
+      "file": "drizzle/migrations/0024_seo_pipeline_missing_global.sql",
+      "bytes": 5375,
+      "sha256": "f23c861584acf56b95ab6f4e2e9283d42eba4d6c446e96bd44a3f708924ea8b4"
+    },
+    {
+      "file": "drizzle/migrations/0025_seo_pipeline_missing_exclude_errors.sql",
+      "bytes": 4843,
+      "sha256": "c7153fb4fd42334d5187a493464bc3bb3b2c3dc8c3939dcd0cf7da37eadf7f13"
+    },
+    {
+      "file": "drizzle/migrations/0026_create_seo_publish_log.sql",
+      "bytes": 1165,
+      "sha256": "0a41be87cd90e13b1b4baa0b8c842a412e73c3ddc51e9adeea50de87fb676e1c"
+    },
+    {
+      "file": "drizzle/migrations/0027_security_cron_auth_and_rls_tightening.sql",
+      "bytes": 2601,
+      "sha256": "90dcc59e8cd8058f1164c0c1b6c968a7f2b41d6acb3f39b42c15131306b72acd"
+    },
+    {
+      "file": "drizzle/migrations/0028_tighten_reference_table_reads.sql",
+      "bytes": 6181,
+      "sha256": "200afb71ab2d730490fb301183e502449b4bfef393081000d231d35999af3664"
+    },
+    {
+      "file": "drizzle/migrations/0029_entrepreneur_dompe_public_coords.sql",
+      "bytes": 6030,
+      "sha256": "b3f7497117372762a816b2ef2e531fdd93849030233354fa1b27f0d1a1b29324"
+    },
+    {
+      "file": "drizzle/migrations/0030_restrict_comparateur_selection_owner.sql",
+      "bytes": 1950,
+      "sha256": "74cca8b4cb9ad5d45db51f2613657c90d8290d34c77212a51db15fd0dc654df6"
+    },
+    {
+      "file": "drizzle/migrations/0031_entrepreneur_dompe_status_only_visibility.sql",
+      "bytes": 921,
+      "sha256": "ba01fd48a720932b8da22c57f745a1f044c2d0f079fda4ed1590209eb7638df2"
+    },
+    {
+      "file": "drizzle/migrations/0032_public_point_prefer_address_and_backup.sql",
+      "bytes": 1584,
+      "sha256": "1f85d58903a2fb26e6b5e92912703f46fff48145369c1269dbee50cd0857d6b8"
+    },
+    {
+      "file": "drizzle/migrations/0033_progressive_site_address_disclosure.sql",
+      "bytes": 8239,
+      "sha256": "c28720e5979dc5422c3964b1ed47da9f446beeac8c3f1d058b7f04a82de06ec7"
+    },
+    {
+      "file": "drizzle/migrations/0034_gate_transport_request_site_address.sql",
+      "bytes": 2192,
+      "sha256": "849ee692bbfbd903c153f4654c4cf54473609fe8cc8d3ab6833f831c1295b203"
+    },
+    {
+      "file": "drizzle/migrations/0035_grant_disclosure_rpcs_to_service_role.sql",
+      "bytes": 414,
+      "sha256": "ad4c11566a586a63fd000980f4f8983ab5cd5292e39590dc6a0eee1404a5e179"
+    },
+    {
+      "file": "drizzle/migrations/0036_revoke_temp_service_role_grants.sql",
+      "bytes": 429,
+      "sha256": "ca4afcb6c14ba45373c0b10416b9f0effd641498ebdfbacca02720d9d11e239b"
+    },
+    {
+      "file": "drizzle/migrations/0037_per_site_approval_workflow.sql",
+      "bytes": 17545,
+      "sha256": "ad3f2b3e155f896dd6c7eb0f3c3c03e513316eeea42767bdb9bdeb19598454a7"
+    },
+    {
+      "file": "drizzle/migrations/0038_fleet_ensure_my_company.sql",
+      "bytes": 2047,
+      "sha256": "1fdea16a28c30f35a512840c1a6f9b95005d14c1b09e5e373edac053820607bc"
+    },
+    {
+      "file": "drizzle/migrations/0039_crm_documents_allow_fleet_owner_types.sql",
+      "bytes": 362,
+      "sha256": "c7f6bd1e71006c65e7022d4017c11dc242d954cec3788df0ea436b3aa6309cb2"
+    },
+    {
+      "file": "drizzle/migrations/0040_shared_material_catalog_vrac_pricing.sql",
+      "bytes": 8012,
+      "sha256": "0756cab878174d2a493591ef1f086e349facb98b6bf0dba1f0d3718a2a815fbf"
+    },
+    {
+      "file": "drizzle/migrations/0041_vrac_public_granulometries.sql",
+      "bytes": 429,
+      "sha256": "34b7affb0f61fef84d68addfff73449c2ce19f6a06aaa2dcd31dd3c8e470b1a6"
+    },
+    {
+      "file": "drizzle/migrations/0042_vrac_public_catalog_jsc_name.sql",
+      "bytes": 2342,
+      "sha256": "47a8b3f2e5756dbdfc3f2bfd0a5634ba080c29cab8e2c76f0b34224c541a7aee"
+    },
+    {
+      "file": "drizzle/migrations/0043_catalogue_02_variants_sources_history.sql",
+      "bytes": 8648,
+      "sha256": "dc3ec21e961ca2accddbcaa69c1e7b595cf5d272c2635daecb5dd1f27573f163"
+    },
+    {
+      "file": "drizzle/migrations/0044_submissions_material_selections.sql",
+      "bytes": 369,
+      "sha256": "bee46c427e180a5f3d66dbd97a014b587db63e11a969296603e6af8f096ed953"
+    },
+    {
+      "file": "drizzle/migrations/0045_ent_crm_foundations.sql",
+      "bytes": 12352,
+      "sha256": "79ad3dd5d3c87bc03c1e324dbc40641ca4620dd2f49bc8d99f88df9e068ad74c"
+    },
+    {
+      "file": "drizzle/migrations/0046_entcrm_confidential_support.sql",
+      "bytes": 851,
+      "sha256": "fd53bdd0e666ef97eeaab4b7ee8616991d97402ffe09ad7765974cb1c9fac25f"
+    },
+    {
+      "file": "drizzle/migrations/0047_entcrm_team_stages_views.sql",
+      "bytes": 10027,
+      "sha256": "40c7e3af951e56f89f0f3cbcfc20c3bfe23740dff0cd648ecb2335d239774e13"
+    },
+    {
+      "file": "drizzle/migrations/0048_entcrm_null_safe_rights.sql",
+      "bytes": 1370,
+      "sha256": "b09b98c867c5105246b5c6cb02163a72cfada4e3ec20f85c417ddce930d04d59"
+    },
+    {
+      "file": "drizzle/migrations/0049_entcrm_jsc_client_link.sql",
+      "bytes": 3991,
+      "sha256": "6908f36b3203af8590a5aa22353dca78c3fbe38ba3abd409660a62971b3a62b2"
+    },
+    {
+      "file": "drizzle/migrations/0050_entcrm_files_services_templates_network.sql",
+      "bytes": 14604,
+      "sha256": "168728cbaaaaf5d6873e5f3d59e53906f21fda02ca7082ae4f5cbb0c65175cea"
+    },
+    {
+      "file": "drizzle/migrations/0051_entcrm_network_source_visibility.sql",
+      "bytes": 934,
+      "sha256": "658d57027692b8cd0c3aac657def8755bfd787c2cd9006f382f1e0c018e9416c"
+    },
+    {
+      "file": "drizzle/migrations/0052_request_lifecycle_phase1.sql",
+      "bytes": 14791,
+      "sha256": "7660d2952c4658ea31e9279914006bbafe67446db3921691135682767f512398"
+    },
+    {
+      "file": "drizzle/migrations/0053_access_request_status_sync.sql",
+      "bytes": 5689,
+      "sha256": "6c7d6433ab6f08d93f0e51ba00786bfe5653c1940067ddcfaf14ddd6bf891cbf"
+    },
+    {
+      "file": "drizzle/migrations/0054_single_entrepreneur_status_notification.sql",
+      "bytes": 470,
+      "sha256": "46c3ae943cad7ee2d88ef63f19a1e2a79a3e363271d55376a012e922a5d001d7"
+    },
+    {
+      "file": "drizzle/migrations/0055_transport_request_owner_at_insert.sql",
+      "bytes": 4179,
+      "sha256": "bfe407e035e16bbf43d023b85f0af2d39f9aa5433d2936e796dd8c6fb30d86f9"
+    },
+    {
+      "file": "drizzle/migrations/0056_fix_notification_email_token.sql",
+      "bytes": 2599,
+      "sha256": "794cc860cb053e0d2508886a87043db1c2047998d09774afecf2426f7543228a"
+    },
+    {
+      "file": "drizzle/migrations/0057_entcrm_taxes_and_client_share.sql",
+      "bytes": 7410,
+      "sha256": "84eecfa0ba7e2a71190be7e939b4cd11670c19f90f63a42aa193ba83a4bc6f40"
+    },
+    {
+      "file": "drizzle/migrations/0058_crm_subscription_gate.sql",
+      "bytes": 7033,
+      "sha256": "785792656fe57dd5a308619419212f2a13f2c9b3725e475cafaf0ae9fe20691e"
+    },
+    {
+      "file": "drizzle/migrations/0059_crm_access_grant_log_fix.sql",
+      "bytes": 1210,
+      "sha256": "8ae9e15003f45832935de667ea4427075fdfb6689262929ef9049dd6f8e4c36a"
+    },
+    {
+      "file": "drizzle/migrations/0060_crm_gate_new_companies.sql",
+      "bytes": 2071,
+      "sha256": "15049227c45359292d4ca7513980e22beea58ca3ec9d49ecd769e8007c595338"
+    },
+    {
+      "file": "drizzle/migrations/0061_entcrm_jsc_client_propagation.sql",
+      "bytes": 824,
+      "sha256": "74665d7fbb330f56f213744c2a859c8621cf8b4ea72c5e5da00a30115cae2fb2"
+    },
+    {
+      "file": "drizzle/migrations/0062_control_center_followups.sql",
+      "bytes": 13092,
+      "sha256": "816dac8c7af8f4f2c595f602bd25c3829093466b14c8a669cab3677c24f424eb"
+    },
+    {
+      "file": "drizzle/migrations/0063_control_center_followup_note.sql",
+      "bytes": 1027,
+      "sha256": "6cca5b8a7d7aa109c1a57cdc070099143d3b41a0c95a524fbf4db1f4c543c821"
+    },
+    {
+      "file": "drizzle/migrations/0064_control_center_realtime.sql",
+      "bytes": 71,
+      "sha256": "97917dbe9311aa681b797f80c49141956f307654c00a47af8c223f70903a0949"
+    },
+    {
+      "file": "drizzle/migrations/0065_dompe_visible_identite_crm.sql",
+      "bytes": 738,
+      "sha256": "285f894ceb192e0af4921d087e9ef35c415a7817d4794f87b724538758c0f77a"
+    },
+    {
+      "file": "drizzle/migrations/0066_restreindre_lecture_config_et_fichiers_crm.sql",
+      "bytes": 819,
+      "sha256": "16706029322c5e77c2d803493ddcc888a547375367be1fcffc7cb7a087e70901"
+    },
+    {
+      "file": "drizzle/migrations/0067_fin01_obligations_calendrier.sql",
+      "bytes": 30234,
+      "sha256": "4f836b49e22b9b17c9c0cb46dd3937bbbe5252d9ddfa01904096ff4671c5652a"
+    },
+    {
+      "file": "drizzle/migrations/0068_fin01_generation_depuis_ancrage.sql",
+      "bytes": 2690,
+      "sha256": "14b107519baa2c753f5bd235d34eed6eadb2c022de41d9573f0b42c8de28ee8d"
+    },
+    {
+      "file": "drizzle/migrations/0069_fin02_recurrences_avancees.sql",
+      "bytes": 36567,
+      "sha256": "ca777a8c02b22ba446b1842006393eb30a0f8a9c2672fad7b9a8cf1ca4449457"
+    },
+    {
+      "file": "drizzle/migrations/0070_fin02_conflit_code_erreur.sql",
+      "bytes": 11397,
+      "sha256": "ea10b506d06bccc0689525d10a73200a751c272932873655df26b5645f80ae52"
+    },
+    {
+      "file": "drizzle/migrations/0071_fin03_reglements_soldes.sql",
+      "bytes": 63386,
+      "sha256": "72bb7b38fb663f146cfc31c04cd427bfa9a1be21814b5bd40fda195d98d8e716"
+    },
+    {
+      "file": "drizzle/migrations/0072_fin04_recherche_vues.sql",
+      "bytes": 19690,
+      "sha256": "2b4a39ef0d47b2f1021736abea49d765060855df542c830c86641451d3cb0795"
+    },
+    {
+      "file": "drizzle/migrations/0073_fin_allocated_on_local_date.sql",
+      "bytes": 120,
+      "sha256": "c122c39dd0a1851b90906280a94b15fd38064fa1c07fddfc14fe51e9a88da42e"
+    },
+    {
+      "file": "drizzle/migrations/0074_nav01_user_drafts.sql",
+      "bytes": 5168,
+      "sha256": "13c407352e6c5b8bb5d852d4a92299da68a4537932e81630864bd685660a553f"
+    },
+    {
+      "file": "drizzle/migrations/0075_fin05_tresorerie.sql",
+      "bytes": 6690,
+      "sha256": "d0e67b8d359a804308f6ab62b2aed40e33b0b35e2ade711d98e161ce01b71a60"
+    },
+    {
+      "file": "drizzle/migrations/0076_fin05_same_company_fix.sql",
+      "bytes": 949,
+      "sha256": "d25cd47b438f98e1b95ca8119349348a92881876c417370791281fac6d51f10b"
+    },
+    {
+      "file": "drizzle/migrations/0077_fin05b_compte_prevu.sql",
+      "bytes": 1299,
+      "sha256": "2899d14aa1477962eeb85c4439d483f1776d5985d01039fd9d8c96a796b785e1"
+    },
+    {
+      "file": "drizzle/migrations/0078_fin06_rappels.sql",
+      "bytes": 29598,
+      "sha256": "3d8580414cc61153992f6e8bb1ba126e315005ac7d1efd03f4db1a0bc1b20e91"
+    },
+    {
+      "file": "drizzle/migrations/0079_fin06_rappels_fix_raisons.sql",
+      "bytes": 717,
+      "sha256": "45b2faf53ef2a37950c20e4d83139384bc214200c87c33bec926a5dfefcc6d22"
+    },
+    {
+      "file": "drizzle/migrations/0080_fin06b_cloche.sql",
+      "bytes": 2052,
+      "sha256": "ac34ee5a9523994c3591b0029afe2aeef5057cc1cc971f0d1a5d4772432e2850"
+    },
+    {
+      "file": "drizzle/migrations/0081_fleet_created_at_immutable.sql",
+      "bytes": 717,
+      "sha256": "0a24b50ce2a241f0aa1e84c193c4698f30924739a9cd23e36c86d060edb5013e"
+    },
+    {
+      "file": "drizzle/migrations/0082_fin07_profil_fiscal_taxes.sql",
+      "bytes": 13406,
+      "sha256": "72d27d25ab35427a85617eb0e56240fd9ce79b1dcf50d6cdee3774fee833ec9f"
+    },
+    {
+      "file": "drizzle/migrations/0083_fin07b_arrondi_taxes_incluses.sql",
+      "bytes": 3744,
+      "sha256": "553f27a7a74cc3b911e3ab75861454b1977821c66485119c57f2d128e8e9f27a"
+    },
+    {
+      "file": "drizzle/migrations/0084_fin08_factures.sql",
+      "bytes": 14351,
+      "sha256": "c66234ee637845fb8e5e3ebde2d7eea60bdff62bfc36e2203a030830df531392"
+    },
+    {
+      "file": "drizzle/migrations/0085_fin08_reset_flag.sql",
+      "bytes": 4017,
+      "sha256": "2f49d2749dd607617d630b7336c1ced3a01bf6aa4fbaef21159ff4398926de65"
+    },
+    {
+      "file": "drizzle/migrations/0086_fin08b_invoice_receipts.sql",
+      "bytes": 7381,
+      "sha256": "c24164b0d67ebacae544cb09e6e47afcbd38e1635280e4868d322f7582474069"
+    },
+    {
+      "file": "drizzle/migrations/0087_fin08b_lock_order_idem.sql",
+      "bytes": 2989,
+      "sha256": "c70c573a0358d8c1cfa3b825727971cdf246d37c6554751907c2862d9a6180de"
+    },
+    {
+      "file": "drizzle/migrations/0088_fin09a_credit_notes.sql",
+      "bytes": 18315,
+      "sha256": "24d6eced96fe3f65994055afb7d93287bf9f1c88260d653f5dfa86427a9c3d44"
+    },
+    {
+      "file": "drizzle/migrations/0089_fin09a_sync_fully_credited.sql",
+      "bytes": 1118,
+      "sha256": "a82f222741bab028516a17dfd01ee2cff7afe8f788b4c79f1a8ee27eba406dbe"
+    },
+    {
+      "file": "drizzle/migrations/0090_fin09a_revoke_direct_writes.sql",
+      "bytes": 199,
+      "sha256": "e89cf9b56583d915b08e317384ddb6bc7d15896e404ae8252fe96709f40a764f"
+    },
+    {
+      "file": "drizzle/migrations/0091_fin09a_credit_fixes.sql",
+      "bytes": 17009,
+      "sha256": "988ae5dbea8cd5ca12c1817cccb0dba56d45c749c58981cbf4cf3a2f84a463bc"
+    },
+    {
+      "file": "drizzle/migrations/0092_fin09b1_progress_billing.sql",
+      "bytes": 33486,
+      "sha256": "6a2995912800703185dca0e7a6ec4dac69edbd50fb2c8bc2651234d6a0699928"
+    },
+    {
+      "file": "drizzle/migrations/0093_fin09b1_revoke_direct_writes.sql",
+      "bytes": 220,
+      "sha256": "7486ba4fdd814828efcb4349965193ba8a82518becfa1830bbdc8501050011c5"
+    },
+    {
+      "file": "drizzle/migrations/0094_fin09b1_tax_per_invoice.sql",
+      "bytes": 16638,
+      "sha256": "5156b65ee69e26913438f6e520e8d1be23cbfc3be68403b9b6e13492e640778a"
+    },
+    {
+      "file": "drizzle/migrations/0095_fin09b1_family_replay_abandon.sql",
+      "bytes": 19405,
+      "sha256": "c7a263d3c76584f6512980aad08dae59e3da784be1ce1c4f9da724bc13c438e8"
+    },
+    {
+      "file": "drizzle/migrations/0096_fin09b1_issue_replay_strict.sql",
+      "bytes": 7199,
+      "sha256": "ac07eb09b8de8cec995a4ddc295c4235bd6f2924b9036648c398c1111343e49b"
+    },
+    {
+      "file": "drizzle/migrations/0097_fin09b2_lines_milestones_amendments.sql",
+      "bytes": 59566,
+      "sha256": "9cd1f494636e4b79fb251093e27decb4394a2390a8575f16947ad3f80ce41bd7"
+    },
+    {
+      "file": "drizzle/migrations/0098_fin09b2_fix_ambiguous_id.sql",
+      "bytes": 13525,
+      "sha256": "33d0393f17b5c085034b802c29e7fd6dc9707278d3d932d90a92b45184550f95"
+    },
+    {
+      "file": "drizzle/migrations/0099_fin09b2_lines_solde_value.sql",
+      "bytes": 3456,
+      "sha256": "d79974dfeb84ea2d04d055d41444cecd7d0eab05b439c6d1c340d29c3bdf4964"
+    },
+    {
+      "file": "drizzle/migrations/0100_fin09b2_amend_required_fields_refresh.sql",
+      "bytes": 14948,
+      "sha256": "902b019b108172fcc2684b7409caab255de61bab7c70182dcd7c3a4cac01b297"
+    },
+    {
+      "file": "drizzle/migrations/0101_fin09c1_recurring_invoices.sql",
+      "bytes": 46091,
+      "sha256": "390e73d3d282099d03f477389e6d3a7f702f7a2b826c9865a7b09590de53601d"
+    },
+    {
+      "file": "drizzle/migrations/0102_fin09c1_review_bounds_validation.sql",
+      "bytes": 9990,
+      "sha256": "bb0e1495d9ae6a46b772a3e3c11a948d6ec39cb0f75f779f04c77ca274d90b14"
+    },
+    {
+      "file": "drizzle/migrations/0103_fin09c1_review_bounds_v1.sql",
+      "bytes": 1093,
+      "sha256": "b8e1478183366ce16d7f28d47665d1f5375a28f945cc90e25aa6c7915234f571"
+    },
+    {
+      "file": "drizzle/migrations/0104_fin09c2_retentions.sql",
+      "bytes": 27334,
+      "sha256": "3b54c3dbd680e08556d94da61f21fc065545c81723151a833e58e9d3d50b715a"
+    },
+    {
+      "file": "drizzle/migrations/0105_fin09c2_retention_validate_fix.sql",
+      "bytes": 5220,
+      "sha256": "1ae0a4d573a60c02d88150328e74bf22e0ecbfb5f839715478f56663dd0bcc65"
+    },
+    {
+      "file": "drizzle/migrations/0106_fin09c2_guard_trg_fix.sql",
+      "bytes": 711,
+      "sha256": "7744ad75d03c1675553a5f6cbc71caec402c2b76e79b54c7a463ad7183c69505"
+    },
+    {
+      "file": "drizzle/migrations/0107_fin09c2_request_hash_replays.sql",
+      "bytes": 11424,
+      "sha256": "b31eec8f2e3f02ece950cfd682452294db9f3b101b1a8ce7d8d196709812b2c7"
+    },
+    {
+      "file": "drizzle/migrations/0108_fin09c2b1_construction_deferred_tax.sql",
+      "bytes": 24978,
+      "sha256": "b816662ed50769e951c00043304edc61083f6c80cd2debd453a56faea5497820"
+    },
+    {
+      "file": "drizzle/migrations/0109_fin09c2b1_validate_fix.sql",
+      "bytes": 8077,
+      "sha256": "cc9a87d5f518d28423993d764c87b743763b9fd46af7ea0d4eec2e79163d2c98"
+    },
+    {
+      "file": "drizzle/migrations/0110_fin09c2b1_review_fixes.sql",
+      "bytes": 14906,
+      "sha256": "5a7d0e692e73373114fe7b6c0b6b62fc2163ac73367d1e7019bcb0358c327f59"
+    },
+    {
+      "file": "drizzle/migrations/0111_fin09c2b1_alloc_numeric.sql",
+      "bytes": 1573,
+      "sha256": "98e3284f19e3bcabe69eafed018a62c276abde3b2b4fced60a40c4fb5bf77801"
+    },
+    {
+      "file": "drizzle/migrations/0112_fin09c2b2a_construction_payment.sql",
+      "bytes": 13959,
+      "sha256": "e01302e68aa92926f5559d2cbf8f63f1bfdd3a0e6d4badf57665217742cd4eea"
+    },
+    {
+      "file": "drizzle/migrations/0113_fin09c2b2a_eval_array_fix.sql",
+      "bytes": 6265,
+      "sha256": "a13d9a56341d1f4e64dc2fc69357f0c1bd95ef6671d9d417cbd7b5541dfff773"
+    },
+    {
+      "file": "drizzle/migrations/0114_fin09c2b2a_hash_json.sql",
+      "bytes": 6543,
+      "sha256": "f78ec560211894de4d30f7d60806d228b6978f713c7d2f42d470bd2d9f0978ba"
+    },
+    {
+      "file": "drizzle/migrations/0115_fin09c2b2b1_pay_correction.sql",
+      "bytes": 14291,
+      "sha256": "93efa6b3d8def8b6fd5bac4f20dc6f9477aed0e113b99386abdd577ebe6ec63f"
+    },
+    {
+      "file": "drizzle/migrations/0116_fin09c2b2b1_sync_order.sql",
+      "bytes": 10797,
+      "sha256": "23b6153cf0f51025c623d10b7ba1fccefd98ae692c3a6025dbee5df066c4ee6b"
+    },
+    {
+      "file": "drizzle/migrations/0117_fin09c2b2b2a_pcorr_analyze.sql",
+      "bytes": 5019,
+      "sha256": "89e6642980cde6239f65665832a2d824ef89e9a68d55a4d89b79177f8bf769da"
+    },
+    {
+      "file": "drizzle/migrations/0118_fleet_created_at_insert_guard.sql",
+      "bytes": 1159,
+      "sha256": "441440427c1e7ccf375e84174e9d0a87b09dc7fba6f48e79b97ad78b4f389919"
+    },
+    {
+      "file": "drizzle/migrations/0119_fin10_client_accounts_portal.sql",
+      "bytes": 23553,
+      "sha256": "36c5dcb61bde5dafd5b0894d121218bea2de2be5c49d43dd135b793dcfa2c68e"
+    },
+    {
+      "file": "drizzle/migrations/0120_fin10_array_append_fix.sql",
+      "bytes": 5829,
+      "sha256": "6152c5a5293006a803643d44080ece660f54712d989de139f58b8b714a1857ee"
+    },
+    {
+      "file": "drizzle/migrations/0121_fin11_psp_simulation.sql",
+      "bytes": 21,
+      "sha256": "d6f53838b793399c11d569fb507d5225ff350cfb7e89727fed5823d8317d8c45"
+    },
+    {
+      "file": "drizzle/migrations/0122_fin11_psp_simulation_schema.sql",
+      "bytes": 18827,
+      "sha256": "f23b10ee41bc5c444dd92a49c606bab5a603616888351a5d8e52ab81d1551d53"
+    },
+    {
+      "file": "drizzle/migrations/0123_fin11_psp_receipt_method.sql",
+      "bytes": 531,
+      "sha256": "859a031fea1dc17ff03233b2263a8ff96d4c87a14396796ace04def44f611e43"
+    },
+    {
+      "file": "drizzle/migrations/0124_fin11_psp_overview_payload.sql",
+      "bytes": 598,
+      "sha256": "82476222de7abc8b7f2f3803ac1a80079141a0d5da8af22b98d53ee80e001346"
+    },
+    {
+      "file": "drizzle/migrations/0125_fin12a_supplier_bills.sql",
+      "bytes": 28336,
+      "sha256": "a45abfdb8badff5cb8591477effaaf08e5854413fa9f3ba61d9635d712f6b39a"
+    },
+    {
+      "file": "drizzle/migrations/0126_fin12a1_supplier_credits.sql",
+      "bytes": 37749,
+      "sha256": "0588a57f52dd895701ead4bf914305ee9a19ac1e5c953578361ebe16575b0679"
+    },
+    {
+      "file": "drizzle/migrations/0127_fin12b_purchase_orders.sql",
+      "bytes": 47839,
+      "sha256": "3d3013ddf3c6542e6840b5e0b7daa6e033d54781a39cab547c60f05f0cc9cc8e"
+    },
+    {
+      "file": "drizzle/migrations/0128_fin12c_doc_captures.sql",
+      "bytes": 13280,
+      "sha256": "d462fdb9865a312e5d4dcc3054a0217d14297a506bf704553bddc88800d8f9c3"
+    },
+    {
+      "file": "drizzle/migrations/0129_fin12c1_heic_converted.sql",
+      "bytes": 3394,
+      "sha256": "58b9f01616457eb1c450f4204be1f53dc11975db1ffc8cb4ecdf3003ee961d86"
+    },
+    {
+      "file": "drizzle/migrations/0130_fin12d_expense_reports.sql",
+      "bytes": 59058,
+      "sha256": "c32ef4994fff6f49f309312cf89a24286d9c9e22a347dd76e9a21b0bda27ce44"
+    },
+    {
+      "file": "drizzle/migrations/0131_fin12d_file_access.sql",
+      "bytes": 4265,
+      "sha256": "d3a0b5d2688fb0dc9235809dee2eeb097f710d8c2124c82a2c05338107141a85"
+    },
+    {
+      "file": "drizzle/migrations/0132_fin12d_receipt_uses_approved.sql",
+      "bytes": 1381,
+      "sha256": "8db0dd46ce44f9a11e880799b846b9ff7fd2c57f1b4eb51bc4da7721cdf4bdaf"
+    },
+    {
+      "file": "drizzle/migrations/0133_fin12d1_bill_search.sql",
+      "bytes": 1407,
+      "sha256": "4593bc4fcb83559e455d7f8625eb0a2fc19cabf78c070f3c7a30aaa2b8a2e317"
+    },
+    {
+      "file": "drizzle/migrations/0134_fin12d1_capture_confidential.sql",
+      "bytes": 4815,
+      "sha256": "f50169a16ed06ca1c11f543bc00db6699428d8ceedfc8ff3527d2267f2a6ec6f"
+    },
+    {
+      "file": "drizzle/migrations/0135_fin12d1_capture_log_fix.sql",
+      "bytes": 1737,
+      "sha256": "0a71fa64e756b3674b885e4ac74ee3999d44b8f654de0569aa587a8fe173ef50"
+    },
+    {
+      "file": "drizzle/migrations/0136_fin12d1_list_due_unknown.sql",
+      "bytes": 2064,
+      "sha256": "332a534bafc98a5ab44191125f6b2aabce551e20b4c22122cce9ae1fb3e70093"
+    },
+    {
+      "file": "drizzle/migrations/0137_fin12d1_capture_events_confidential.sql",
+      "bytes": 339,
+      "sha256": "df85a038cd0f43d3513f70e12c52892a25c9b7531680f75f3c7544167b152acd"
+    },
+    {
+      "file": "drizzle/migrations/0138_fin12d1_capture_events_definer.sql",
+      "bytes": 669,
+      "sha256": "88bd001db7df4bcc12ce62e3cecbe5f80f3496f467eaf98a5525858d141064f6"
+    },
+    {
+      "file": "drizzle/migrations/0139_fin12e_csv_import.sql",
+      "bytes": 10119,
+      "sha256": "c98aa0fe6c9224dafe10d81ebc924416eafedd3aef937b68ca2713617c307483"
+    },
+    {
+      "file": "drizzle/migrations/0140_fin12e1_csv_server_checks_ocr_dups.sql",
+      "bytes": 16682,
+      "sha256": "dad19321607fe7b5e54af72bfbe2a621c33c97d0b319dd0da52905695793b519"
+    },
+    {
+      "file": "drizzle/migrations/0141_fin12f_supplier_overpay_refunds.sql",
+      "bytes": 38840,
+      "sha256": "f83ff25ca3bc9b351b68890139c6e6588d29267853e3c87d258a64b749359b7e"
+    },
+    {
+      "file": "drizzle/migrations/0142_fin12f_overview_credit_available.sql",
+      "bytes": 3377,
+      "sha256": "65a4e6a09986cc6944af1fd2fec7207d19875eefbb765d00651d160adff5a6f3"
+    },
+    {
+      "file": "drizzle/migrations/0143_fin12final_period_credit_refunds.sql",
+      "bytes": 4005,
+      "sha256": "d6ff1317f1cfe0c8b300bd56538abd61e9cd4fed9b0f45e61ef39ba0f0d847c4"
+    },
+    {
+      "file": "drizzle/migrations/0144_fin13a_bank_reconciliation.sql",
+      "bytes": 39357,
+      "sha256": "33e58f2d69d6bc633de1d9722f3b02ca457fead717cf4b9cae07233382579615"
+    },
+    {
+      "file": "drizzle/migrations/0145_fin13a_commit_occ_fix.sql",
+      "bytes": 5241,
+      "sha256": "2c2790f749033e2bdb60df86a9a1f399298ac8fa944e47b94c73ed3d510f7bbb"
+    },
+    {
+      "file": "drizzle/migrations/0146_fin13a_private_statement_files.sql",
+      "bytes": 3645,
+      "sha256": "e105dc3ef26e27558914d9d00c58ef173ccf376c997b6f632d51044c57204a43"
+    },
+    {
+      "file": "drizzle/migrations/0147_fin13a1_payment_accounts.sql",
+      "bytes": 26387,
+      "sha256": "c37cfc078215d4a4bbf4e1444ebb04a43dfc97e621db71f188719c77f1e860f8"
+    },
+    {
+      "file": "drizzle/migrations/0148_fin14_general_ledger.sql",
+      "bytes": 40292,
+      "sha256": "3072ebf7bd4da09ca9f81976444ea18f3374328b7836c99d2b4a79f57166c95a"
+    },
+    {
+      "file": "drizzle/migrations/0149_cpn01_coupon_books.sql",
+      "bytes": 10255,
+      "sha256": "9b445d4ddacec00e582d73f4cd32987005bd4cda91e26b6e3080334701745044"
+    },
+    {
+      "file": "drizzle/migrations/0150_ops02_trips_services_tracking.sql",
+      "bytes": 13483,
+      "sha256": "01d9b2aa16926822eaa803ae7e86c1e2278706f136cee4e287276ff253154e66"
+    },
+    {
+      "file": "drizzle/migrations/0151_todo_tasks_extend.sql",
+      "bytes": 2637,
+      "sha256": "20b49f9c01f1a6e0e2c8c2722802b9cccec8280d09af3a6625fb2b976d31d68b"
+    },
+    {
+      "file": "drizzle/migrations/0152_agenda_lot_b.sql",
+      "bytes": 19660,
+      "sha256": "52c70991b2c7adcf8a834abe1c258e61cadae9db1f635636fc447795e2d0fbf1"
+    },
+    {
+      "file": "drizzle/migrations/0153_agenda_select_policy_fix.sql",
+      "bytes": 520,
+      "sha256": "645af070e5b0e7e44adba063722a5a0ef307a5160722394dc78b22f4a05a9901"
+    },
+    {
+      "file": "drizzle/migrations/0154_punch_lot_c1.sql",
+      "bytes": 11717,
+      "sha256": "164ea197179ac7c7f6dfbd49c12d220c871b2322e31dc0d1f05075cba27a18df"
+    },
+    {
+      "file": "drizzle/migrations/0155_payroll_lot_c2.sql",
+      "bytes": 9714,
+      "sha256": "4c4ea03cdcbea697ba721da2f5c2fde431268165c041151aa0cf9ba9077c7e87"
+    },
+    {
+      "file": "drizzle/migrations/0156_payroll_compute_fix.sql",
+      "bytes": 3656,
+      "sha256": "f35b91ad642d089d344386f112028decc517a69d0c1ee1a9ca546f83cc90c240"
+    },
+    {
+      "file": "drizzle/migrations/0157_site_assistant_live.sql",
+      "bytes": 5784,
+      "sha256": "65b7ffbe57efc08938d63b3fe274e079fae2f59448fb995f3131e3b5dcf02d2d"
+    },
+    {
+      "file": "drizzle/migrations/0158_site_chat_agent_name_fix.sql",
+      "bytes": 2169,
+      "sha256": "d854aef0c34e095b539d9a6706f4cb734ca6a25b8518c9383d264909012fd1de"
+    },
+    {
+      "file": "drizzle/migrations/0159_payroll_ytd_employer_and_chat_alert.sql",
+      "bytes": 6062,
+      "sha256": "29f72d9caaf500b1c3673788043292900e044cd59aefdacf8a69fb8a68e8e999"
+    },
+    {
+      "file": "drizzle/migrations/0160_payroll_no_overlap.sql",
+      "bytes": 6270,
+      "sha256": "45e1bfe029d1dd7e6b03472ceb9183a51a46887674e65fb7f322b5285601bba9"
+    },
+    {
+      "file": "drizzle/migrations/0161_payroll_write_requires_manager.sql",
+      "bytes": 800,
+      "sha256": "9e33c052dbbe148e0ecefe724dd7cc9ae5a66839d339497f61f9f653aa0c2def"
+    },
+    {
+      "file": "drizzle/migrations/0162_payroll_to_general_ledger.sql",
+      "bytes": 2493,
+      "sha256": "2f06dc88a51f37653029b5e54293640fc309d4a77d3c42a15e57acd6d1a27bd2"
+    },
+    {
+      "file": "drizzle/migrations/0163_payroll_year_slips.sql",
+      "bytes": 1306,
+      "sha256": "7f2ba79ca6aeae4dbc21edb238380eab93addec08368e618042fdaf7f7f7133a"
+    },
+    {
+      "file": "drizzle/migrations/0164_ronde_securite.sql",
+      "bytes": 18057,
+      "sha256": "bb2fd180ca56eadd4282e0e2b1e8ad59096d573c7f489f297d2897edd5ea309e"
+    },
+    {
+      "file": "drizzle/migrations/0165_ronde_securite_fix_submit.sql",
+      "bytes": 3916,
+      "sha256": "43cddef7ded13418c8a2bb9260a45cc540045a584f965672f6d9078ef3f679f6"
+    },
+    {
+      "file": "drizzle/migrations/0166_rds_photos_policies.sql",
+      "bytes": 575,
+      "sha256": "97daac0210bb8807d746818c00b1d1daf7747421d0e803c9a62b931fc13e0d38"
+    },
+    {
+      "file": "drizzle/migrations/0167_paie_2026_moteur_versionne.sql",
+      "bytes": 18757,
+      "sha256": "996a09f21959fbdb1b8eeb2328712073e009dbb6816561fbe589f82b7d469eb9"
+    },
+    {
+      "file": "drizzle/migrations/0168_paie_calc_fix_variable.sql",
+      "bytes": 6134,
+      "sha256": "ca2ce9dad4134d8d8f23812ed2c06d831fb30d7742c5c33d905001dd5cf7e248"
+    },
+    {
+      "file": "drizzle/migrations/0169_paie_calc_fix_missing.sql",
+      "bytes": 6194,
+      "sha256": "174950a10d99915cb978dd50a7d798ef650ac81b98607c44111e08decb829855"
+    },
+    {
+      "file": "drizzle/migrations/0170_mkt_consentement_mailchimp.sql",
+      "bytes": 7165,
+      "sha256": "10b4448d3660d294272b8c05f7861254195e5ebc008b3e6fd2859612d9c3d84a"
+    },
+    {
+      "file": "drizzle/migrations/0171_drv_points_natif.sql",
+      "bytes": 2614,
+      "sha256": "d54cae1107324c72d3c4523cc90646875c49dbb985311c664ff01a386cbc5848"
+    },
+    {
+      "file": "drizzle/migrations/0172_obl_obligations_renouvellements.sql",
+      "bytes": 21666,
+      "sha256": "c062ef1705417dde1cd6fa531d4f1bdcc95ab812afa747b4bb3ebfb86c8a80e2"
+    },
+    {
+      "file": "drizzle/migrations/0173_obl_sweep_dans_tache_existante.sql",
+      "bytes": 5795,
+      "sha256": "fb5883f47c6ef593ee32e99a34edad0dd1071dc703dd22325982ee37d597a188"
+    },
+    {
+      "file": "drizzle/migrations/0174_obl_sweep_simulation_test.sql",
+      "bytes": 2915,
+      "sha256": "f9adc73a9be48ed8331a3b68dd04a8566c9641b59f7695223a1cd7fee4a1feb0"
+    },
+    {
+      "file": "drizzle/migrations/0175_company_documents.sql",
+      "bytes": 1879,
+      "sha256": "379c3c80de5e1b949f8b97e3d691e8e1e3f1ef237db7becd4cbd5933b38b7be1"
+    },
+    {
+      "file": "drizzle/migrations/0176_asr_assurances_entreprise.sql",
+      "bytes": 42037,
+      "sha256": "fe6d6ef2f23a0543e25872b8c8d2a6cee0c91def8f81ff3d9584862671b3a8e0"
+    },
+    {
+      "file": "drizzle/migrations/0177_asr_guard_fix.sql",
+      "bytes": 2522,
+      "sha256": "74ea0ebd51f85aa3075a706c9aa21ebc906c04921bad4f52b41996ee8b386d81"
+    },
+    {
+      "file": "drizzle/migrations/0178_asr_role_membre_dabord.sql",
+      "bytes": 486,
+      "sha256": "6885d4bcfeff73a9fe519053ef959c1f0f50fa2384ef1a6ae2f9c5fbfe7729ba"
+    },
+    {
+      "file": "drizzle/migrations/0179_asr_confirm_tache_fait.sql",
+      "bytes": 679,
+      "sha256": "cea7709701547c5879e7b616f3859cc279d1561357a29881e381ca797b66a78d"
+    },
+    {
+      "file": "drizzle/migrations/0180_log01_logbook_fondations.sql",
+      "bytes": 27270,
+      "sha256": "b10d8e66091d7f33d5efcdd26bf6ba1bbc86149c983472d8a6e57f744f0de960"
+    },
+    {
+      "file": "drizzle/migrations/0181_log01_context_par_entreprise.sql",
+      "bytes": 754,
+      "sha256": "01045b61d83087f9066feed938fa22c39632950f2d7d7f2c21a9a373b33ee91f"
+    },
+    {
+      "file": "drizzle/migrations/0182_fin14_exercices_cloture_etats.sql",
+      "bytes": 9558,
+      "sha256": "1e30eb90c642215a501083aea283b686bc3d339a2bc216b2a31d01379453ad8b"
+    },
+    {
+      "file": "drizzle/migrations/0183_fin14_ouverture_abandon.sql",
+      "bytes": 253,
+      "sha256": "77ebaafb70c05f87ef60373cfb56ea3f86c2b4c579567f71439af13e3295fdc7"
+    },
+    {
+      "file": "drizzle/migrations/0184_fin15_ap_aging.sql",
+      "bytes": 2455,
+      "sha256": "cc26d3f3471da03ad464395ef54cfadead105bb939f47dcd106e617c2b9059bb"
+    },
+    {
+      "file": "drizzle/migrations/0185_fin15_cash_flow.sql",
+      "bytes": 2131,
+      "sha256": "ace76b5f005593edca04e0dafb639bf424cfb559508a301e6c9b6c8217b83899"
+    },
+    {
+      "file": "drizzle/migrations/0186_fin15_tax_returns.sql",
+      "bytes": 7466,
+      "sha256": "9338e7c632e92a7bda610ddec05382d3fafdc06adfadb2bc0b89aab7568944df"
+    },
+    {
+      "file": "drizzle/migrations/0187_fin15_tax_compute_fix.sql",
+      "bytes": 1978,
+      "sha256": "7cba43cbf0444405f228083179159388d3e85636a4b872df227da8f9cdf27326"
+    },
+    {
+      "file": "drizzle/migrations/0188_fin14_regularisations.sql",
+      "bytes": 1457,
+      "sha256": "99d4993adfa0b0394808e9fda8c3ba06e7b2bed5e00191a0375908386438e17e"
+    },
+    {
+      "file": "drizzle/migrations/0189_fin14_subledger_check.sql",
+      "bytes": 2152,
+      "sha256": "bc3d177a1787580b8e22d17c385a6f3cb48b4f9942fb3afb53340467da258c63"
+    },
+    {
+      "file": "drizzle/migrations/0190_fin13_transfers_execute.sql",
+      "bytes": 3314,
+      "sha256": "77ed32dcab78ff4cda480cffc45617746d6c591b0858f07b823d2689d2716ad3"
+    },
+    {
+      "file": "drizzle/migrations/0191_fin13_transfers_guard.sql",
+      "bytes": 845,
+      "sha256": "6ae4ac10393b55ed20a262b1acecf38022dafa49d1161320ee5819e0e8654462"
+    },
+    {
+      "file": "drizzle/migrations/0192_fin16_loans_assets.sql",
+      "bytes": 15011,
+      "sha256": "40d5ecc349e509cddc16f3ede5463f95a5512e45b7a70286fc3d2214aadb897b"
+    },
+    {
+      "file": "drizzle/migrations/0193_fin17_profitability.sql",
+      "bytes": 3154,
+      "sha256": "10df7a11517283c844de52883af3fa74eed31b26ef2f2100512774f676c12d3f"
+    },
+    {
+      "file": "drizzle/migrations/0194_chantiers_sens_provenance_acces.sql",
+      "bytes": 2235,
+      "sha256": "8050d99f4197c9d06d68fcccb2ae0fbcb9468dc7c9bce21221329a7ba1f8b358"
+    },
+    {
+      "file": "drizzle/migrations/0195_migration.sql",
+      "bytes": 889,
+      "sha256": "216b1721a2341dc1709a1e87dcc1ba196b93acb943f35b834402214527070849"
+    },
+    {
+      "file": "drizzle/migrations/0196_request_followups_priority.sql",
+      "bytes": 2733,
+      "sha256": "2b4ddc464d7854a985a01fee438099c335cf4abe5ce928c7c66e6e03b5c37275"
+    },
+    {
+      "file": "drizzle/migrations/0197_add_submission_site_regle_commune.sql",
+      "bytes": 1865,
+      "sha256": "9d668e916f0932603f08b323163489135538c1b0cbad421b73100dd30f4531f2"
+    },
+    {
+      "file": "drizzle/migrations/0198_fix_count_active_dumps_by_city_case.sql",
+      "bytes": 529,
+      "sha256": "44d83db250d14baedfff315309a21f53aacd6d08fc7f537f34e0965fd8ce375d"
+    },
+    {
+      "file": "drizzle/migrations/0199_cpn_trips_read_without_email.sql",
+      "bytes": 765,
+      "sha256": "ec49cd019f7b6d5e12c2629969f98e899d067bd5d0996867f116c62a32b842ec"
+    },
+    {
+      "file": "drizzle/migrations/0200_partner_territory_official_link.sql",
+      "bytes": 3724,
+      "sha256": "5be786b8d9fdfd46dfe47a554d63874eb1596632eda7a08f2be0e23b093e2b7f"
+    },
+    {
+      "file": "drizzle/migrations/0201_fleet_custom_unit_categories.sql",
+      "bytes": 913,
+      "sha256": "5c9406c750079ee9473e579bb86462d64afa44ea0f8ad1c2aa9ada4563609e56"
+    },
+    {
+      "file": "drizzle/migrations/0202_crm_documents_folders.sql",
+      "bytes": 193,
+      "sha256": "0f748a8885e5b6d9510c0e533eae1235a509150c0160ae30b113e23aaf579839"
+    },
+    {
+      "file": "drizzle/migrations/0203_shared_catalog.sql",
+      "bytes": 6909,
+      "sha256": "da54a0c55ae11289e71aefa39fc59ea174093aa9fd8ab64ce75d98b0abdb8127"
+    },
+    {
+      "file": "drizzle/migrations/0204_shared_catalog_fixes.sql",
+      "bytes": 2026,
+      "sha256": "e479204f6172976a3d3ae952555b4cf161884627bf26e1099ea49f65777133ae"
+    },
+    {
+      "file": "drizzle/migrations/0205_shared_catalog_notif_status.sql",
+      "bytes": 1226,
+      "sha256": "04f274b9b89cd5099024fe760ab6ef3c41be62d46ad51e00c9452d3680e5fa70"
+    },
+    {
+      "file": "drizzle/migrations/0206_migration.sql",
+      "bytes": 2279,
+      "sha256": "e3aefd77dc3fdd8633fd38e9574f0dd89bff01224a5dbdf1df6ecc44c1078ae4"
+    },
+    {
+      "file": "drizzle/migrations/0207_migration.sql",
+      "bytes": 2526,
+      "sha256": "ae8c2c31eb820d216a424f411672bfc4e04a76e37fc2e7ed5fd3bce836129b38"
+    },
+    {
+      "file": "drizzle/migrations/0208_migration.sql",
+      "bytes": 2458,
+      "sha256": "0a7bda72754989c11c23604b2336ab1cdfcfd8072d8bd50f61340f9cbedfe72a"
+    },
+    {
+      "file": "drizzle/migrations/0209_seo_coverage_terre_remblai.sql",
+      "bytes": 3622,
+      "sha256": "565aa342557df8b449f1d019bf1985b5f54c654bc878bc051718964c3cc64528"
+    },
+    {
+      "file": "drizzle/migrations/0210_seo_generator_terre_remblai.sql",
+      "bytes": 5178,
+      "sha256": "ec1c15d8b01de3945b44bff09a945a9476b8b6cf9a30a5b7ac67705f995b03cd"
+    },
+    {
+      "file": "drizzle/migrations/0211_seo_catalog_extension.sql",
+      "bytes": 6568,
+      "sha256": "3ed6394436df4a5278c827160a01d322b96b972ba372907917f03d630ad7c24f"
+    },
+    {
+      "file": "drizzle/migrations/0212_seo_protections_actions.sql",
+      "bytes": 3967,
+      "sha256": "20efc5bcb9600582f0d874a04cd392ca1f23a0263a3902b8b2f2e2ab915d1c07"
+    },
+    {
+      "file": "drizzle/migrations/0213_seo_city_slot_decisions.sql",
+      "bytes": 1354,
+      "sha256": "e22cf73eeae7bb09e77482921a4e8ef62e83ad10e97667ad1183a94aa3bd125c"
+    },
+    {
+      "file": "drizzle/migrations/0214_seo_slot_availability_guard.sql",
+      "bytes": 3515,
+      "sha256": "39668c16fca25027868c444e06de7c6cf1a316d827f72e50eb57528368d0edae"
+    },
+    {
+      "file": "drizzle/migrations/0215_seo_quality_publish_gate.sql",
+      "bytes": 11230,
+      "sha256": "606625e3473d8502819e8eb7c9b7c9c0aeb37707beaca1c0c72dd8a828abc117"
+    },
+    {
+      "file": "drizzle/migrations/0216_seo_publish_guard_trigger.sql",
+      "bytes": 2677,
+      "sha256": "b3027831d50517639d5663cafa1eb1286ff534eabd2c20d9838e80742e4b6f28"
+    },
+    {
+      "file": "drizzle/migrations/0217_seo_global_generation_guard.sql",
+      "bytes": 1939,
+      "sha256": "39bddb107128beda3bfd846adc1534eadf7b55847ed78c86a0e9b23959cab617"
+    },
+    {
+      "file": "drizzle/migrations/0218_seo_city_slots_catalog_admin_reader.sql",
+      "bytes": 932,
+      "sha256": "7f8b1890f24abe2c48ce3e0663b15a7c1535f20542ff2884dae9996616dfa40c"
+    },
+    {
+      "file": "drizzle/migrations/0219_seo_city_slots_catalog_admin_json.sql",
+      "bytes": 931,
+      "sha256": "0303df253541aed1ca982e773a55d7ecb1fa3ab39827e7be0fc4cf4eeca8392e"
+    },
+    {
+      "file": "drizzle/migrations/0220_seo_autopilot_start.sql",
+      "bytes": 12164,
+      "sha256": "9fcb26c8f3f995897590ed15515dd05e66863f03cb32ae3af1de70d06a5723ff"
+    },
+    {
+      "file": "drizzle/migrations/0221_seo_autopilot_preview_fix.sql",
+      "bytes": 1567,
+      "sha256": "19b759522839beea295d9a68149503b6d4b8ec979c298804e1aa3504cdc04cf7"
+    },
+    {
+      "file": "drizzle/migrations/0222_seo_material_synonyms_and_preview_scopes.sql",
+      "bytes": 3497,
+      "sha256": "b34a89025ff244b9dccfed9f710b9e0db27a5f876dc7249ab56ddf8b09dea0a6"
+    },
+    {
+      "file": "drizzle/migrations/0223_seo_autopilot_start_fast_and_status_progress.sql",
+      "bytes": 5166,
+      "sha256": "254c7a67fabed9d7d02c417e466d9a0d4b5f59100f5362baf42ebca4e0ec9213"
+    },
+    {
+      "file": "drizzle/migrations/0224_access_request_gapless_numbering.sql",
+      "bytes": 1401,
+      "sha256": "38814114d4c9282f5d54ff6d58b314ec944f0e838d0a5ca9d60919f97069c71e"
+    },
+    {
+      "file": "prepared/exec01b/README.md",
+      "bytes": 8603,
+      "sha256": "c20c5ce585addaeaefd9fd1fe236b165f15d293eb6d29a4c3844a98e216d8e77"
+    },
+    {
+      "file": "prepared/exec01b/activation-checklist.md",
+      "bytes": 23260,
+      "sha256": "e3d01a1506340096982fe1d04260cabc20a5c60faf7f81aa8ec6edc2fbdde9bf"
+    },
+    {
+      "file": "prepared/exec01b/confirmation-hook.ts",
+      "bytes": 1223,
+      "sha256": "099889c609ccbfef2a3297d697ef661c3d470442f25479336c5c3be37888eaf8"
+    },
+    {
+      "file": "prepared/exec01b/coordination-endpoint.ts",
+      "bytes": 8903,
+      "sha256": "e7f501e4e080cd16a3a5eaf50ad560fb9831de64d92d693195fa2b776288d805"
+    },
+    {
+      "file": "prepared/exec01b/coordination.sql",
+      "bytes": 25448,
+      "sha256": "e1d055319aac97b809cb37f21d6e8eaa1a1f2cb5e331e5186694d879e437f4ba"
+    },
+    {
+      "file": "prepared/exec01b/edge-entry.ts",
+      "bytes": 6835,
+      "sha256": "6d035afd51bfea2de49b38fb78264cdf4b59013328a1832369f270276030073e"
+    },
+    {
+      "file": "prepared/exec01b/endpoint.ts",
+      "bytes": 7832,
+      "sha256": "62426360987aeca24ab0ebc3aa0c687b0278fd7c912aedf3a55da07315cffc1a"
+    },
+    {
+      "file": "prepared/exec01b/lifecycle-schedule.sql",
+      "bytes": 965,
+      "sha256": "19a9395065276c7d3473c961725f9ab379c9d95345c4c07c12815b9a4c7da9f5"
+    },
+    {
+      "file": "prepared/exec01b/lifecycle.sql",
+      "bytes": 17755,
+      "sha256": "02a7c773c755a9d2c89d0e8c5a517f5eaf3a09c78ab3c871fce684ba40e9340c"
+    },
+    {
+      "file": "prepared/exec01b/lifecycle.ts",
+      "bytes": 583,
+      "sha256": "6e3df305c6e95839df04f279859f7e9f0abdb81f93b38f6cf06da8f8f5fcc7ee"
+    },
+    {
+      "file": "prepared/exec01b/mail-dispatch-hook.ts",
+      "bytes": 1841,
+      "sha256": "d02e2109f8b67db25816d304f6a3ea2a3d150d41a1093091ca3a9c8a041f872a"
+    },
+    {
+      "file": "prepared/exec01b/package.ts",
+      "bytes": 4573,
+      "sha256": "a3eb8dbe8ea472c33e94079c0507cfe26f0be9cbfa85ccf1cf563ed0169acf6b"
+    },
+    {
+      "file": "prepared/exec01b/photos.ts",
+      "bytes": 2483,
+      "sha256": "3f13004fce42af6bb3956c66a9ddaa794988744186d2e23bff60a9151c820819"
+    },
+    {
+      "file": "prepared/exec01b/process-email-queue.ts",
+      "bytes": 16005,
+      "sha256": "f7c8c242015dc30c1eba3bf50fc55ce72d4f8f25535681dbe94aeca0532f9756"
+    },
+    {
+      "file": "prepared/exec01b/queue-reception-guard.ts",
+      "bytes": 495,
+      "sha256": "4c9c6ffa665d51d001c11c9e1b902cddfa573e4d19fa07ac4c3048c1e9167733"
+    },
+    {
+      "file": "prepared/exec01b/quota.sql",
+      "bytes": 816,
+      "sha256": "1532ab90260e22fbce117fd59135414a5dbf1be82d3cc591dd01cf4fdea3af63"
+    },
+    {
+      "file": "prepared/exec01b/reception-service-email.tsx",
+      "bytes": 1339,
+      "sha256": "d1753b066ceebcd9dea83a42d1875f8dd1cf985a333a66701cde31f6655141f3"
+    },
+    {
+      "file": "prepared/exec01b/schema.sql",
+      "bytes": 14144,
+      "sha256": "e4c2ce76ded8f5620b0938b37cbea8dc3d4075fbe2c89409519abeb92a9fba37"
+    },
+    {
+      "file": "prepared/exec01b/send-transactional-email.ts",
+      "bytes": 18994,
+      "sha256": "92cd90d8c9562a6360814fbe3bcb5d173ac31eadda945c0e4c9eba86df745a02"
+    },
+    {
+      "file": "prepared/exec01b/service-mail.ts",
+      "bytes": 2389,
+      "sha256": "785248332f2460d8b77acbd8e53bae866b8ec337be41f7624fd464e67d8dc90e"
+    },
+    {
+      "file": "prepared/exec02/check_coordination.py",
+      "bytes": 6187,
+      "sha256": "95e64fe10f8bf4992f8057ebf3098e29eaa543910eca573777411e336a99249b"
+    },
+    {
+      "file": "prepared/exec02/check_deliveries.py",
+      "bytes": 5866,
+      "sha256": "8bcab168098bfca0fd1f4a661a1f59380ac116a9b58539bd2adf275359533716"
+    },
+    {
+      "file": "prepared/exec02/harness.ts",
+      "bytes": 5873,
+      "sha256": "3e4154df12608c83de6acff262821991ff8e06daa95601423c6c765658f1545d"
+    },
+    {
+      "file": "prepared/exec02/render-capture.ts",
+      "bytes": 523,
+      "sha256": "7a1b7f095328ea4707ce1aff4662764cc291c2e5ac0479877450c49a2618a82b"
+    },
+    {
+      "file": "prepared/exec03/README.md",
+      "bytes": 2875,
+      "sha256": "dabb507a419757d6fe40348c7ecc6767b8f2e2920e863c1e4e7d862e34ea82b9"
+    },
+    {
+      "file": "prepared/exec03/check_search.py",
+      "bytes": 5180,
+      "sha256": "011e7186c3d492b860b5233f32a28511e3a5128229d09fe6da13913cc1093d87"
+    },
+    {
+      "file": "prepared/exec03/edge-entry.ts",
+      "bytes": 1582,
+      "sha256": "8bfe5d7e9e325ef582d4d63f7e36cefb43dc1d78477e17e32dd08a1ad1589b5a"
+    },
+    {
+      "file": "prepared/exec03/geography.sql",
+      "bytes": 1045,
+      "sha256": "fba6336326292b77814c726c445b286af2d83957b24d0b7bb0988298e538a6a4"
+    },
+    {
+      "file": "prepared/exec03/harness.ts",
+      "bytes": 4760,
+      "sha256": "340ecd192a3e46925f810ac4106dd6aca5a833f8e4b913c59d51b42695ea7c2b"
+    },
+    {
+      "file": "prepared/exec03/local-fixture.sql",
+      "bytes": 1001,
+      "sha256": "61780219e487d84f0b87375ac6cd8bcf6b7da28bb2f444aca127e896feecf62d"
+    },
+    {
+      "file": "prepared/exec03/maps-provider.ts",
+      "bytes": 3924,
+      "sha256": "2d346220537a8833315f4824d1b47193cc550acb48dbcbb80f0dcde5540a4b7e"
+    },
+    {
+      "file": "prepared/exec03/package.ts",
+      "bytes": 729,
+      "sha256": "fc4249bfe15dc34ebf83c69a6fa7d5d3e78bb21157ad1ca4f3a6307fc53e6846"
+    },
+    {
+      "file": "prepared/exec03/preferences.sql",
+      "bytes": 4125,
+      "sha256": "e3ac6ec5e748ffed4ac24e4593656b4fa5b1dbab35d78fd458c7b80d97e1d7fc"
+    },
+    {
+      "file": "prepared/exec03/search-endpoint.ts",
+      "bytes": 2807,
+      "sha256": "56c6fe117c838ef8604b1ea75dcc09ec6592eaf7d3a4963a68ffd3e4eb23e74a"
+    },
+    {
+      "file": "prepared/exec03/search-sites.sql",
+      "bytes": 848,
+      "sha256": "d59ce00b0ec6f00a1d8820ca1e111e1b8af0c440f6ceaa4bc36f06574887fe5d"
+    },
+    {
+      "file": "prepared/exec04/README.md",
+      "bytes": 1573,
+      "sha256": "d54516198ccfd8a54240f28e960d188d127b75dc1f695ad686b68677c537c4ea"
+    },
+    {
+      "file": "prepared/exec04/edge-entry.ts",
+      "bytes": 2960,
+      "sha256": "328299888b99a1981cfce64ea76f90e9212f11c3ba1d5d1e4e07379157bcf8ab"
+    },
+    {
+      "file": "prepared/exec04/endpoint.ts",
+      "bytes": 8559,
+      "sha256": "6ad3cf102782a5daee1187ade58dd378a985ce834a988639c298b8bd7599df91"
+    },
+    {
+      "file": "prepared/exec04/harness.ts",
+      "bytes": 3878,
+      "sha256": "842554e1206477ecb8b14eef078f17192b46f4229f03d1a8d65ee0938832221b"
+    },
+    {
+      "file": "prepared/exec04/local-db.ts",
+      "bytes": 4513,
+      "sha256": "032c19f96f71d331aeb58faeb5416d7a44f83d3b2ea9798cd944ec0cee81b59b"
+    },
+    {
+      "file": "prepared/exec04/local-fixture.sql",
+      "bytes": 10003,
+      "sha256": "02c8d51c21e2d8b2a0bca5af393e83ef9294bf315dd2701e9f82ccd751c502da"
+    },
+    {
+      "file": "prepared/exec04/package.ts",
+      "bytes": 1122,
+      "sha256": "c7b89f33db23a7d32bf89bc1a16e79e58ace17b7156e73f4911b0c574e1f90c4"
+    },
+    {
+      "file": "prepared/exec04/queue-guard.ts",
+      "bytes": 333,
+      "sha256": "11b7e5dc2cefde9325c481215e7332ba5f4ec4a4bf307ce4a31e034d49418607"
+    },
+    {
+      "file": "prepared/exec04/schema.sql",
+      "bytes": 42532,
+      "sha256": "604f4a7dd5e8e18c9869e313522a58277f8b7747cfcbfcf4db7a187f22ff0180"
+    },
+    {
+      "file": "prepared/exec05/harness.ts",
+      "bytes": 6261,
+      "sha256": "18e0d261fb4040edd09f5361f9e8d00d14e5bcaf9c1006bd84114e7785b55efe"
+    },
+    {
+      "file": "prepared/exec05/invoices.sql",
+      "bytes": 3714,
+      "sha256": "6eedecb9d7c55e6cce704ae01d1c52281d89ea7528519d86389206c1c73a5297"
+    },
+    {
+      "file": "prepared/exec05/local-base.sql",
+      "bytes": 3757,
+      "sha256": "7188a23b29a73f8b0d9121f3748256bffc4a8a487b07e78749c304d9a7259aed"
+    },
+    {
+      "file": "prepared/exec05/local-db.ts",
+      "bytes": 4337,
+      "sha256": "a80516592004558aff5ca5242c56cf4031a1819b97e8b0c5852e961c8216755f"
+    },
+    {
+      "file": "prepared/exec05/mail.ts",
+      "bytes": 2049,
+      "sha256": "befd2c672f603a6cf8805e76ee43a485ff6931d6dcbf3d8c24bcc9b472556cce"
+    },
+    {
+      "file": "prepared/exec06/harness.ts",
+      "bytes": 3489,
+      "sha256": "d8f730b3b4337de7889f42d6fb74e619deb77ee16ec4be9a79144cca0eec2ad5"
+    },
+    {
+      "file": "prepared/exec06/local-db.ts",
+      "bytes": 1873,
+      "sha256": "2f2cbf49f608c2f089e9cd38f5f62ea44d933f986a6d45b188bd01bc0673788e"
+    },
+    {
+      "file": "prepared/exec06/schema.sql",
+      "bytes": 27223,
+      "sha256": "fc07998b4491e9ae97420da63eacddf23c93c4e10692a1e08a40195eb5fd5ac6"
+    },
+    {
+      "file": "prepared/exec07/AGENTS.md",
+      "bytes": 380,
+      "sha256": "1ed7400a3537cf9244cc8aef2272c98979028ac3e84a5ad0995dd6bfabff865f"
+    },
+    {
+      "file": "prepared/exec07/README.md",
+      "bytes": 2057,
+      "sha256": "9b9e194e11c38d0052d0d556dd68e747649f814d596befc4b66e06b24e69896e"
+    },
+    {
+      "file": "prepared/exec07/check_help.py",
+      "bytes": 5088,
+      "sha256": "c557b5bbd877d41acb5fd970d0e7341f9bc3b4f4eda43e5c739356550977807b"
+    },
+    {
+      "file": "prepared/exec07/harness.ts",
+      "bytes": 4368,
+      "sha256": "1a63d41fe69ced11cf2eb3675dd1f70d4058182e0ebba078e5a97d03663409d5"
+    },
+    {
+      "file": "prepared/exec07/local-db.ts",
+      "bytes": 4023,
+      "sha256": "d352f99a8825f631d2c3bb729f0e5510ac98c7f628a240fd1d65d4e252402f94"
+    },
+    {
+      "file": "prepared/exec07/network_proof.py",
+      "bytes": 1838,
+      "sha256": "51d359f8c1d173ce0380ce02fee2f5c234ae235b39f46223b6dff5925feced56"
+    },
+    {
+      "file": "src/components/finances/FinanceLocalScreen.tsx",
+      "bytes": 2388,
+      "sha256": "186740f71ff773d52e749ff7a953f38a9bb41b6d21b828f1ef53e2c7482e2e12"
+    },
+    {
+      "file": "src/components/finances/InvoiceMailDialog.tsx",
+      "bytes": 3303,
+      "sha256": "e383d082a6dabfdd3d8676ef5db373b72a293a60f2ebf77dd2e2c850a23e8365"
+    },
+    {
+      "file": "src/components/finances/Invoices.tsx",
+      "bytes": 38711,
+      "sha256": "ad741cc062fb9bc1aaf947548e36b860918a7d8ba071aef1b0a18e8f9dafdc54"
+    },
+    {
+      "file": "src/components/help/ContextHelp.tsx",
+      "bytes": 1460,
+      "sha256": "60b5058625808ca88680a43ba8fe7c3498b9365ce25c10c1b61d89cdcfb3eef4"
+    },
+    {
+      "file": "src/lib/finances/invoiceMail.ts",
+      "bytes": 3357,
+      "sha256": "86e8e19fe4d39b5b8c7a282008a39013261da106e00f01e040d8aa8e079e85dc"
+    },
+    {
+      "file": "src/lib/help/catalog.ts",
+      "bytes": 16102,
+      "sha256": "4607c2a556fd480460507dc89f943b41360261b25367000c5082aafa3a4125dc"
+    },
+    {
+      "file": "src/pages/RemblaiFollowup.tsx",
+      "bytes": 20018,
+      "sha256": "350f163bd4f0d2df979e79b92e0a91edf6b9d0dbe05198c5a880fbb1b3da9193"
+    },
+    {
+      "file": "src/test/entrepreneur-exec03.test.ts",
+      "bytes": 8478,
+      "sha256": "7f72d722f0a1007763c077582cbce965446930b2b0f5fb7ea51b077eced6c69c"
+    },
+    {
+      "file": "src/test/exec03-exec04-corrections.test.ts",
+      "bytes": 21284,
+      "sha256": "1aa39aee0706e1e82474aab46d01713a3578b01b0072d3438e7fba6852b3537f"
+    },
+    {
+      "file": "src/test/exec04-screen-completion.test.ts",
+      "bytes": 5412,
+      "sha256": "d5246b8231e686c2a4f7a7c49095b30394c0b6802a34cda542022474df7f06e1"
+    },
+    {
+      "file": "src/test/exec05-integration.test.ts",
+      "bytes": 10584,
+      "sha256": "eed6aa854744efe933cbe7b40de80b50fcd46974c86fef2b62c0f040ececf605"
+    },
+    {
+      "file": "src/test/exec05-rules.test.ts",
+      "bytes": 1744,
+      "sha256": "1d90fe0092820b8a94f39aecfabf6b411b557ed9bec4d5823916023f588a9d90"
+    },
+    {
+      "file": "src/test/exec06-integration.test.ts",
+      "bytes": 9627,
+      "sha256": "feec9022c00bdf1ab4b499d99a28d9f4675610de3c363d746dc76763a4e99228"
+    },
+    {
+      "file": "src/test/exec06-time.test.ts",
+      "bytes": 942,
+      "sha256": "42cde6a40b5f775eeb85281008dcf6b610a05bd45c4b5cbe980ae89638711209"
+    },
+    {
+      "file": "src/test/exec07-help.test.ts",
+      "bytes": 2402,
+      "sha256": "bac737fe6e3af732c90a5304db1059e12e079e1e94295c7f47f5e8ec57c6bd43"
+    },
+    {
+      "file": "src/test/exec07-local.test.ts",
+      "bytes": 3222,
+      "sha256": "4909290fcefb845594e42e03517692c70ee8869c74f6a251d752857f3449d3ac"
+    },
+    {
+      "file": "src/test/exec08-document.test.ts",
+      "bytes": 1527,
+      "sha256": "ac0969b2547c3185650be9658226407ab2c0e121e70b69828e224a995d575f33"
+    },
+    {
+      "file": "src/test/fixtures/exec01b-base.sql",
+      "bytes": 3438,
+      "sha256": "2c9e4298b1c362dfaea8f5851b2213534fd821164806cda55d37a4da2a00a001"
+    },
+    {
+      "file": "src/test/fixtures/exec01c-relations.sql",
+      "bytes": 1886,
+      "sha256": "265d3913fc495df4086c08183df0856491ac8eca112d39e31211be8d90ae2b83"
+    },
+    {
+      "file": "src/test/fixtures/exec02-base.sql",
+      "bytes": 3092,
+      "sha256": "7c5f859d645e3cc51ca711f8d9f180d3c950d2c244e72286bc580599c401a7cd"
+    },
+    {
+      "file": "src/test/marketplace-exec04.test.ts",
+      "bytes": 13779,
+      "sha256": "93304a9fc47627bab5dd8ffc0fdc79ec46a1ccf1fddae0a33a1ceb79d23607ce"
+    },
+    {
+      "file": "src/test/remblai-exec01-handler.test.ts",
+      "bytes": 2038,
+      "sha256": "b1926d77f2e497dc69829c2411428b9e9d37c9f70923429fc718129f1bac96ea"
+    },
+    {
+      "file": "src/test/remblai-exec01.test.ts",
+      "bytes": 8365,
+      "sha256": "cdc71e37d381f0a0d1a7090a9e171392d71520c87c23b66bea71e183e41cdc80"
+    },
+    {
+      "file": "src/test/remblai-exec01b.test.ts",
+      "bytes": 10347,
+      "sha256": "8dff3916e0e478f5196fec7d5aab24b144583adf533ea5f4b6f4ae0d8d1db1f7"
+    },
+    {
+      "file": "src/test/remblai-exec01c.test.ts",
+      "bytes": 9457,
+      "sha256": "b5611a47122071250a0c220808360424d3526822d8565789551301cea8b92031"
+    },
+    {
+      "file": "src/test/remblai-exec02.test.ts",
+      "bytes": 24927,
+      "sha256": "4da187e209c6602c1bae60ae1f0d81eb48546e8d550e5ebd218c2d209ae70dc7"
+    },
+    {
+      "file": "src/test/remblai-exec02b-mail.test.ts",
+      "bytes": 2169,
+      "sha256": "2a0aae4f154b16d5106feef600eed2ea8affdfa217d5dea58f175965e6f007dd"
+    },
+    {
+      "file": "src/test/seo-copilot-execution.test.ts",
+      "bytes": 9874,
+      "sha256": "d4c1b76e642ab7c5eaca93211d73663799a5d61df63e2ad015ccca46b54688b8"
+    }
+  ]
+}

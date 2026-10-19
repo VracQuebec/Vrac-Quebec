@@ -1,6 +1,21 @@
 import type { InvoicePdfData } from "./invoicePdf";
 
 export type InvoiceMail = { to: string; subject: string; message: string };
+/** Read the already frozen private file; never regenerate a document for mail. */
+export async function frozenInvoicePdf(path: string | null | undefined, download: (path: string) => Promise<{data: Blob | null; error: unknown}>): Promise<Blob> {
+  if (!path) throw Error("PDF figé absent : ouvrez le PDF pour le conserver avant de préparer le courriel.");
+  const result = await download(path);
+  if (result.error || !result.data || result.data.size === 0) throw Error("PDF privé indisponible : aucun document de remplacement n’est créé.");
+  return result.data;
+}
+export async function invoicePdfBase64(pdf: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(Error("Lecture du PDF figé impossible."));
+    reader.onload = () => { const value = typeof reader.result === "string" ? reader.result.split(",")[1] : null; if (!value) reject(Error("PDF figé vide.")); else resolve(value); };
+    reader.readAsDataURL(pdf);
+  });
+}
 export function defaultInvoiceMail(invoice: InvoicePdfData): InvoiceMail {
   return { to: invoice.client.email ?? "", subject: `Facture ${invoice.number ?? ""} — ${invoice.seller.name ?? ""}`,
     message: `Bonjour ${invoice.client.name ?? ""},\n\nVeuillez trouver ci-joint la facture ${invoice.number ?? ""}.${invoice.dueDate ? ` Échéance : ${invoice.dueDate}.` : ""}\n${invoice.terms ?? ""}\n\nMerci,\n${invoice.seller.name ?? ""}` };
