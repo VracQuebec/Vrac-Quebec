@@ -6,7 +6,7 @@ CREATE TABLE public.user_roles(user_id uuid,role app_role,PRIMARY KEY(user_id,ro
 GRANT SELECT ON public.user_roles TO authenticated; GRANT ALL ON public.user_roles TO service_role;
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 CREATE FUNCTION public.has_role(uuid,app_role) RETURNS boolean LANGUAGE sql SECURITY DEFINER SET search_path=public AS $$ SELECT EXISTS(SELECT 1 FROM user_roles WHERE user_id=$1 AND role=$2) $$;
-CREATE TABLE public.jsc_companies(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),name text,legal_name text,address text,phone text,email text);
+CREATE TABLE public.jsc_companies(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),name text,legal_name text,address text,phone text,email text,created_at timestamptz DEFAULT now());
 GRANT SELECT ON public.jsc_companies TO authenticated; GRANT ALL ON public.jsc_companies TO service_role;
 ALTER TABLE public.jsc_companies ENABLE ROW LEVEL SECURITY;
 CREATE TABLE public.jsc_company_members(company_id uuid REFERENCES jsc_companies(id),user_id uuid,role text,is_active boolean DEFAULT true,archived_at timestamptz);
