@@ -1,0 +1,16 @@
+{
+  "modes": [
+    "par_demande",
+    "creneaux",
+    "preautorisee"
+  ],
+  "crm_reserved": 30,
+  "widths": [
+    360,
+    768,
+    1280
+  ],
+  "page_errors": [],
+  "real_sends": 0,
+  "fixture_id": "9caa94b8-961f-438c-b55a-9c1cd245aafd"
+}

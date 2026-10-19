@@ -64,3 +64,6 @@ Voir `prepared/exec01/README.md` pour les raccordements précis. L'environnement
 L'émission de lien, sa livraison au contact réellement vérifié, le quota global partagé, le stockage privé des photos et le raccordement CRM réel restent à réaliser dans un serveur isolé autorisé. La limitation à 5 échecs de code testée localement ne constitue pas une protection anti-abus distribuée.
 
 Aucune publication, fonction active, migration, permission, donnée métier, génération, synchronisation, demande réelle, communication ou paiement n'a été touché dans EXEC-01.
+
+## Suite EXEC-02 (19 octobre 2026)
+Coordination/réservations développées et validées localement : 20 tests ciblés, navigateur trois modes et même dossier CRM. Activation hébergée désactivée; branchement courriel géré, mesures voyages, scheduler et proxy restent à activer. Bilan et preuves : [EXEC-02](exec02-bilan.md). Les limites historiques ci-dessus restent des constats de leurs lots, pas un bilan de l’activation actuelle.
