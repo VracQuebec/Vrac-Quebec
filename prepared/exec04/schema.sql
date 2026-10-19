@@ -211,7 +211,7 @@ BEGIN
   result:=jsonb_build_object('ok',true,'state',p->>'state');
  ELSIF kind='campaign_save' THEN
   IF p->>'template' IS NULL OR p->>'frequencyHours' IS NULL OR nullif(trim(p->>'name'),'') IS NULL OR p->'segment' IS NULL OR p->>'template' NOT IN ('confirmation','reconfirmation','offer','appointment','welcome','features') OR (p->>'frequencyHours')::int NOT BETWEEN 1 AND 8760 THEN RAISE EXCEPTION 'Modèle/fréquence invalide'; END IF;
-  IF p->'segment'->>'audience' IS DISTINCT FROM CASE WHEN p->>'template' IN ('welcome','features') THEN 'entrepreneur' ELSE 'owner' END THEN RAISE EXCEPTION 'Population incompatible avec le modèle'; END IF;
+  IF p->'segment' ? 'audience' AND p->'segment'->>'audience' IS DISTINCT FROM CASE WHEN p->>'template' IN ('welcome','features') THEN 'entrepreneur' ELSE 'owner' END THEN RAISE EXCEPTION 'Population incompatible avec le modèle'; END IF;
   INSERT INTO mkt_campaigns(name,template_key,purpose,segment,frequency_hours,created_by) VALUES(p->>'name',p->>'template',CASE WHEN p->>'template' IN ('welcome','features') THEN 'promotion' ELSE 'service' END,p->'segment',(p->>'frequencyHours')::int,(p->>'actorId')::uuid) RETURNING id INTO cid;
   result:=jsonb_build_object('id',cid);
  ELSIF kind='prepare' THEN
