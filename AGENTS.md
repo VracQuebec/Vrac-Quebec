@@ -16,7 +16,8 @@
 - EXEC-01C/02/02B keep CRM, sender and queue-worker adapters disabled in prepared sources. Reservations lock dossier/offer capacity and commit link/message atomically; immutable trip corrections debit only the delta. The existing queue rechecks reminder eligibility and suppression. Preferences never override regulatory rules; private photos require dossier authorization.
 - Personal follow-up entrypoints bypass analytics, production providers and notification mounts; this prevents bearer credentials and test actions reaching existing telemetry or business services.
 - EXEC-03 reuses map/comparator filters and membership-checked preferences; loopback tests share domain code, hosted adapters stay disabled.
-- EXEC-04 extends mkt consent/send/request/commission records, excludes private CRM audiences and links existing invoices without duplicate money movements; shared handlers run locally, hosted adapters stay disabled.
+- EXEC-04 extends existing mkt records only; server consent keys include entity, subject, channel and partner/request scope; immutable domain events prove acquisition, allowlisted partner projections prevent internal data disclosure, and hosted adapters remain disabled.
+- EXEC-03/04 SQL tests require a verified disposable loopback cluster before any write; shared municipality lookup uses exact existing reference data and unknown geography never fabricates coordinates.
 <!-- LOVABLE:BEGIN -->
 - Entrepreneur UI uses the existing shell to own safe areas and measured header/navigation heights; one owner prevents duplicate offsets without changing backend behavior.
 - Brand colors use one HSL token and presentation-only route scoping preserves excluded admin/fleet palettes; functional and tenant-configured colors remain independent.

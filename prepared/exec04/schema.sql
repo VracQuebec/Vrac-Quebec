@@ -154,6 +154,7 @@ DECLARE kind text:=p->>'kind'; admin boolean:=coalesce(p->>'role'='admin',false)
  recipient jsonb; permission boolean; key text; qid bigint; part uuid; invoice fin_invoices; state text; reason text; cid uuid; consent_email text;
 BEGIN
  IF coalesce((p->>'testMode')::boolean,false) AND NOT exec04_test_database() THEN RAISE EXCEPTION 'Mode TEST interdit'; END IF;
+ IF p->>'role' IS NULL OR p->>'role' NOT IN ('admin','owner','partner') OR nullif(trim(p->>'actorId'),'') IS NULL THEN RAISE EXCEPTION 'Identité serveur requise' USING ERRCODE='42501'; END IF;
  IF octet_length(p::text)>150000 THEN RAISE EXCEPTION 'Requête trop grande'; END IF;
  IF kind IN ('network','campaign_save','campaign_list','prepare','campaign_claim','campaign_ack','commissions','agreement','commission','finance_link','service_admin') AND NOT admin THEN RAISE EXCEPTION 'Accès réservé' USING ERRCODE='42501'; END IF;
  IF kind='network' THEN RETURN exec04_network(); END IF;
@@ -254,6 +255,7 @@ BEGIN
   IF state='qualify' AND req.status NOT IN ('nouvelle','a_qualifier','a_matcher') THEN RAISE EXCEPTION 'Transition de qualification invalide'; END IF;
   IF state IN ('share','refuse_share') AND req.status NOT IN ('a_matcher','distribuee','soumissions_recues') THEN RAISE EXCEPTION 'Transition de partage invalide'; END IF;
   IF state IN ('respond','quote') AND req.status NOT IN ('distribuee','soumissions_recues') THEN RAISE EXCEPTION 'Transition partenaire invalide'; END IF;
+  IF state='result' AND nullif(trim(coalesce(p->>'response',p->>'reason')),'') IS NULL THEN RAISE EXCEPTION 'Résultat documenté requis'; END IF;
   IF state='result' AND req.status NOT IN ('soumissions_recues','attribuee','en_cours') THEN RAISE EXCEPTION 'Résultat sans parcours métier'; END IF;
   IF state='qualify' THEN IF NOT admin THEN RAISE EXCEPTION 'Qualification équipe';END IF;UPDATE mkt_quote_requests SET status='a_matcher',answers=answers||jsonb_build_object('qualified',true,'qualification',p->>'qualification') WHERE id=req.id;
   ELSIF state IN ('share','refuse_share') THEN
@@ -303,7 +305,7 @@ BEGIN
    UPDATE mkt_commissions SET status='annulee',exec04_cancelled_at=now(),notes=p->>'reason' WHERE id=comm.id;
   ELSIF state='dispute' THEN IF length(coalesce(p->>'reason',''))<3 THEN RAISE EXCEPTION 'Motif requis'; END IF; UPDATE mkt_commissions SET status='contestee',contested_at=now(),notes=p->>'reason' WHERE id=comm.id;
   ELSIF state='acquire' THEN
-   IF comm.status<>'a_confirmer' OR comm.amount IS NULL OR comm.rule_snapshot->'agreement'->>'trigger' IS NULL OR comm.rule_snapshot->'agreement'->>'trigger' IS DISTINCT FROM p->>'event' OR nullif(trim(p->>'event'),'') IS NULL OR p->>'eventId' IS NULL THEN RAISE EXCEPTION 'Événement/entente/montant non confirmé';END IF;
+   IF comm.status IS DISTINCT FROM 'a_confirmer' OR comm.amount IS NULL OR comm.amount<0 OR comm.rule_snapshot->'agreement'->>'trigger' IS NULL OR comm.rule_snapshot->'agreement'->>'trigger' IS DISTINCT FROM p->>'event' OR nullif(trim(p->>'event'),'') IS NULL OR p->>'eventId' IS NULL THEN RAISE EXCEPTION 'Événement/entente/montant non confirmé';END IF;
    IF EXISTS(SELECT 1 FROM mkt_quote_requests WHERE id=comm.request_id AND (status IN ('annulee','litige') OR answers ? 'known')) THEN RAISE EXCEPTION 'Annulé, contesté ou prospect connu';END IF;
    IF NOT EXISTS(SELECT 1 FROM mkt_communication_events e JOIN mkt_quote_requests r ON r.id=e.request_id WHERE e.id=(p->>'eventId')::uuid AND e.request_id=comm.request_id AND e.action='service_action' AND e.detail->>'action'='result' AND p->>'event'='result' AND r.status='terminee' AND r.answers->>'partnerId'=comm.company_id::text AND r.is_active AND r.archived_at IS NULL AND e.created_at<=now()) THEN RAISE EXCEPTION 'Événement métier vérifiable requis'; END IF;
    UPDATE mkt_commissions SET rule_snapshot=rule_snapshot||jsonb_build_object('acquisitionEventId',p->>'eventId'),status='a_facturer',exec04_acquired_at=now() WHERE id=comm.id;
