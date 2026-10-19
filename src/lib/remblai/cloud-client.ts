@@ -1,9 +1,9 @@
-import { supabase } from '@/integrations/supabase/client';
 import { REMBLAI_CLOUD_ENABLED, REMBLAI_FUNCTION } from './activation';
 import type { RequestRecord, Action } from './service';
 import { takeFragment, type PortalSession } from './isolated-client';
 export async function cloudPortalCall<T>(input: Record<string, unknown>): Promise<T> {
  if (!REMBLAI_CLOUD_ENABLED) throw Error('Le suivi personnel n’est pas activé.');
+ const { supabase } = await import('@/integrations/supabase/client');
  const { data, error } = await supabase.functions.invoke(REMBLAI_FUNCTION, { body: input });
  if (error || data?.error) throw Error('Suivi indisponible. Aucune donnée privée affichée.');
  return data as T;

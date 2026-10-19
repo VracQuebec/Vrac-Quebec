@@ -59,7 +59,8 @@ export function makeEndpoint(deps:Dependencies) {
     }
     if(authorized.denied) return reply({error:'Vérification récente requise.'},403);
     const previous=authorized.conditions as {photos?:{name:string;preview:string}[]} | null;
-    p.conditions={...data.conditions,photos:await preparePhotos(data.requestId,data.conditions.photos,previous?.photos??[],deps.storage)};
+    const photos=data.conditions.photos.map(photo=>{if(typeof photo.name!=='string'||typeof photo.preview!=='string')throw Error('Photo invalide');return {name:photo.name,preview:photo.preview};});
+    p.conditions={...data.conditions,photos:await preparePhotos(data.requestId,photos,previous?.photos??[],deps.storage)};
    }
    const result=await deps.rpc(p);
    if(result.denied) return reply({error:'Accès ou action indisponible. Vérifiez votre lien et votre code.'},403);

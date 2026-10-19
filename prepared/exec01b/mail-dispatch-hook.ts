@@ -7,7 +7,7 @@ export async function prepareExistingClientConfirmation(
 ) {
  if(deps.enabled!==true||submission.request_type!=='remblai'||submission.parcours_direction!=='reception')return null;
  const prepared=await prepareSubmissionConfirmation(submission.id,deps);
- return {...prepared,templateName:'client-confirmation' as const,idempotencyKey:`parcours-client-${submission.id}`,tracking:false as const};
+  return {...prepared,templateName:'client-confirmation' as const,idempotencyKey:`client-confirm-${submission.id}`,tracking:false as const};
  // Existing queue receives prepared.message.html/text instead of React rendering;
  // recipient comes from exec01_dispatch, not anonymous templateData.
 }
