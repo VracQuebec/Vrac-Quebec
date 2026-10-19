@@ -1,5 +1,12 @@
 # EXEC-01 — bilan du 19 octobre 2026
 
+## Complément EXEC-01B
+Serveur local PostgreSQL 17.9 + HTTP Bun réellement exécuté, base vide distincte et contacts fictifs seulement. Détails techniques et limites : `prepared/exec01b/README.md`. SQL transactionnel, liens/code hachés, actions et historique du même dossier local, hook de confirmation et entrée Cloud préparés. Aucun changement des fonctions actives ni du serveur partagé.
+
+Parcours Playwright à 1280 px puis 360 px : demande fictive créée → confirmation capturée → lien sans fuite du fragment → code aléatoire capturé → restant 750 à 600 m³ → même dossier CRM local → pause/reprise → révocation et lecture refusée (403). Double clic : un événement; trois événements avant révocation; aucune erreur JS ni débordement mobile. Captures inspectées dans `/tmp/browser/exec01b/{portal-desktop,portal-mobile,crm,email-redacted}.png`, preuves sans jeton dans `results.json`. Courriel **capturé en test**, pas envoyé réellement.
+
+Les tests ciblés SQL sont activés explicitement par `EXEC01B_LOCAL_TEST=1`; résultats finaux consignés ci-dessous après exécution. La validation Cloud/JWT/PostgREST et les raccordements prestataire/propositions/livraisons/photos réelles restent non vérifiés; la base fixture n'est pas le schéma complet de production. Ne pas présenter ce lot comme une activation CRM Cloud terminée.
+
 ## Livraison en aperçu uniquement — activation réelle non terminée
 
 - Suivi personnel TEST : `/portail/remblai?test=1`.
