@@ -4952,6 +4952,48 @@ export type Database = {
           },
         ]
       }
+      exec01_photo_files: {
+        Row: {
+          claim_id: string | null
+          created_at: string
+          lease_until: string
+          path: string
+          state: string
+          submission_id: string
+        }
+        Insert: {
+          claim_id?: string | null
+          created_at?: string
+          lease_until: string
+          path: string
+          state?: string
+          submission_id: string
+        }
+        Update: {
+          claim_id?: string | null
+          created_at?: string
+          lease_until?: string
+          path?: string
+          state?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec01_photo_files_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "exec01_photo_files_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exec01_test_dossiers: {
         Row: {
           created_at: string
@@ -31493,6 +31535,7 @@ export type Database = {
         Returns: Json
       }
       exec01_enqueue_confirmation: { Args: { p: Json }; Returns: Json }
+      exec01_photo_manage: { Args: { p: Json }; Returns: Json }
       exec01_projection: {
         Args: { _crm?: boolean; _id: string }
         Returns: Json
