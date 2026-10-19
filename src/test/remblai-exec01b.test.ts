@@ -7,7 +7,7 @@ import { makeEndpoint,type Message } from '../../prepared/exec01b/endpoint';
 import { unknownConditions } from '../lib/remblai/conditions';
 import { isLocalServerMode } from '../lib/remblai/isolated-client';
 const enabled=process.env.EXEC01B_LOCAL_TEST==='1';
-const databaseName=`exec01b_${crypto.randomUUID().replaceAll('-','')}`;
+const databaseName=`exec01b_${crypto.randomUUID().replace(/-/g,'')}`;
 const adminDb=postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable',{ssl:false});
 const db=postgres(`postgresql://lovable@127.0.0.1:55439/${databaseName}?sslmode=disable`,{ssl:false,max:5});
 const mail:Message[]=[];
