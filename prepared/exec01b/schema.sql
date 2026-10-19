@@ -43,7 +43,7 @@ CREATE FUNCTION public.exec01_projection(_id uuid, _crm boolean DEFAULT false) R
  SELECT jsonb_build_object('id',s.id,'reference','Demande #'||coalesce(s.submission_number::text,'TEST'),
  'name',s.name,'city',s.city,'status',s.status,'version',s.exec01_version,
  'availability',CASE WHEN s.availability_status IN ('suspended','owner_closed') THEN s.availability_status
- WHEN s.revalidation_requested_at IS NOT NULL OR s.exec01_contact_verified_at IS NULL THEN 'a_confirmer' ELSE s.availability_status END,
+ WHEN s.revalidation_requested_at IS NOT NULL OR s.exec01_owner_confirmed_at IS NULL THEN 'a_confirmer' ELSE s.availability_status END,
  'lastConfirmed',CASE WHEN s.revalidation_requested_at IS NULL THEN s.exec01_owner_confirmed_at ELSE NULL END,
  'conditions',p.reception_conditions,
  'legacy',jsonb_build_object('quantity_value',s.quantity_value,'quantity_unit',s.quantity_unit,'opening_hours',s.opening_hours,'capacity_kind',p.capacity_kind,'capacity_value',p.capacity_value,'capacity_unit',p.capacity_unit,'access_notes',p.access_notes),
@@ -101,6 +101,8 @@ BEGIN
  IF s.exec01_contact_verified_at IS NULL THEN RETURN jsonb_build_object('denied',true); END IF;
  IF kind='read' THEN RETURN public.exec01_projection(s.id); END IF;
  IF kind='photo_authorize' THEN
+  SELECT * INTO previous FROM submission_portal_operations WHERE link_id=l.id AND operation_id=(p->>'operationId')::uuid;
+  IF FOUND AND previous.input_hash=p->>'inputHash' THEN RETURN jsonb_build_object('replay',previous.result); END IF;
   IF l.verified_at IS NULL OR l.verified_at<now()-interval '10 minutes' OR s.exec01_version<>(p->>'version')::integer THEN RETURN jsonb_build_object('denied',true); END IF;
   RETURN jsonb_build_object('ok',true,'conditions',(SELECT reception_conditions FROM submission_fill_profile WHERE submission_id=s.id));
  END IF;

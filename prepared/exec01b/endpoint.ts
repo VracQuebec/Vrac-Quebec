@@ -52,6 +52,11 @@ export function makeEndpoint(deps:Dependencies) {
    if(data.kind==='act') {if(data.action==='modifier'&&!data.conditions) return reply({error:'Conditions requises.'},400);p.inputHash=await digest(JSON.stringify({action:data.action,version:data.version,conditions:data.conditions??null}));}
    if(data.kind==='act' && data.action==='modifier' && data.conditions) {
     const authorized=await deps.rpc({...p,kind:'photo_authorize'});
+    if(authorized.replay) {
+     const replay=authorized.replay as Record<string,unknown>;
+     if(deps.storage && replay.conditions) {const c=replay.conditions as {photos:{name:string;preview:string}[]};replay.conditions={...c,photos:await signPhotos(data.requestId,c.photos,deps.storage)};}
+     return reply(replay);
+    }
     if(authorized.denied) return reply({error:'Vérification récente requise.'},403);
     const previous=authorized.conditions as {photos?:{name:string;preview:string}[]} | null;
     p.conditions={...data.conditions,photos:await preparePhotos(data.requestId,data.conditions.photos,previous?.photos??[],deps.storage)};
