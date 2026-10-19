@@ -5,7 +5,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 import { logEvent, logEventAsync } from '../_shared/observability.ts'
 import { enqueueOwnerConfirmation } from '../_shared/exec01/confirmation-queue.ts'
-const EXEC01_CONFIRMATION_ENABLED = false // Autorisation requise avant activation; le bouton reste hors des vrais courriels.
+import { isNewOwnerRequest } from '../_shared/exec01/delivery-mode.ts'
+const EXEC01_CONFIRMATION_ENABLED = true // Parcours publié vérifié; nouvelles demandes seulement.
 
 // Configuration baked in at scaffold time — do NOT change these manually.
 // To update, re-run the email domain setup flow.
@@ -159,7 +160,7 @@ Deno.serve(async (req) => {
   // with the service role, and derive both the recipient and the email
   // payload from the database row. This prevents anyone holding the public
   // anon key from sending arbitrary emails to arbitrary addresses.
-  let ownerSubmission: {id:string;request_type:string;parcours_direction:string|null;email:string|null;name:string|null} | null = null
+  let ownerSubmission: {id:string;request_type:string;parcours_direction:string|null;email:string|null;name:string|null;created_at:string} | null = null
   let effectiveRecipient: string | undefined = template.to || recipientEmail
 
   if (PUBLIC_TEMPLATES.has(templateName)) {
@@ -408,7 +409,7 @@ Deno.serve(async (req) => {
   }
 
   // Même confirmation, même file : après tous les contrôles suppression/désinscription.
-  if (EXEC01_CONFIRMATION_ENABLED && ownerSubmission) {
+  if (EXEC01_CONFIRMATION_ENABLED && ownerSubmission && isNewOwnerRequest(ownerSubmission.created_at)) {
     try {
       const queued = await enqueueOwnerConfirmation(ownerSubmission, {
         enabled: true, portalOrigin: Deno.env.get('EXEC01_PORTAL_ORIGIN') || '',
