@@ -8,6 +8,8 @@ export type RequestRecord = {
   lastConfirmed: string | null; version: number; conditions: ReceptionConditions;
   proposals: { id: string; label: string; status: string }[];
   deliveries: { id: string; label: string; status: string }[];
+  operationalState?: string;
+  receivedEvidence?: { id: string; date: string; count: number; kind: string }[];
   history: { id: string; action: string; at: string; version: number }[];
 };
 export type LinkRecord = { id: string; requestId: string; digest: string; expiresAt: number; revoked: boolean; verifiedContact: boolean; verifiedAt: number | null; codeDigest: string | null; codeExpires: number; failures: number };

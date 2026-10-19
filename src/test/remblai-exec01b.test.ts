@@ -16,7 +16,7 @@ const handler=makeEndpoint({portalOrigin:'http://localhost:8080',corsOrigin:'htt
 }});
 async function call(p:Record<string,unknown>,admin=false){const response=await handler(new Request('http://localhost/portal',{method:'POST',headers:{'content-type':'application/json',...(admin?{authorization:'Bearer local-test-admin'}:{})},body:JSON.stringify(p)}));return {status:response.status,body:await response.json()};}
 async function dossier(verified=true){
- const id=crypto.randomUUID();await db`insert into submissions(id,materials,property_type,quantity,tonnage,address,name,email,city,submission_number,exec01_contact_verified_at,internal_notes) values(${id},ARRAY['Terre'],'terrain','inconnu','inconnu','Adresse fictive','Camille Exemple','camille@test.invalid','Québec',1,${verified?new Date():null},'PRIVATE')`;
+ const id=crypto.randomUUID();await db`insert into submissions(id,materials,property_type,quantity,tonnage,address,name,email,city,submission_number,request_type,parcours_direction,exec01_contact_verified_at,internal_notes) values(${id},ARRAY['Terre'],'terrain','inconnu','inconnu','Adresse fictive','Camille Exemple','camille@test.invalid','Québec',1,'remblai','reception',${verified?new Date():null},'PRIVATE')`;
  expect((await call({kind:'issue',requestId:id},true)).body.delivery).toBe('captured-test');
  const link=mail.at(-1)?.text.split('Suivre ou modifier ma demande : ')[1];if(!link) throw Error('No capture');
  const params=new URLSearchParams(new URL(link).hash.slice(1));return {requestId:id,linkId:params.get('linkId'),secret:params.get('secret')};
@@ -28,6 +28,7 @@ beforeAll(async()=>{
  if(!enabled) return;
  await adminDb.unsafe(`CREATE DATABASE ${databaseName} ENCODING 'UTF8' TEMPLATE template0`);
  await db.unsafe(await readFile(new URL('./fixtures/exec01b-base.sql',import.meta.url),'utf8'));
+ await db.unsafe(await readFile(new URL('./fixtures/exec01c-relations.sql',import.meta.url),'utf8'));
  await db.unsafe(await readFile(new URL('../../prepared/exec01b/schema.sql',import.meta.url),'utf8'));
 },30000);
 afterAll(async()=>{await db.end();if(enabled)await adminDb.unsafe(`DROP DATABASE IF EXISTS ${databaseName}`);await adminDb.end();});
@@ -39,7 +40,7 @@ describe.skipIf(!enabled)('EXEC-01B isolated PostgreSQL',()=>{
   const c={...unknownConditions(),total:1000,remaining:600,unit:'m3'};
   expect((await act(f,'modifier',{conditions:c})).status).toBe(200);
   const crm=await call({kind:'crm',requestId:f.requestId},true);expect(crm.body.conditions.remaining).toBe(600);expect(crm.body.history).toHaveLength(1);
-  const rows=await db`select remaining_capacity,quantity_unit,status from submissions where id=${f.requestId}`;expect(rows[0]).toMatchObject({remaining_capacity:'600 m3',quantity_unit:'m3',status:'nouvelle'});
+  const rows=await db`select remaining_capacity,quantity_unit,status from submissions where id=${f.requestId}`;expect(rows[0]).toMatchObject({remaining_capacity:'600 m3',quantity_unit:'m3',status:'nouveau'});
   expect((await act(f,'pause')).body.availability).toBe('suspended');expect((await act(f,'reprendre')).body.availability).toBe('a_confirmer');expect((await act(f,'confirmer')).body.availability).toBe('available');
   expect((await act(f,'fermer')).body.availability).toBe('owner_closed');
  });

@@ -1,11 +1,12 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## EXEC-01 — suivi remblai sans compte (19 oct.)
+- [x] EXEC-01C : schéma Cloud structurel inspecté; portail et CRM désactivés intégrés; SQL/photos/quota/hook préparés; 25 tests ciblés + navigateur local + types Deno/compilation vérifiés. Limites d’activation précises dans prepared/exec01b/activation-checklist.md.
 - [x] EXEC-01B : adaptateur serveur et SQL préparés; parcours HTTP/PostgreSQL local et capture courriel fictive vérifiés, même dossier et sécurité; 40 tests ciblés réussis.
 - [x] Parcours fictif isolé, conditions complètes, aperçu courriel et vue CRM TEST du même dossier.
 - [x] Contrôles du service et transitions testés sans accès métier réel; handler serveur préparé, non déployé.
 - [x] Captures mobile/ordinateur et dépendances explicites : prepared/exec01/README.md.
-- [ ] Activation CRM Cloud : nécessite autorisation séparée, raccordement au schéma complet/auth/prestataire et résolution des limites décrites dans prepared/exec01b/README.md. Serveur local isolé désormais vérifié; aucun accès réel activé.
+- [ ] Activation CRM Cloud : bloquée par autorisation d’environnement hébergé isolé, tests JWT/PostgREST/tous déclencheurs/Storage, atomicité courriel-file et proxy du quota; EXEC-02 pour autoriser les réceptions. Instructions minimales dans prepared/exec01b/activation-checklist.md; aucun accès réel activé.
 
 Source : /mnt/documents/audit-global-2026-10-15.md (22 constats classés P1–P3).
 Contraintes : aperçu = même base que la production (confirmé) → aucune soumission réelle, aucune écriture de test, aucune notification réelle. Aucune publication, aucun déploiement serveur sans autorisation. Les 1 281 meta_title SEO = chantier séparé, non touché.

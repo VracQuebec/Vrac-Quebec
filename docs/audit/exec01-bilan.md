@@ -1,5 +1,34 @@
 # EXEC-01 — bilan du 19 octobre 2026
 
+## EXEC-01C — intégration désactivée, pas une activation terminée
+- **Intégré au projet** : adaptateur Cloud désactivé du portail existant; panneau dormant
+  dans la fiche CRM normale; même `submissions` et profil. Sources serveur/SQL/courriel
+  restent `prepared/exec01b`, hors déploiement automatique. Photos privées préparées,
+  liens et codes serveur, projection sans identité entrepreneur, voyages explicitement liés.
+- **Compatible avec ce qui a été inspecté** : colonnes/contraintes/RLS/GRANT, rôle admin
+  approuvé, déclencheur réel de disponibilité, bucket `lead-photos` privé, file courriel,
+  liens `trips` et `cpn_trips`. Métadonnées lues seulement, aucune donnée personnelle copiée.
+- **Vérifié isolément** : 25 tests ciblés réussis (14 traitements modifiés B + 11 nouveaux C),
+  dont quota concurrent, photos avant/après autorisation, MIME, signature 120 s,
+  non-écrasement documentaire, pas de confirmation implicite, autre dossier inaccessible.
+  PostgreSQL loopback + mêmes SQL préparés; capture uniquement, aucun prestataire.
+  Navigateur : courriel capturé → code aléatoire → restant 600 m³ + photo → même CRM →
+  voyage planifié affiché honnêtement; photo réellement chargée, aucun débordement 360 px,
+  aucune erreur JS. Captures inspectées `/tmp/browser/exec01c/{portal-mobile,portal-desktop,crm-desktop}.png`.
+- **Types et compilation** : aperçu `build OK`; types de l'entrée Deno vérifiés sur source
+  normalisée avec imports locaux explicites (sans exécution). Bundle produit en `/tmp`.
+  Un `deno check` sur le bundle JavaScript nommé `.ts` a initialement échoué car esbuild
+  retire les types; contrôle corrigé sur les sources, réussi. Aucun échec masqué.
+- **Non activé/non vérifié** : vraie session/JWT et PostgREST, tous les déclencheurs Cloud,
+  Storage API réelle, envoi réel et atomicité émission de lien/file courriel, proxy du quota,
+  autorisations de réception EXEC-02. Causes et manipulations minimales :
+  `prepared/exec01b/activation-checklist.md`.
+
+Les 121 empreintes des fonctions actives sont identiques avant/après; aucun déploiement,
+migration publique, changement de permission, envoi, génération ou synchronisation.
+EXEC-01 **n'est pas déclaré terminé** : adapté aux structures inspectées et testé localement,
+mais activation hébergée et garantie transactionnelle du courriel encore requises.
+
 ## Complément EXEC-01B
 Serveur local PostgreSQL 17.9 + HTTP Bun réellement exécuté, base vide distincte et contacts fictifs seulement. Détails techniques et limites : `prepared/exec01b/README.md`. SQL transactionnel, liens/code hachés, actions et historique du même dossier local, hook de confirmation et entrée Cloud préparés. Aucun changement des fonctions actives ni du serveur partagé.
 
