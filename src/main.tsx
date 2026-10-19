@@ -5,7 +5,12 @@ import "./index.css";
 import { supabase } from "@/integrations/supabase/client";
 import { startRdsOutbox } from "@/lib/fleet/rdsOutbox";
 
-startRdsOutbox(supabase);
+// EXEC-01 isolation: visiting a fictitious dossier must not flush a real outbox.
+const personalFollowup = ["/portail/remblai", "/admin/apercu-suivi-remblai"].includes(window.location.pathname);
+if (!personalFollowup) startRdsOutbox(supabase);
+if (personalFollowup) {
+  (window as unknown as Record<string, unknown>)["ga-disable-G-T6HYZVY8E0"] = true;
+}
 
 // Le service worker existant sert aussi de point d'installation PWA.
 // Il ne met aucune page en cache et ne change donc aucun comportement métier.
