@@ -14,9 +14,10 @@ const bodySchema = z.discriminatedUnion('kind', [
  z.object({kind:z.literal('act'),...credentials,confirmed:z.literal(true),operationId:z.string().uuid(),version:z.number().int().positive(),action:z.enum(['modifier','confirmer','pause','reprendre','fermer']),conditions:conditionsSchema.optional()}).strict(),
  z.object({kind:z.literal('issue'),requestId:z.string().uuid()}).strict(),
  z.object({kind:z.literal('crm'),requestId:z.string().uuid()}).strict(),
+ z.object({kind:z.literal('cleanup'),requestId:z.string().uuid(),paths:z.array(z.string().max(180)).max(20),confirmed:z.literal(true)}).strict(),
 ]);
 export type Message = { to:string; subject:string; html:string; text:string; purpose:'service'; tracking:false };
-export type Dependencies = { rpc:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>; isAdmin:(request:Request)=>Promise<boolean>; captureOrSend:(message:Message)=>Promise<'captured-test'|'sent'>; portalOrigin:string; corsOrigin:string; localHarness?:boolean; storage?:PhotoStorage; enabled?:boolean; quota?:(request:Request)=>Promise<boolean> };
+export type Dependencies = { rpc:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>; isAdmin:(request:Request)=>Promise<boolean>; captureOrSend:(message:Message)=>Promise<'captured-test'|'sent'>; dispatchMail?:(input:Record<string,unknown>,message:Omit<Message,'to'>)=>Promise<Record<string,unknown>>; cleanup?:(id:string,paths:string[])=>Promise<{removed:number}>; portalOrigin:string; corsOrigin:string; localHarness?:boolean; storage?:PhotoStorage; enabled?:boolean; quota?:(request:Request)=>Promise<boolean> };
 function escape(value:string) { return value.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] ?? c)); }
 export function confirmationMessage(to:string,name:string,url:string):Message {
  return {to,subject:'Confirmation de votre demande — Vrac Québec',purpose:'service',tracking:false,
@@ -24,7 +25,7 @@ export function confirmationMessage(to:string,name:string,url:string):Message {
  text:`Bonjour ${name},\n${WAITING_MESSAGE}\nSuivre ou modifier ma demande : ${url}`};
 }
 export function makeEndpoint(deps:Dependencies) {
- const reply=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','Access-Control-Allow-Origin':deps.corsOrigin,'Access-Control-Allow-Headers':'Content-Type, Authorization','Access-Control-Allow-Methods':'POST, GET, OPTIONS','Vary':'Origin',...(deps.localHarness?{'Access-Control-Allow-Credentials':'true'}:{})}});
+ const reply=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','Access-Control-Allow-Origin':deps.corsOrigin,'Access-Control-Allow-Headers':'Content-Type, Authorization, apikey, x-client-info','Access-Control-Allow-Methods':'POST, GET, OPTIONS','Vary':'Origin',...(deps.localHarness?{'Access-Control-Allow-Credentials':'true'}:{})}});
  return async (request:Request)=>{
   if(request.method==='OPTIONS') return reply({});
   if(deps.enabled===false) return reply({error:'Suivi non activé.'},503);
@@ -32,17 +33,22 @@ export function makeEndpoint(deps:Dependencies) {
   if(request.method!=='POST') return reply({error:'Méthode refusée.'},405);
   const origin=request.headers.get('origin');
   if(origin && origin!==deps.corsOrigin) return reply({error:'Accès refusé.'},403);
+  if(deps.quota && !await deps.quota(request)) return reply({error:'Trop de tentatives.'},429);
   // Bound actual bytes, not only an attacker-supplied Content-Length.
   const reader=request.body?.getReader(); let raw='',size=0;
   if(!reader) return reply({error:'Requête invalide.'},400);
   const decoder=new TextDecoder();
-  while(true) { const {done,value}=await reader.read(); if(done) break; size+=value.byteLength; if(size>60000000) {await reader.cancel();return reply({error:'Requête trop volumineuse.'},413);} raw+=decoder.decode(value,{stream:true}); }
+  try {while(true) { const {done,value}=await reader.read(); if(done) break; size+=value.byteLength; if(size>60000000) {await reader.cancel();return reply({error:'Requête trop volumineuse.'},413);} raw+=decoder.decode(value,{stream:true}); }}
+  catch {return reply({error:'Requête invalide.'},400);}
   let json:unknown; try {json=JSON.parse(raw);} catch {return reply({error:'Requête invalide.'},400);}
   const parsed=bodySchema.safeParse(json); if(!parsed.success) return reply({error:'Requête invalide.'},400);
   const data=parsed.data;
   try {
-   if((data.kind==='issue'||data.kind==='crm') && !await deps.isAdmin(request)) return reply({error:'Accès refusé.'},403);
-   if(deps.quota && !await deps.quota(request)) return reply({error:'Trop de tentatives.'},429);
+   if((data.kind==='issue'||data.kind==='crm'||data.kind==='cleanup') && !await deps.isAdmin(request)) return reply({error:'Accès refusé.'},403);
+   if(data.kind==='cleanup') {
+    if(!deps.cleanup)return reply({error:'Nettoyage indisponible.'},503);
+    return reply(await deps.cleanup(data.requestId,data.paths));
+   }
    const p:Record<string,unknown>={...data}; delete p.secret; delete p.code;
    if('secret' in data) p.secretHash=await digest(data.secret);
    let secret='',linkId='',code='';
@@ -61,6 +67,19 @@ export function makeEndpoint(deps:Dependencies) {
     const previous=authorized.conditions as {photos?:{name:string;preview:string}[]} | null;
     const photos=data.conditions.photos.map(photo=>{if(typeof photo.name!=='string'||typeof photo.preview!=='string')throw Error('Photo invalide');return {name:photo.name,preview:photo.preview};});
     p.conditions={...data.conditions,photos:await preparePhotos(data.requestId,photos,previous?.photos??[],deps.storage)};
+   }
+   // The hosted adapter commits code/link + queue/capture in ONE transaction.
+   // No contact, code or bearer is returned from that transaction to the browser.
+   if(deps.dispatchMail && ['issue','renew','code'].includes(data.kind)) {
+    const url=`${deps.portalOrigin}/portail/remblai#${new URLSearchParams({requestId:data.requestId,linkId,secret})}`;
+    const message=data.kind==='code'
+     ? {subject:'Code de vérification — Vrac Québec',html:`<p>Votre code : <strong>${code}</strong></p>`,text:`Votre code : ${code}`,purpose:'service' as const,tracking:false as const}
+     : confirmationMessage('', '', url);
+    const {to:_discarded,...content}={to:'',...message};
+    const delivered=await deps.dispatchMail(p,content);
+    if(delivered.denied)return reply({error:'Accès ou action indisponible.'},403);
+    if(delivered.ok!==true)throw Error('Mail transaction unavailable');
+    return reply({ok:true,delivery:delivered.delivery,replay:delivered.replay===true});
    }
    const result=await deps.rpc(p);
    if(result.denied) return reply({error:'Accès ou action indisponible. Vérifiez votre lien et votre code.'},403);

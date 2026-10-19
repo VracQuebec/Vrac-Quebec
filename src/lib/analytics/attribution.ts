@@ -3,6 +3,7 @@
 // Le navigateur ne fait que TRANSMETTRE les paramètres bruts :
 // la provenance finale (`lead_source`) est décidée côté serveur.
 // ============================================================
+import { privateTelemetryBlocked } from './privacy';
 export type Attribution = {
   utm_source: string | null;
   utm_medium: string | null;
@@ -22,7 +23,7 @@ const trim = (v: string | null, max: number) => {
 
 /** Lit (et mémorise une seule fois) la provenance de la visite courante. */
 export function getAttribution(): Attribution {
-  if (typeof window === "undefined") return EMPTY;
+  if (privateTelemetryBlocked()) return EMPTY;
   try {
     const stored = window.sessionStorage.getItem(KEY);
     if (stored) return { ...EMPTY, ...(JSON.parse(stored) as Partial<Attribution>) };

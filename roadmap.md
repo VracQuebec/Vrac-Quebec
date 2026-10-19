@@ -1,10 +1,12 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## Finalisation ciblée EXEC-01
+- [x] 19 octobre : sources de transport atomique codes/renouvellement et collecte ciblée complétées; 51 tests ciblés sur PostgreSQL jetable réussis. Exclusion précoce vérifiée au navigateur de l’aperçu (zéro requête externe); pas de validation hébergée.
+- [ ] Installation autorisée mais conditionnée à la preuve datée de sauvegarde (inventaire inaccessible aux outils); activation seulement après parcours hébergé et page publiée utilisable sans TEST.
 - [x] Corriger les références photos privées et leur rendu portail/CRM/édition; aucun traitement hébergé modifié.
 - [x] Vérifications ciblées : 33 tests, navigateur fictif propriétaire→CRM, Deno minimal; installation courrier sans EXEC-02 préparée dans prepared/exec01b/finalisation-exec01.md.
-- [ ] Transport hébergé code/renouvellement, collecte photos orphelines et Analytics précoce : non validés, à résoudre avant activation publique.
-- [ ] Mise en service réelle : autorisation requise pour SQL, fonction de suivi et expéditeur partagé; aucune publication ni envoi réel.
+- [ ] Installation hébergée : preuve UTC de sauvegarde préalable non fournie, inventaire inaccessible aux outils; autorisation d’installation acquise, ne pas la redemander.
+- [ ] Activation : site publié /portail/remblai renvoie 404 et charge GA; publication générale nécessaire non exécutée, bouton réel et accès général restent désactivés. Stockage, capture, accès CRM et parcours hébergés non vérifiés.
 
 ## EXEC-08 — consolidation (19 oct. 2026)
 - [x] Distinguer sources intégrées, preuves locales, code incomplet et validation hébergée pour EXEC-01–07.

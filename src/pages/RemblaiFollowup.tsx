@@ -23,6 +23,7 @@ const availabilityLabels = { a_confirmer: "À confirmer", available: "Besoin con
 const actions: { key: Action; label: string; icon: typeof Check }[] = [{ key: "modifier", label: "Modifier", icon: Edit3 }, { key: "confirmer", label: "Confirmer le besoin", icon: Check }, { key: "pause", label: "Mettre en pause", icon: Pause }, { key: "reprendre", label: "Reprendre", icon: Play }, { key: "fermer", label: "Fermer la demande", icon: X }];
 export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
   const [params] = useSearchParams();
+  const crmRequestId = params.get('requestId') ?? String((window as unknown as Record<string,unknown>).__vqPortalRequestId ?? '');
   const coordinationOnly=window.location.pathname==='/entrepreneur/coordination-remblai';
   const scenario = params.get("scenario") ?? "normal";
   // Explicit opt-in to fictitious test data; no real portal without hosted service.
@@ -52,7 +53,7 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
     try {
       if (crm) {
         if(coordinationOnly){setRow({id:params.get('requestId')??'',reference:'Demande de remblai',name:'',city:'',status:'',availability:'a_confirmer',lastConfirmed:null,version:1,conditions:{...await import('@/lib/remblai/conditions').then(m=>m.unknownConditions())},proposals:[],deliveries:[]});setLoading(false);return;}
-        const result = local ? await readIsolatedCrm(params.get("requestId") ?? "") : hosted ? await cloudPortalCall<RequestRecord>({kind:'crm',requestId:params.get('requestId') ?? ''}) : await previewRepository.getRequest(FICTIONAL_ID);
+        const result = local ? await readIsolatedCrm(crmRequestId) : hosted ? await cloudPortalCall<RequestRecord>({kind:'crm',requestId:crmRequestId}) : await previewRepository.getRequest(FICTIONAL_ID);
         setRow(result); setHistory(result?.history ?? []);
       } else {
         const current = local || hosted ? takeFragment() : await startPreview(scenario);
@@ -64,7 +65,7 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
       setError("");
     } catch (e) { setRow(null); setError(e instanceof Error ? e.message : "Lecture impossible."); }
     finally { setLoading(false); }
-  }, [enabled, crm, scenario, local, hosted, service, params, coordinationOnly]);
+  }, [enabled, crm, scenario, local, hosted, service, params, coordinationOnly, crmRequestId]);
   useEffect(() => {
     void reload();
     const update = () => { void reload(); };

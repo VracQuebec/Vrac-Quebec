@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { trackEvent } from "@/lib/analytics/ga4";
+import { privateTelemetryBlocked } from '@/lib/analytics/privacy';
 
 export type SeoPageEventType =
   | "view"
@@ -27,7 +28,7 @@ function getSessionId(): string {
 
 /** Fire-and-forget: never throws, never blocks the UI. */
 export function logSeoEvent(pageSlug: string, eventType: SeoPageEventType): void {
-  if (!pageSlug) return;
+  if (privateTelemetryBlocked() || !pageSlug) return;
   const clean = pageSlug.replace(/^\/+|\/+$/g, "").toLowerCase();
   if (!clean) return;
   try {
@@ -53,7 +54,7 @@ export function logSeoEvent(pageSlug: string, eventType: SeoPageEventType): void
 
 /** Log a page view once per session per slug (deduped). */
 export function logSeoViewOnce(pageSlug: string): void {
-  if (!pageSlug) return;
+  if (privateTelemetryBlocked() || !pageSlug) return;
   const clean = pageSlug.replace(/^\/+|\/+$/g, "").toLowerCase();
   if (!clean) return;
   const key = VIEW_LOGGED_PREFIX + clean;

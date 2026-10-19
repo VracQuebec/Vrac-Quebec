@@ -6,6 +6,7 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { privateTelemetryBlocked } from '@/lib/analytics/privacy';
 
 const KEY = "vq.returnTo";
 const MAX_AGE_MS = 24 * 3600 * 1000;
@@ -63,6 +64,7 @@ export function ReturnToTracker() {
     return () => sub.subscription.unsubscribe();
   }, []);
   useEffect(() => {
+    if (privateTelemetryBlocked()) { last.current = null; return; }
     const path = loc.pathname + loc.search;
     if (loc.pathname === "/login") {
       if (last.current && sessionStorage.getItem("vq.voluntarySignOut") !== "1") save({ path: last.current, uid: uid.current, at: Date.now() });

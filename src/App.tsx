@@ -12,6 +12,7 @@ import AppErrorBoundary from "./components/AppErrorBoundary";
 import UniversalNav from "./components/UniversalNav";
 import PublicContactFooter from "./components/PublicContactFooter";
 import { trackPageView } from "./lib/analytics/ga4";
+import { privateTelemetryBlocked } from './lib/analytics/privacy';
 import { useAdminNotifications } from "./hooks/useAdminNotifications";
 import { isolatedSearch } from "@/lib/entrepreneur/search-runtime";
 import {isExec04Local} from "@/lib/marketplace/communications";
@@ -195,7 +196,7 @@ const Ga4RouteTracker = () => {
   useEffect(() => {
     // CRM privé des entreprises : aucune mesure d'audience (consultations confidentielles).
     // Désactivation officielle GA4 : bloque tous les envois tant qu'on est dans le CRM.
-    const inCrm = location.pathname.startsWith("/entrepreneur/crm");
+    const inCrm = privateTelemetryBlocked() || location.pathname.startsWith("/entrepreneur/crm");
     (window as unknown as Record<string, boolean>)["ga-disable-G-T6HYZVY8E0"] = inCrm;
     if (inCrm) return;
     // Laisse le temps au titre de se mettre à jour (Helmet) avant d'envoyer le page_view.

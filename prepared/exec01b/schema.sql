@@ -3,6 +3,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS exec01_version integer NOT NULL DEFAULT 1;
 ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS exec01_contact_verified_at timestamptz;
+ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS exec01_verified_contact_hash text;
 ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS exec01_owner_confirmed_at timestamptz;
 ALTER TABLE public.submission_fill_profile ADD COLUMN IF NOT EXISTS reception_conditions jsonb;
 CREATE TABLE public.submission_portal_links (
@@ -76,7 +77,7 @@ BEGIN
  IF l.id IS NULL OR l.secret_hash IS DISTINCT FROM p->>'secretHash' OR l.revoked_at IS NOT NULL
   OR l.contact_hash IS DISTINCT FROM encode(digest(lower(trim(s.email)),'sha256'),'hex') THEN RETURN jsonb_build_object('denied',true); END IF;
  IF kind='renew' THEN
-  IF s.exec01_contact_verified_at IS NULL OR l.code_requested_at>now()-interval '60 seconds' THEN RETURN jsonb_build_object('denied',true); END IF;
+  IF s.exec01_contact_verified_at IS NULL OR s.exec01_verified_contact_hash IS DISTINCT FROM l.contact_hash OR l.verified_at IS NULL OR l.failures>=5 OR l.code_requested_at>now()-interval '60 seconds' THEN RETURN jsonb_build_object('denied',true); END IF;
   UPDATE public.submission_portal_links SET revoked_at=now() WHERE submission_id=s.id AND revoked_at IS NULL;
   INSERT INTO public.submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at)
    VALUES((p->>'nextId')::uuid,s.id,p->>'nextHash',l.contact_hash,now()+interval '30 days');
@@ -95,10 +96,10 @@ BEGIN
    RETURN jsonb_build_object('denied',true);
   END IF;
   UPDATE public.submission_portal_links SET code_hash=NULL,code_expires_at=NULL,verified_at=now(),failures=0 WHERE id=l.id;
-  IF s.exec01_contact_verified_at IS NULL THEN UPDATE public.submissions SET exec01_contact_verified_at=now() WHERE id=s.id; END IF;
+  IF s.exec01_contact_verified_at IS NULL OR s.exec01_verified_contact_hash IS DISTINCT FROM l.contact_hash THEN UPDATE public.submissions SET exec01_contact_verified_at=now(),exec01_verified_contact_hash=l.contact_hash WHERE id=s.id; END IF;
   RETURN jsonb_build_object('ok',true);
  END IF;
- IF s.exec01_contact_verified_at IS NULL THEN RETURN jsonb_build_object('denied',true); END IF;
+ IF s.exec01_contact_verified_at IS NULL OR s.exec01_verified_contact_hash IS DISTINCT FROM l.contact_hash THEN RETURN jsonb_build_object('denied',true); END IF;
  IF kind='read' THEN RETURN public.exec01_projection(s.id); END IF;
  IF kind='photo_authorize' THEN
   SELECT * INTO previous FROM submission_portal_operations WHERE link_id=l.id AND operation_id=(p->>'operationId')::uuid;
@@ -121,6 +122,13 @@ BEGIN
  SELECT reception_conditions INTO old_conditions FROM public.submission_fill_profile WHERE submission_id=s.id;
  IF a='modifier' THEN
   c:=p->'conditions';
+  -- Installed with owner-photos.sql before enabling the endpoint. Serialize attachment
+  -- against deletion claims on the same dossier lock; no resurrection during removal.
+  IF to_regclass('public.exec01_photo_files') IS NOT NULL THEN
+   IF EXISTS(SELECT 1 FROM jsonb_array_elements(c->'photos') photo JOIN public.exec01_photo_files f
+    ON 'private:'||f.path=photo->>'preview' WHERE f.state IN ('deleting','removed'))
+   THEN RETURN jsonb_build_object('denied',true); END IF;
+  END IF;
   IF c IS NULL OR c->>'environmental' IS DISTINCT FROM coalesce(old_conditions->>'environmental','a_valider') OR c->>'projectFit' IS DISTINCT FROM coalesce(old_conditions->>'projectFit','a_valider') THEN RETURN jsonb_build_object('denied',true); END IF;
   INSERT INTO public.submission_fill_profile(submission_id,reception_conditions,capacity_kind,capacity_value,capacity_unit,accepted_truck_codes,access_notes,source)
   VALUES(s.id,c,CASE WHEN c->>'total' IS NULL THEN 'unknown' ELSE 'known' END,(c->>'total')::numeric,nullif(c->>'unit','inconnu'),ARRAY(SELECT x->>'name' FROM jsonb_array_elements(c->'vehicles') x WHERE x->>'stance'='accepte'),c->>'access','user_manual')

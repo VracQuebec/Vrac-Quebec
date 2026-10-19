@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { makeEndpoint,type Message } from '../../prepared/exec01b/endpoint';
 import { unknownConditions } from '../lib/remblai/conditions';
 import { isLocalServerMode } from '../lib/remblai/isolated-client';
+import { digest } from '../lib/remblai/service';
 const enabled=process.env.EXEC01B_LOCAL_TEST==='1';
 const databaseName=`exec01b_${crypto.randomUUID().replace(/-/g,'')}`;
 const adminDb=postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable',{ssl:false});
@@ -17,6 +18,7 @@ const handler=makeEndpoint({portalOrigin:'http://localhost:8080',corsOrigin:'htt
 async function call(p:Record<string,unknown>,admin=false){const response=await handler(new Request('http://localhost/portal',{method:'POST',headers:{'content-type':'application/json',...(admin?{authorization:'Bearer local-test-admin'}:{})},body:JSON.stringify(p)}));return {status:response.status,body:await response.json()};}
 async function dossier(verified=true){
  const id=crypto.randomUUID();await db`insert into submissions(id,materials,property_type,quantity,tonnage,address,name,email,city,submission_number,request_type,parcours_direction,exec01_contact_verified_at,internal_notes) values(${id},ARRAY['Terre'],'terrain','inconnu','inconnu','Adresse fictive','Camille Exemple','camille@test.invalid','Québec',1,'remblai','reception',${verified?new Date():null},'PRIVATE')`;
+ if(verified)await db`update submissions set exec01_verified_contact_hash=${await digest('camille@test.invalid')} where id=${id}`;
  expect((await call({kind:'issue',requestId:id},true)).body.delivery).toBe('captured-test');
  const link=mail.at(-1)?.text.split('Suivre ou modifier ma demande : ')[1];if(!link) throw Error('No capture');
  const params=new URLSearchParams(new URL(link).hash.slice(1));return {requestId:id,linkId:params.get('linkId'),secret:params.get('secret')};
