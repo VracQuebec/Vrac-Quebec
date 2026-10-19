@@ -36,7 +36,7 @@ export function insidePolygon(p:Point,vertices:Point[]) {
 }
 export interface SearchSite {id:string;latitude:number|null;longitude:number|null;city?:string|null;region?:string|null}
 export const canDrawSector = (drawing:boolean,mode:Sector['mode']) => drawing && mode==='polygon';
-export function searchGeography<T extends SearchSite>(site:T):T {
+export function searchGeography<T extends SearchSite>(site:T):T & {city:string|null;region:string|null} {
  const city=site.city?.trim()||null;
  return {...site,city,region:site.region?.trim()||resolveCity(city)?.region||null};
 }
