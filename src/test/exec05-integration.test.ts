@@ -72,6 +72,32 @@ describe.skipIf(process.env.EXEC05_LOCAL_TEST !== "1")("EXEC-05 SQL isolé", () 
     await expect(captureInvoiceMail(h.db,h.ids.user,id,'mail-real-key',{...mail,to:'personne@domaine.ca'})).rejects.toThrow();
     expect(Number((await h.db`select count(*) n from local_email_capture`)[0].n)).toBe(1);
   });
+  it("comptabilise facture, règlement et avoir une fois avec débits égaux aux crédits", async () => {
+    const accounts:Record<string,string>={};
+    for(const [role,category] of [['ar','actif'],['revenue','revenus'],['gst_payable','passif'],['qst_payable','passif'],['bank','actif']]){
+      const a=(await user(`select fin_gl_account_save('${h.ids.company}',null,'TEST-${role}','${role} TEST','${category}',true) id`)).id;
+      accounts[role]=a;
+      if(role!=='bank')await user(`select fin_gl_map_set('${h.ids.company}','${role}','${a}')`);
+    }
+    await user(`select fin_gl_link_set('${h.ids.company}','${h.ids.account}','${accounts.bank}')`);
+    const id=await direct('ledger');
+    await user(`select fin_invoice_receipt_add('${id}',100,'2026-10-19','virement','${h.ids.account}',null,'ledger-payment')`);
+    const {r}=await user(`select fin_credit_save('${id}','ledger-credit','Correction TEST','{"mode":"balance"}',null) r`);
+    await user(`select fin_credit_issue('${r.id}','ledger-credit-issue',${r.preview.total},${r.rev},'${r.hash}')`);
+    await user(`select fin_gl_sync('${h.ids.company}')`);
+    const n=Number((await h.db`select count(*) n from fin_gl_entries`)[0].n);
+    await user(`select fin_gl_sync('${h.ids.company}')`);
+    expect(Number((await h.db`select count(*) n from fin_gl_entries`)[0].n)).toBe(n);
+    const entries=await h.db`select e.source_kind,e.source_id,sum(l.debit) debit,sum(l.credit) credit from fin_gl_entries e join fin_gl_lines l on l.entry_id=e.id where e.company_id=${h.ids.company} group by e.id`;
+    expect(entries.length).toBeGreaterThan(2);
+    for(const e of entries)expect(Number(e.debit)).toBe(Number(e.credit));
+    const inv=entries.filter(e=>e.source_kind==='invoice'&&e.source_id===id);
+    expect(inv).toHaveLength(1);expect(Number(inv[0].debit)).toBe(229.95);
+    const receipts=await h.db`select e.id,sum(l.debit) amount from fin_gl_entries e join fin_gl_lines l on l.entry_id=e.id join fin_invoice_receipts r on r.id=e.source_id where e.source_kind='receipt' and r.invoice_id=${id} group by e.id`;
+    expect(receipts).toHaveLength(1);expect(Number(receipts[0].amount)).toBe(100);
+    await expect(user(`update fin_gl_entries set description='Altération' where source_id='${id}' returning id`)).rejects.toThrow();
+    expect(await h.asUser(h.ids.foreign,async tx=>tx`select id from fin_gl_entries where company_id=${h.ids.company}`)).toHaveLength(0);
+  });
   it("facture l’acompte puis le solde via le dossier existant sans refacturer l’acompte", async () => {
     const q = await quote('S-TEST-02'); const { r } = await user(`select fin_progress_plan_create('${q}','plan-test') r`); const p = r.plan_id;
     const issue = async (kind: string,value: string,key: string) => {
