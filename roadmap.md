@@ -1,9 +1,10 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## EXEC-05 — facturation entrepreneur (19 oct. 2026)
-- [ ] Compléter les liens CRM/soumission/chantier/facture et préparation de courriel sans envoi.
-- [ ] Vérifier factures, acomptes, encaissements, avoirs, rejeu et isolation avec un entrepreneur fictif ordinaire.
-- [ ] Livrer captures, bilan ciblé et dépendances communes sans activation hébergée.
+- [x] Compléter les liens CRM/soumission/chantier/facture et préparation de courriel sans envoi.
+- [x] Vérifier factures, acomptes, encaissements, avoirs, rejeu et isolation avec un entrepreneur fictif ordinaire : 29 tests ciblés, grand livre inclus.
+- [x] Livrer captures, bilan ciblé et dépendances communes sans activation hébergée : docs/audit/exec05-bilan.md.
+- [ ] Activation EXEC-05 : environnement Cloud isolé autorisé pour JWT/PostgREST/Storage et assemblage financier; file réelle avec capture sans envoi. Aucun paiement ni publication autorisé.
 
 ## EXEC-04 — complément des écrans existants (19 oct. 17:11 UTC)
 - [x] Compléter registre visible, formulaires partenaires/ententes et capture locale sans reconstruction.
