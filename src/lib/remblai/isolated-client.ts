@@ -8,7 +8,9 @@ export function isLocalServerMode(search:string,hostname:string) {
 let session:PortalSession|null=null;
 export function takeFragment():PortalSession|null {
  if(session) return session;
- const p=new URLSearchParams(window.location.hash.slice(1));
+ const early=(window as unknown as Record<string,unknown>).__vqPortalFragment;
+ const p=new URLSearchParams(typeof early==='string'?early:window.location.hash.slice(1));
+ delete (window as unknown as Record<string,unknown>).__vqPortalFragment;
  const requestId=p.get('requestId'),linkId=p.get('linkId'),secret=p.get('secret');
  // Credential is kept only in memory, never querystring or browser storage.
  window.history.replaceState(null,'',window.location.pathname+window.location.search);

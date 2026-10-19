@@ -2,6 +2,36 @@
 <html lang="fr-CA">
   <head>
     <meta charset="UTF-8" />
+    <!-- Runs before resource hints, CSS and any tracker initialization. -->
+    <script>
+      window.__vqPersonalDocument = /^\/(portail\/remblai|admin\/apercu-suivi-remblai)(\/|$)/.test(location.pathname)
+        || /(?:[?#&])(secret|linkId|requestId|code)=/i.test(location.search + location.hash);
+      if (!window.__vqPersonalDocument) {
+        // A public SPA document may already contain a tracker. Do not mount a
+        // bearer page in that document: restart behind its early privacy policy.
+        ['pushState', 'replaceState'].forEach(function(method) {
+          var original = history[method].bind(history);
+          history[method] = function(state, title, url) {
+            if (url) {
+              var destination = new URL(url, location.href);
+              if (destination.origin === location.origin && /^\/(portail\/remblai|admin\/apercu-suivi-remblai)(\/|$)/.test(destination.pathname)) {
+                window['ga-disable-G-T6HYZVY8E0'] = true;
+                location.replace(destination.href);
+                return;
+              }
+            }
+            return original(state, title, url);
+          };
+        });
+      }
+      if (window.__vqPersonalDocument) {
+        window.__vqPortalFragment = location.hash.slice(1);
+        history.replaceState(null, '', location.pathname + (new URLSearchParams(location.search).get('test') === '1' ? '?test=1' : new URLSearchParams(location.search).get('server') === 'local' ? '?server=local' : ''));
+        window['ga-disable-G-T6HYZVY8E0'] = true;
+        document.write('<meta name="referrer" content="no-referrer">');
+        document.write('<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\'; style-src \'self\' \'unsafe-inline\'; font-src \'self\'; img-src \'self\' data: blob: https://kenduhxscnynugpvktin.supabase.co; connect-src \'self\' https://kenduhxscnynugpvktin.supabase.co http://localhost:55440 ws://localhost:8080; frame-src \'none\'; object-src \'none\'; base-uri \'self\'; form-action \'self\';">');
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#7DD520" />
@@ -14,11 +44,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Vrac Québec" />
     <link rel="preconnect" href="https://kenduhxscnynugpvktin.supabase.co" crossorigin />
-    <link rel="dns-prefetch" href="https://app.trysoro.com" />
     <!-- Google Analytics 4 -->
-    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-T6HYZVY8E0"></script>
     <script>
+      if (!window.__vqPersonalDocument) {
+      var fonts = document.createElement('link');
+      fonts.rel = 'stylesheet';
+      fonts.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap';
+      document.head.appendChild(fonts);
+      var gaScript = document.createElement('script');
+      gaScript.async = true;
+      gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-T6HYZVY8E0';
+      document.head.appendChild(gaScript);
       window.dataLayer = window.dataLayer || [];
       function gtag(){ dataLayer.push(arguments); }
       window.gtag = gtag;
@@ -27,6 +63,7 @@
       // send_page_view:false — le routeur SPA (src/lib/analytics/ga4.ts) envoie
       // page_view manuellement à chaque changement de route pour éviter les doublons.
       gtag('config', 'G-T6HYZVY8E0', { send_page_view: false, anonymize_ip: true });
+      }
     </script>
     <title>Vrac Québec | Terre, Sable, Gravier &amp; Remblai</title>
     <meta data-rh="true" name="description" content="Plateforme de référence pour le vrac au Québec : sites de dépôt de terre, sable, gravier, remblai et transport en vrac pour excavation et construction.">

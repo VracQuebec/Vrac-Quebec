@@ -121,6 +121,13 @@ BEGIN
  SELECT reception_conditions INTO old_conditions FROM public.submission_fill_profile WHERE submission_id=s.id;
  IF a='modifier' THEN
   c:=p->'conditions';
+  -- Installed with owner-photos.sql before enabling the endpoint. Serialize attachment
+  -- against deletion claims on the same dossier lock; no resurrection during removal.
+  IF to_regclass('public.exec01_photo_files') IS NOT NULL THEN
+   IF EXISTS(SELECT 1 FROM jsonb_array_elements(c->'photos') photo JOIN public.exec01_photo_files f
+    ON 'private:'||f.path=photo->>'preview' WHERE f.state IN ('deleting','removed'))
+   THEN RETURN jsonb_build_object('denied',true); END IF;
+  END IF;
   IF c IS NULL OR c->>'environmental' IS DISTINCT FROM coalesce(old_conditions->>'environmental','a_valider') OR c->>'projectFit' IS DISTINCT FROM coalesce(old_conditions->>'projectFit','a_valider') THEN RETURN jsonb_build_object('denied',true); END IF;
   INSERT INTO public.submission_fill_profile(submission_id,reception_conditions,capacity_kind,capacity_value,capacity_unit,accepted_truck_codes,access_notes,source)
   VALUES(s.id,c,CASE WHEN c->>'total' IS NULL THEN 'unknown' ELSE 'known' END,(c->>'total')::numeric,nullif(c->>'unit','inconnu'),ARRAY(SELECT x->>'name' FROM jsonb_array_elements(c->'vehicles') x WHERE x->>'stance'='accepte'),c->>'access','user_manual')

@@ -1,6 +1,8 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## Finalisation ciblée EXEC-01
+- [ ] 19 octobre : transport atomique codes/renouvellement, collecte contrôlée des photos, exclusion précoce des traceurs; essais ciblés sans nouveaux scénarios parallèles.
+- [ ] Installation autorisée mais conditionnée à la preuve datée de sauvegarde (inventaire inaccessible aux outils); activation seulement après parcours hébergé et page publiée utilisable sans TEST.
 - [x] Corriger les références photos privées et leur rendu portail/CRM/édition; aucun traitement hébergé modifié.
 - [x] Vérifications ciblées : 33 tests, navigateur fictif propriétaire→CRM, Deno minimal; installation courrier sans EXEC-02 préparée dans prepared/exec01b/finalisation-exec01.md.
 - [ ] Transport hébergé code/renouvellement, collecte photos orphelines et Analytics précoce : non validés, à résoudre avant activation publique.
