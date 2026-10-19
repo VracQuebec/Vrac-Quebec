@@ -257,6 +257,12 @@ const Entrepreneur = () => {
   };
 
   useEffect(() => {
+    if (!loading && query.trim() && filteredLeads.length > 0) {
+      recordAction(user?.id, search.companyId, "search");
+    }
+  }, [loading, query, filteredLeads, user?.id, search.companyId]);
+
+  useEffect(() => {
     if (!containerRef.current) return;
     let cancelled = false;
     const geo = filteredLeads.filter((l) => l.latitude && l.longitude);
@@ -459,7 +465,7 @@ const Entrepreneur = () => {
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={query}
-                onChange={(e) => {setQuery(e.target.value);if(!loading&&e.target.value.trim())recordAction(user?.id,search.companyId,"search");}}
+                onChange={(e) => setQuery(e.target.value)}
                 placeholder="Secteur, matériau, numéro de dompe…"
                 aria-label="Rechercher une dompe"
                 className="h-11 w-full rounded-lg border border-transparent bg-secondary/45 pl-11 pr-3 font-body text-sm outline-none placeholder:text-muted-foreground/75 focus:border-primary"

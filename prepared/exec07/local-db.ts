@@ -15,18 +15,24 @@ export async function createHelpLocal(){
    const user=users[role];if(!user||company!==h.ids.company)throw Error('Contexte refusé');
    const membership=(await h.asUser(user,async tx=>tx`select entcrm_role(${company}::uuid) role`))[0].role;if(!membership||membership==='aucun')throw Error('Accès retiré');
    if(!['aide','amelioration','appel'].includes(body.kind)||!body.message.trim()||body.message.length>1500||body.key.length<8)throw Error('Demande invalide');
-   const identity=user+':'+company+':'+body.key,payload=JSON.stringify(body);const previous=captures.get(identity);if(previous){if(previous.payload!==payload)throw Error('Identifiant réutilisé');return previous.result;}
+   const identity=user+':'+company+':'+body.key,payload=JSON.stringify(body);
    // All local writes are one DB transaction; only configured slots are eligible.
    const choice=body.slot?slots.find(s=>s.id===body.slot):null;if(body.slot&&(!choice||body.kind!=='appel'))throw Error('Créneau absent');
    const result=await h.db.begin(async tx=>{
-    await tx`select pg_advisory_xact_lock(hashtext(${body.slot??identity}))`;
+    await tx`select pg_advisory_xact_lock(hashtext(${identity}))`;
+    const previous=captures.get(identity);if(previous){if(previous.payload!==payload)throw Error('Identifiant réutilisé');return previous.result;}
+    if(choice&&new Date(choice.start).getTime()<=Date.now())throw Error('Créneau expiré');
+    if(choice)await tx`select pg_advisory_xact_lock(hashtext(${choice.id}))`;
     if(choice){const used=await tx`select id from agd_events where category='appel' and status<>'annule' and archived_at is null and start_at<${choice.end} and end_at>${choice.start}`;if(used.length)throw Error('Créneau déjà réservé');}
     const s=(await tx`insert into site_chat_sessions(user_id,audience,mode,wants_human,page,contact,msg_count) values(${user},'entrepreneur','humain',false,'/entrepreneur/aide',null,2) returning id`)[0];
     await tx`insert into site_chat_messages(session_id,role,content,author) values(${s.id},'visiteur',${'TEST · '+body.kind+' · '+body.message.trim()},${user}),(${s.id},'systeme','Capture TEST uniquement. Aucun agent averti, aucun envoi, aucune réponse IA.',null)`;
     let event=null;
     if(choice){await tx`select set_config('request.jwt.claim.sub',${user},true)`;const e=(await tx`insert into agd_events(company_id,title,description,category,status,start_at,end_at,owner_user_id,reminders,notify_client) values(${company},'Accompagnement Vrac Québec — TEST',${'Conversation TEST '+s.id},'appel','confirme',${choice.start},${choice.end},${user},'[]',false) returning id`)[0];event={id:e.id,label:choice.label};}
-    return {sessionId:s.id,event,captureOnly:true};
-   });captures.set(identity,{payload,result});return result;
+    const saved={sessionId:s.id,event,captureOnly:true};
+    // The fixture serializes repeated keys before inserting. This process-scoped
+    // cache is TEST only; hosted activation requires the durable claim adapter.
+    captures.set(identity,{payload,result:saved});return saved;
+   });return result;
   };
   return {...h,users,slots,capture};
  }catch(e){await h.cleanup();throw e;}
