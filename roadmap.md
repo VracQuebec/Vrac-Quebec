@@ -1,9 +1,10 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## EXEC-07 — aide intégrée et démonstrations (19 oct. 2026)
-- [ ] Compléter l’aide existante et les articles par tâche, selon le rôle, sans perte de saisie.
-- [ ] Vérifier démarrage réel/reprise, accompagnement TEST, recherche et mobile; livrer scripts et captures.
-- [ ] Livrer tableau commun EXEC-01–07 et conserver toutes les dépendances d’activation, dont punch hors connexion indisponible.
+- [x] Aide intégrée, 10 articles/scripts et dialogues contextuels selon droits, sans perte de saisie.
+- [x] Démarrage passé/repris, pointage→étape, recherche, droits et accompagnement TEST vérifiés; 20 tests ciblés et captures ordinateur/mobile.
+- [x] Tableau commun livré : docs/audit/bilan-commun-exec01-exec07.md; bilan/articles/scripts/captures EXEC07 livrés.
+- [ ] Activation EXEC-07 bloquée par autorisation Cloud isolé : auth employé/company, writers chat autorisés, agenda/RLS et créneaux équipe; progression appareil seulement, pas de vidéo. Cloud/Google et punch hors connexion indisponible conservés.
 
 ## EXEC-06 — accès employés et punch opérationnel (19 oct. 2026)
 - [x] Compléter sources accès/contexte employé et punch/corrections, sans activation réelle.
