@@ -2,7 +2,7 @@ import {validateSector} from '../../src/lib/entrepreneur/search-sector';
 import {compareTransportSavings,type SavingsInput} from '../../src/lib/entrepreneur/transport-savings';
 export function makeSearchEndpoint(deps:{enabled:boolean;origin:string;authenticate:(r:Request)=>Promise<{userId:string}|null>;preference:(userId:string,companyId:string,sector:unknown|null)=>Promise<unknown>;route:(body:unknown,userId:string)=>Promise<unknown>;address:(input:string,userId:string)=>Promise<unknown>}){
  return async(r:Request)=>{
-  const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':deps.origin,'Access-Control-Allow-Credentials':'true','Access-Control-Allow-Headers':'Content-Type','Access-Control-Allow-Methods':'GET,POST,OPTIONS','Vary':'Origin'};
+  const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':deps.origin,'Access-Control-Allow-Credentials':'true','Access-Control-Allow-Headers':'Content-Type, Authorization, apikey, x-client-info','Access-Control-Allow-Methods':'GET,POST,OPTIONS','Vary':'Origin'};
   if(r.headers.get('origin')&&r.headers.get('origin')!==deps.origin)return new Response('Origin refused',{status:403});
   if(r.method==='OPTIONS')return new Response(null,{headers});
   if(!deps.enabled)return Response.json({error:'Activation disabled'},{status:503,headers});

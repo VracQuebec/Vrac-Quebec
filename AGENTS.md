@@ -1,7 +1,6 @@
-- CRM entrepreneurs : un client Transport JSC se relie via ent_crm_clients.jsc_client_id (rattachement explicite, même company_id); jsc_clients fait autorité sur l'identité, synchronisée par trigger — évite les doubles saisies divergentes.
+- CRM: link Transport JSC clients explicitly through ent_crm_clients.jsc_client_id within the same company_id; jsc_clients owns identity, propagated on UPDATE by entcrm_jsc_client_propagate to prevent divergence.
 - Soumission client : partage par jeton unique (entcrm_public_quote/respond, fonction entcrm-quote-file); taxes calculées et figées côté serveur à la remise — le client ne voit que la version liée et les pièces cochées.
 - Contrôle d'abonnement CRM : platform_access_settings.enforce_created_after soumet les entreprises créées après cette date — les nouvelles inscriptions paient sans toucher aux entreprises existantes.
-- Corrections d'un client Transport JSC : le trigger entcrm_jsc_client_propagate (jsc_clients AFTER UPDATE) réapplique l'identité aux fiches CRM rattachées — jsc_clients reste la seule source d'autorité.
 - Centre de contrôle (/admin/centre-controle) : prise en charge, rappels, notes et résolutions vivent dans `request_followups` (+ `request_followup_events`, journal figé par trigger), jamais sur les demandes — les demandes historiques restent intactes.
 - Notifications admin : `crm_notifications` reste la source unique; catégories/regroupements sont dérivés de ses références, et la priorité s’affiche séparément de l’état de traitement — évite une seconde architecture et empêche le retard de masquer la priorité.
 - Adresses de test réservées (@*.invalid, .test, .example, example.com) : jamais d'envoi de courriel (garde dans send-transactional-email et process-email-queue) ni d'envoi téléphone (trigger sur crm_notifications).
@@ -16,7 +15,8 @@
 - EXEC-01C/02/02B keep CRM, sender and queue-worker adapters disabled in prepared sources. Reservations lock dossier/offer capacity and commit link/message atomically; immutable trip corrections debit only the delta. The existing queue rechecks reminder eligibility and suppression. Preferences never override regulatory rules; private photos require dossier authorization.
 - Personal follow-up entrypoints bypass analytics, production providers and notification mounts; this prevents bearer credentials and test actions reaching existing telemetry or business services.
 - EXEC-03 reuses map/comparator filters and membership-checked preferences; loopback tests share domain code, hosted adapters stay disabled.
-- EXEC-04 extends mkt consent/send/request/commission records, excludes private CRM audiences and links existing invoices without duplicate money movements; shared handlers run locally, hosted adapters stay disabled.
+- EXEC-04 extends existing mkt records only; server consent keys include entity, subject, channel and partner/request scope; immutable domain events prove acquisition, allowlisted partner projections prevent internal data disclosure, and hosted adapters remain disabled.
+- EXEC-03/04 SQL tests require a verified disposable loopback cluster before any write; shared municipality lookup uses exact existing reference data and unknown geography never fabricates coordinates.
 <!-- LOVABLE:BEGIN -->
 - Entrepreneur UI uses the existing shell to own safe areas and measured header/navigation heights; one owner prevents duplicate offsets without changing backend behavior.
 - Brand colors use one HSL token and presentation-only route scoping preserves excluded admin/fleet palettes; functional and tenant-configured colors remain independent.

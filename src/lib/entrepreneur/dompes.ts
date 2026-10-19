@@ -12,11 +12,15 @@
 // publiques anonymisées (jamais l'adresse ni le GPS réel).
 // ============================================================
 import { supabase } from "@/integrations/supabase/client";
+import { SEARCH_CLOUD_ENABLED } from './search-runtime';
+import { searchGeography } from './search-sector';
 
 export interface EntrepreneurDumpSite {
   id: string;
   submission_number?: number | null;
   dompe_number?: string | null;
+  city?: string | null;
+  region?: string | null;
   materials?: string[] | null;
   /** Latitude PUBLIQUE anonymisée. */
   latitude: number | null;
@@ -44,9 +48,13 @@ export interface EligibleDumpSitesResult {
  */
 export async function getEligibleEntrepreneurDumpSites(): Promise<EligibleDumpSitesResult> {
   const at = () => Date.now();
+  if(SEARCH_CLOUD_ENABLED){
+    const {data,error}=await (supabase as any).rpc('exec03_search_sites');
+    return {sites:((data??[]) as EntrepreneurDumpSite[]).map(searchGeography),error:error?.message??null,fetchedAt:at()};
+  }
   const leads = await supabase.rpc("get_entrepreneur_leads");
   if (!leads.error && Array.isArray(leads.data) && leads.data.length > 0) {
-    return { sites: leads.data as unknown as EntrepreneurDumpSite[], error: null, fetchedAt: at() };
+    return { sites: (leads.data as unknown as EntrepreneurDumpSite[]).map(searchGeography), error: null, fetchedAt: at() };
   }
   const pub = await supabase.rpc("get_public_dumps");
   if (pub.error) {
@@ -56,7 +64,7 @@ export async function getEligibleEntrepreneurDumpSites(): Promise<EligibleDumpSi
   if (rows.length === 0 && !leads.error && Array.isArray(leads.data)) {
     return { sites: [], error: null, fetchedAt: at() };
   }
-  return { sites: rows, error: null, fetchedAt: at() };
+  return { sites: rows.map(searchGeography), error: null, fetchedAt: at() };
 }
 
 /** Garde-fou d'affichage : ne garde que les points réellement cartographiables. */

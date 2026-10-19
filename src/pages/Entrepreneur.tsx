@@ -13,7 +13,7 @@ import {
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useSearchIdentity } from "@/hooks/useSearchIdentity";
 import { useSearchSector, searchRoute } from "@/hooks/useSearchSector";
-import { inSector, validPoint, type RouteFact } from "@/lib/entrepreneur/search-sector";
+import { inSector, validPoint, canDrawSector, type RouteFact } from "@/lib/entrepreneur/search-sector";
 import { routingBatches } from "@/lib/entrepreneur/comparateur-candidates";
 import { isolatedSearch, localSearchCall, SEARCH_CLOUD_ENABLED } from "@/lib/entrepreneur/search-runtime";
 import SearchSectorPanel from "@/components/entrepreneur/SearchSectorPanel";
@@ -124,6 +124,9 @@ const Entrepreneur = () => {
   const [drawing, setDrawing] = useState(false);
   const drawingRef = useRef(false);
   drawingRef.current = drawing;
+  const sectorModeRef=useRef(search.sector.mode);
+  sectorModeRef.current=search.sector.mode;
+  useEffect(()=>{drawingRef.current=false;setDrawing(false);},[search.sector.mode,search.companyId]);
   const [routes, setRoutes] = useState<Record<string, RouteFact | null>>({});
   const polygonRef = useRef<google.maps.Polygon | null>(null);
   const circleRef = useRef<google.maps.Circle | null>(null);
@@ -246,7 +249,7 @@ const Entrepreneur = () => {
     setLoading(true);
     const { sites, error } = isolated
       ? await localSearchCall<{sites: EntLead[];error:null}>("sites").catch(()=>({sites:[],error:"Serveur isolé indisponible"}))
-      : SEARCH_CLOUD_ENABLED ? await (async()=>{const {data,error}=await (supabase as any).rpc('exec03_search_sites');return {sites:data??[],error:error?.message??null};})() : await getEligibleEntrepreneurDumpSites();
+      : await getEligibleEntrepreneurDumpSites();
     if (error) toast({ title: "Erreur", description: error, variant: "destructive" });
     else setLeads((sites as any[]).filter((d) => crmDompeNumber(d) !== null));
     setLoading(false);
@@ -272,7 +275,7 @@ const Entrepreneur = () => {
         infoRef.current = new g.maps.InfoWindow();
         setMapReady(true);
         mapRef.current.addListener("click", (event: google.maps.MapMouseEvent) => {
-          if (!drawingRef.current || !event.latLng) return;
+          if (!canDrawSector(drawingRef.current,sectorModeRef.current) || !event.latLng) return;
           const p={lat:event.latLng.lat(),lng:event.latLng.lng()};
           search.setSector(s=>({...s,mode:"polygon",polygon:[...s.polygon,p].slice(0,200)}));
         });

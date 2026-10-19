@@ -10,17 +10,17 @@ const c:NetworkContact={id:'a',name:'Fictif',scope:'network',audience:'owner',se
 describe('EXEC04 business rules',()=>{
  it('private entrepreneur customers excluded even matching sector',()=>expect(matchesSegment({...c,scope:'private',companyId:'other'},{sector:'Québec'})).toBe(false));
  it('unknown permission never authorizes promotion',()=>expect(permitted(null,'promotion','email')).toBe(false));
- it('withdrawal never authorizes promotion',()=>expect(permitted({purpose:'promotion',channel:'email',state:'withdrawn',source:'test',proof:'yes',at:'2026-01-01',expiresAt:null},'promotion','email')).toBe(false));
+ it('withdrawal never authorizes promotion',()=>expect(permitted({purpose:'promotion',channel:'email',state:'withdrawn',source:'formulaire_vérifié',proof:'yes',at:'2026-01-01',expiresAt:null},'promotion','email')).toBe(false));
  it('remaining quantities require original unit',()=>{expect(matchesSegment(c,{remainingMin:70,unit:'tonnes'})).toBe(false);expect(matchesSegment(c,{remainingMin:70,unit:'m3'})).toBe(true);});
  it('unknown activity/features never inferred',()=>expect(matchesSegment({...c,audience:'entrepreneur'},{feature:'carte'})).toBe(false));
 });
 const enabled=process.env.EXEC01B_LOCAL_TEST==='1';let local:Awaited<ReturnType<typeof createLocal>>;
 beforeAll(async()=>{if(enabled)local=await createLocal();},30000);
-afterAll(async()=>{if(!enabled)return;await local.db.end();const root=postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable',{ssl:false});await root.unsafe(`DROP DATABASE ${local.name}`);await root.end();});
+afterAll(async()=>{if(!enabled||!local)return;await local.db.end();const root=postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable',{ssl:false});await root.unsafe(`DROP DATABASE ${local.name}`);await root.end();});
 const p=(kind:string,data:any={})=>local.rpc({kind,role:'admin',actorId:local.ids.admin,operationId:crypto.randomUUID(),inputHash:crypto.randomUUID(),confirmed:true,...data});
 describe.skipIf(!enabled)('EXEC04 same SQL isolated',()=>{
  it('owner with no explicit network provenance is excluded server-side',async()=>{const {db,ids}=local;await db`update submissions set exec04_network_enrolled_at=NULL where id=${ids.unknown}`;expect((await p('network')).some((c:any)=>c.id===ids.unknown)).toBe(false);expect((await db`select exec04_contact('owner',${ids.unknown}::uuid) c`)[0].c).toBeNull();});
- it('unknown permission excluded and withdrawal does not close request',async()=>{const {db,ids}=local;expect((await db`select exec04_permission('alex@test.invalid','promotion') ok`)[0].ok).toBe(false);await p('permission',{audience:'owner',subjectId:ids.owner,purpose:'promotion',channel:'email',state:'granted',proof:'Fictional explicit choice',source:'test'});await p('permission',{audience:'owner',subjectId:ids.owner,purpose:'promotion',channel:'email',state:'withdrawn',source:'test'});expect((await db`select exec04_permission('camille@test.invalid','promotion') ok`)[0].ok).toBe(false);expect((await db`select availability_status from submissions where id=${ids.owner}`)[0].availability_status).toBe('available');});
+ it('unknown permission excluded and withdrawal does not close request',async()=>{const {db,ids}=local;expect((await db`select exec04_permission('alex@test.invalid','promotion') ok`)[0].ok).toBe(false);await p('permission',{audience:'owner',subjectId:ids.owner,purpose:'promotion',channel:'email',state:'granted',proof:'Fictional explicit choice',source:'formulaire_vérifié'});await p('permission',{audience:'owner',subjectId:ids.owner,purpose:'promotion',channel:'email',state:'withdrawn',source:'formulaire_vérifié'});expect((await db`select exec04_permission('camille@test.invalid','promotion') ok`)[0].ok).toBe(false);expect((await db`select availability_status from submissions where id=${ids.owner}`)[0].availability_status).toBe('available');});
  it('campaign replay does not duplicate persistent recipient',async()=>{const {ids,db}=local;const ca=await p('campaign_save',{name:'Reconfirmation',template:'reconfirmation',frequencyHours:24,segment:{audience:'owner'}});const data={campaignId:ca.id,recipients:[{id:ids.owner,audience:'owner'},{id:ids.unknown,audience:'owner'}]};await p('prepare',data);await p('prepare',data);expect(Number((await db`select count(*) n from mkt_promo_sends where campaign=${ca.id}`)[0].n)).toBe(1);});
  it('foreign company cannot read selected partner private share',async()=>{await expect(p('partner_list',{role:'partner',actorId:local.ids.foreignUser,companyId:local.ids.company})).rejects.toThrow();});
  it('partner outside sector omitted',async()=>{const rows=(await p('services',{requestId:local.ids.owner})).available;expect(rows.map((r:any)=>r.companyId)).toEqual([local.ids.company]);});
@@ -41,10 +41,10 @@ describe.skipIf(!enabled)('EXEC04 same SQL isolated',()=>{
   const list=await p('partner_list',{role:'partner',actorId:ids.partner,companyId:ids.company});expect(list[0].shared).toEqual({name:'Camille Exemple',email:'camille@test.invalid',city:'Québec',need:'Besoin local fictif'});
   const quote={role:'partner',actorId:ids.partner,companyId:ids.company,serviceId:created.id,action:'quote',amount:123,response:'Soumission fictive documentée',operationId:crypto.randomUUID(),inputHash:'same'};
   await p('service_action',quote);await p('service_action',quote);expect(Number((await db`select count(*) n from mkt_bids where request_id=${created.id}`)[0].n)).toBe(1);
-  await p('agreement',{ruleId:ids.rule,agreement:{basis:'Soumission acceptée',trigger:'result',attribution:'Autorisation du besoin et partenaire sélectionné',dueDate:null,rate:null,fixed:null}});
+  await p('agreement',{ruleId:ids.rule,agreement:{basis:'Soumission acceptée',trigger:'result',attribution:'Autorisation du besoin et partenaire sélectionné',dueDate:null,rate:null,fixed:50}});
   await p('service_action',{serviceId:created.id,action:'result',response:'Projet terminé fictif',ruleId:ids.rule});
-  const commissions=await db`select * from mkt_commissions where request_id=${created.id}`;expect(commissions.length).toBe(1);expect(commissions[0].amount).toBeNull();
-  await own('service_action',{...creds,serviceId:created.id,action:'cancel',reason:'Projet annulé'});expect((await db`select status from mkt_commissions where request_id=${created.id}`)[0].status).toBe('annulee');
+  const commissions=await db`select * from mkt_commissions where request_id=${created.id}`;expect(commissions.length).toBe(1);expect(Number(commissions[0].amount)).toBe(50);
+  await expect(own('service_action',{...creds,serviceId:created.id,action:'cancel',reason:'Projet annulé'})).rejects.toThrow('terminale');
  });
  it('partner cannot modify network consent; unrelated dossier refused',async()=>{
   await expect(p('permission',{role:'partner',actorId:local.ids.partner,audience:'owner',subjectId:local.ids.owner,purpose:'promotion',channel:'email',state:'granted',source:'fake',proof:'fake'})).rejects.toThrow();
@@ -77,7 +77,7 @@ describe.skipIf(!enabled)('EXEC04 same SQL isolated',()=>{
   expect(Number((await db`select count(*) n from fin_expected_inflows where invoice_id=${invoice}`)[0].n)).toBe(1);
  });
  it('promotion withdrawal token blocks promotion but preserves service permission',async()=>{
-  const {ids,db}=local;await p('permission',{audience:'owner',subjectId:ids.owner,purpose:'promotion',channel:'email',state:'granted',source:'formulaire_TEST',proof:'Choix explicite'});
+  const {ids,db}=local;await p('permission',{audience:'owner',subjectId:ids.owner,purpose:'promotion',channel:'email',state:'granted',source:'formulaire_vérifié',proof:'Choix explicite'});
   await db`insert into email_unsubscribe_tokens values('camille@test.invalid','fictif',now())`;
   expect((await db`select exec04_permission('camille@test.invalid','promotion') ok`)[0].ok).toBe(false);
   expect((await db`select exec04_permission('camille@test.invalid','service') ok`)[0].ok).toBe(true);

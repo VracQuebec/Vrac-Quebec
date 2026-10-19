@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import {geoKey,resolveCity} from '../parcours/geo-referentiel';
 
 export const EXEC04_CLOUD_ENABLED = false;
 export const isExec04Local = () => typeof window !== 'undefined' && ['localhost','127.0.0.1'].includes(window.location.hostname) && new URLSearchParams(window.location.search).get('exec04') === 'local';
@@ -6,11 +7,11 @@ export const purposes = ['service','promotion','partner_share'] as const;
 export const channels = ['email','sms','app'] as const;
 export const filterSchema = z.object({audience:z.enum(['owner','entrepreneur']).optional(),sector:z.string().max(150).optional(),material:z.string().max(100).optional(),remainingMin:z.number().nonnegative().optional(),unit:z.string().max(20).optional(),availability:z.string().max(50).optional(),confirmedBefore:z.string().datetime().optional(),trade:z.string().max(100).optional(),activeAfter:z.string().datetime().optional(),feature:z.string().max(100).optional()}).strict();
 export type Segment = z.infer<typeof filterSchema>;
-export type NetworkContact = {id:string;audience:'owner'|'entrepreneur';name:string;sector:string|null;email?:string;materials:string[];remaining:number|null;unit:string|null;availability:string|null;confirmedAt:string|null;trade:string|null;activeAt:string|null;features:string[];scope:'network'|'private';companyId?:string};
+export type NetworkContact = {id:string;audience:'owner'|'entrepreneur';name:string;sector:string|null;region?:string|null;email?:string;materials:string[];remaining:number|null;unit:string|null;availability:string|null;confirmedAt:string|null;trade:string|null;activeAt:string|null;features:string[];scope:'network'|'private';companyId?:string};
 export function matchesSegment(c:NetworkContact,s:Segment) {
  if(c.scope!=='network')return false;
  if(s.audience&&c.audience!==s.audience)return false;
- if(s.sector&&c.sector?.toLocaleLowerCase('fr-CA')!==s.sector.toLocaleLowerCase('fr-CA'))return false;
+ if(s.sector&&![c.sector,c.region||resolveCity(c.sector)?.region].some(v=>v&&geoKey(v)===geoKey(s.sector??'')))return false;
  if(s.material&&!c.materials.some(m=>m.toLocaleLowerCase('fr-CA')===s.material?.toLocaleLowerCase('fr-CA')))return false;
  if(s.remainingMin!=null&&(c.remaining==null||c.remaining<s.remainingMin||!s.unit||c.unit!==s.unit))return false;
  if(s.availability&&s.availability!==c.availability)return false;

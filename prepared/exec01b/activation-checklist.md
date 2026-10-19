@@ -110,3 +110,12 @@ ne sont pas établies par `project_info` : elles restent non vérifiées.
 - Retrait promotionnel : garde du jeton utilisé et de suppressed_emails; vérifier le parcours hébergé `/unsubscribe` et son prestataire en isolé. Proxy de confiance nécessaire au quota, absent = refus; ne pas déclarer le proxy validé.
 - Commission : référence unique à une facture existante émise, montant/attribution/droits financiers contrôlés; émission/crédits/encaissements via moteur `fin_*` existant, aucun second mouvement. `fin_invoice_balance` réel pour états payée/annulée par crédit. Le local utilise une fixture de son contrat : crédits/taxes/receipts complets et trigger financier réels restent à tester en Cloud isolé. Sans taux et preuve d'événement, montant/acquisition inconnus.
 - Bilan et captures : `docs/audit/exec04-bilan.md`. Toutes les dépendances EXEC-01/02/03 et Google ci-dessus restent en attente; aucune publication, dépense ou modification de contact réel.
+
+## Correctifs audit EXEC-03 / EXEC-04 — 19 octobre 2026
+- Ordre complémentaire : EXEC-01/02 → EXEC-03 geography.sql → preferences.sql/search-sites.sql → EXEC-04 schema.sql. Référence seo_cities (name, province, territory_type, region_admin) requise; aucune copie de coordonnées ni enrôlement historique.
+- Consentement isolé par entité/sujet/canal/partenaire/besoin; preuves TEST immuables et autorisantes seulement pour capture dans le cluster jetable local vérifié, jamais pour le worker réel.
+- Valider en Cloud isolé la rotation du jeton utilisé, l’invalidation de l’ancien URL et la conservation bounce/complaint avec le handler de désabonnement existant.
+- Vérifier file pgmq réelle : messages déjà en file délégués au worker existant, progression des suivants, éligibilité fraîche et journal; capture et envoi séparés.
+- Acquisition limitée aux événements result journalisés, liés au même besoin et partenaire; autres déclencheurs restent refusés tant qu’une preuve métier officielle n’est pas raccordée. Finances complètes non certifiées localement.
+- Prévol Authorization/apikey/x-client-info corrigé; dessin Google réel non testé ni activé. Résultats courants sans ville/région restent à confirmer jusqu’à installation autorisée de search-sites.
+- Bilan de correctifs : docs/audit/exec03-exec04-correctifs.md. GO éventuel concerne uniquement une validation d’intégration isolée, pas la production ni EXEC-05.
