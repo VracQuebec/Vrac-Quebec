@@ -3,9 +3,9 @@
 // Activation publique contrôlée par EXEC01_ENABLED; le bouton des vrais courriels reste désactivé.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
-import { makeEndpoint } from './endpoint.ts';
-import { digest } from './lib/service.ts';
-import { cleanFictionalPhotos } from './photo-cleanup.ts';
+import { makeEndpoint } from '../_shared/exec01/endpoint.ts';
+import { digest } from '../_shared/exec01/lib/service.ts';
+import { cleanFictionalPhotos } from '../_shared/exec01/photo-cleanup.ts';
 const env = (key: string) => { const value = Deno.env.get(key); if (!value) throw Error('Missing configuration'); return value; };
 const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } });
 const origin = env('EXEC01_PORTAL_ORIGIN');
