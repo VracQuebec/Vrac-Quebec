@@ -1,0 +1,42 @@
+{
+  "browser": {
+    "errors": [],
+    "url": "http://localhost:8080/entrepreneur/aide?help_test=local",
+    "proof": {
+      "sessions": 2,
+      "events": 1,
+      "deliveries": "0"
+    },
+    "progressConfirmed": true,
+    "draftPreserved": true,
+    "pauseResume": true,
+    "externalAttempted": [
+      "https://www.googletagmanager.com/gtag/js",
+      "https://fonts.googleapis.com/css2",
+      "https://www.googletagmanager.com/gtag/js",
+      "https://fonts.googleapis.com/css2",
+      "https://www.googletagmanager.com/gtag/js",
+      "https://fonts.googleapis.com/css2"
+    ]
+  },
+  "network": {
+    "completedExternal": [],
+    "blockedExternal": [
+      {
+        "url": "https://www.googletagmanager.com/gtag/js",
+        "reason": "csp"
+      },
+      {
+        "url": "https://fonts.googleapis.com/css2",
+        "reason": "csp"
+      }
+    ],
+    "mobileDraftPreserved": true
+  },
+  "tests": {
+    "help": 8,
+    "isolatedSQL": 7,
+    "punchDates": 5,
+    "totalPassed": 20
+  }
+}

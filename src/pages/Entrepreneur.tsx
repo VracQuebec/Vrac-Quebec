@@ -15,6 +15,7 @@ import { useSearchIdentity } from "@/hooks/useSearchIdentity";
 import { useSearchSector, searchRoute } from "@/hooks/useSearchSector";
 import { inSector, validPoint, canDrawSector, type RouteFact } from "@/lib/entrepreneur/search-sector";
 import { routingBatches } from "@/lib/entrepreneur/comparateur-candidates";
+import {recordAction,searchCompleted} from "@/lib/help/progress";
 import { isolatedSearch, localSearchCall, SEARCH_CLOUD_ENABLED } from "@/lib/entrepreneur/search-runtime";
 import SearchSectorPanel from "@/components/entrepreneur/SearchSectorPanel";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
@@ -112,6 +113,7 @@ const dompeLabel = (l: EntLead) => crmDompeNumber(l) ?? "";
 const Entrepreneur = () => {
   const [leads, setLeads] = useState<EntLead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchSucceeded, setSearchSucceeded] = useState(false);
   const mapRef = useRef<google.maps.Map | null>(null);
   const [mapReady,setMapReady]=useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -247,13 +249,20 @@ const Entrepreneur = () => {
 
   const fetchLeads = async () => {
     setLoading(true);
+    setSearchSucceeded(false);
     const { sites, error } = isolated
       ? await localSearchCall<{sites: EntLead[];error:null}>("sites").catch(()=>({sites:[],error:"Serveur isolé indisponible"}))
       : await getEligibleEntrepreneurDumpSites();
     if (error) toast({ title: "Erreur", description: error, variant: "destructive" });
-    else setLeads((sites as any[]).filter((d) => crmDompeNumber(d) !== null));
+    else {setLeads((sites as any[]).filter((d) => crmDompeNumber(d) !== null));setSearchSucceeded(true);}
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (searchCompleted(loading, searchSucceeded, query, filteredLeads.length)) {
+      recordAction(user?.id, search.companyId, "search");
+    }
+  }, [loading, searchSucceeded, query, filteredLeads, user?.id, search.companyId]);
 
   useEffect(() => {
     if (!containerRef.current) return;

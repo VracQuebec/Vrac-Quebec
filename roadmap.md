@@ -1,5 +1,11 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## EXEC-07 — aide intégrée et démonstrations (19 oct. 2026)
+- [x] Aide intégrée, 10 articles/scripts et dialogues contextuels selon droits, sans perte de saisie.
+- [x] Démarrage passé/repris, pointage→étape, recherche, droits et accompagnement TEST vérifiés; 20 tests ciblés et captures ordinateur/mobile.
+- [x] Tableau commun livré : docs/audit/bilan-commun-exec01-exec07.md; bilan/articles/scripts/captures EXEC07 livrés.
+- [ ] Activation EXEC-07 bloquée par autorisation Cloud isolé : auth employé/company, writers chat autorisés, agenda/RLS et créneaux équipe; progression appareil seulement, pas de vidéo. Cloud/Google et punch hors connexion indisponible conservés.
+
 ## EXEC-06 — accès employés et punch opérationnel (19 oct. 2026)
 - [x] Compléter sources accès/contexte employé et punch/corrections, sans activation réelle.
 - [x] Vérifier identité fictive, permissions, révocation, pauses, dates Toronto, corrections/export : 17 tests ciblés et parcours navigateur isolé.

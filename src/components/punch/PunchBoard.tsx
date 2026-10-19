@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { punchDb as db, punchUser, punchExtended, torontoInput, torontoInstant, torontoDay, torontoMonday, intervalMinutes } from "@/lib/punch/runtime";
 import { downloadFinanceBlob } from "@/lib/finances/download";
+import ContextHelp from "@/components/help/ContextHelp";
+import {recordAction} from "@/lib/help/progress";
 import EmployeeAccess from "./EmployeeAccess";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,6 +99,7 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
     const p = consent ? await getPos() : null;
     const r=await db.rpc("pun_in", { _company: companyId, _place: place, _site: site, _client: client || null, _note: null, _consent: consent && !!p,
       _lat: p?.coords.latitude ?? null, _lng: p?.coords.longitude ?? null, _acc: p?.coords.accuracy ?? null });
+    if(!r.error)recordAction(me,companyId,"punch");
     if(!r.error && extended && (project||task)){const context=await db.rpc("pun_context_set",{_entry:r.data,_project:project||null,_task:task||null});if(context.error)return context;}return r;
   }, "Entrée enregistrée");
   const punchOut = () => run(async () => {
@@ -153,6 +156,7 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end"><ContextHelp role={isMgr?"proprietaire":"operateur"} userId={me??"guide"} companyId={companyId} articleId="punch"/></div>
       {error && <p role="alert" className="text-destructive">{error}</p>}
       {!connected && <p role="alert" className="text-destructive">Hors connexion : aucun pointage n’est enregistré ou mis en attente. Reconnectez-vous, puis utilisez Oubli de punch avec un motif.</p>}
       {extended && isMgr && <EmployeeAccess companyId={companyId} role={role} />}

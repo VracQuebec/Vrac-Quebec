@@ -7,6 +7,8 @@ import { useDraft } from "@/lib/drafts/useDraft";
 import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { Building2, Download, LifeBuoy, Plus, Upload } from "lucide-react";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
+import ContextHelp from "@/components/help/ContextHelp";
+import {recordAction} from "@/lib/help/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -429,7 +431,7 @@ export function Clients({ companyId, canWrite, canFinance, params, setParams }: 
   const linkJsc = async (j: any) => { const { error } = await db.rpc("entcrm_link_jsc_client", { _company_id: companyId, _jsc_client_id: j.jsc_client_id }); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" }); toast({ title: "Client rattaché", description: "Même dossier réutilisé, sans ressaisie." }); setJsc(null); load(); };
   const archive = async (c: any) => { if (!confirm("Archiver ce client ?")) return; await db.from("ent_crm_clients").update({ archived_at: new Date().toISOString() }).eq("id", c.id); load(); };
   const shown = rows.filter((r) => (!params.get("client") || params.get("client") === "nouveau" || r.id === params.get("client")) && (!q || normalize(`${r.name}${r.email}${r.phone}`).includes(normalize(q))));
-  return <div><div className="mb-3 flex flex-wrap gap-2"><Input placeholder="Rechercher un client" value={q} onChange={(e) => setQ(e.target.value)} className="h-10 w-full sm:w-60" />{canWrite && <Button onClick={add}><Plus className="mr-1 h-4 w-4" />Nouveau client</Button>}{canWrite && <Button variant="outline" onClick={openJsc}>Clients existants (Transport JSC)</Button>}</div>
+  return <div><ContextHelp role={canWrite?"proprietaire":"lecture"} companyId={companyId} articleId="clients"/><div className="mb-3 flex flex-wrap gap-2"><Input placeholder="Rechercher un client" value={q} onChange={(e) => setQ(e.target.value)} className="h-10 w-full sm:w-60" />{canWrite && <Button onClick={add}><Plus className="mr-1 h-4 w-4" />Nouveau client</Button>}{canWrite && <Button variant="outline" onClick={openJsc}>Clients existants (Transport JSC)</Button>}</div>
     {jsc && <Dialog open onOpenChange={() => setJsc(null)}><DialogContent><DialogHeader><DialogTitle>Rattacher un client existant</DialogTitle></DialogHeader>
       <p className="text-xs text-muted-foreground">Seuls les dossiers clients appartenant à votre entreprise sont listés. Le rattachement est explicite : aucun rapprochement automatique par nom, téléphone ou courriel.</p>
       <div className="max-h-80 overflow-y-auto">{jsc.length === 0 ? <p className="text-sm text-muted-foreground">Aucun dossier client existant pour cette entreprise.</p> : jsc.map((j) => <div key={j.jsc_client_id} className="flex items-center justify-between gap-2 border-t border-border py-2 text-sm"><div><p className="font-semibold">{j.name}</p><p className="text-xs text-muted-foreground">{[j.contact_name, j.phone, j.email, j.city].filter(Boolean).join(" · ")}</p></div>{j.linked_client_id ? <span className="text-xs text-muted-foreground">Déjà rattaché</span> : <Button size="sm" onClick={() => linkJsc(j)}>Utiliser</Button>}</div>)}</div>
@@ -481,10 +483,10 @@ function ClientDialog({ client, companyId, onClose, onSaved }: any) {
       const now = new Date().toISOString(); const n = (v: string) => (v?.trim() ? v.trim() : null);
       const patch = locked ? { notes: n(f.notes), updated_at: now } : { name: f.name.trim(), kind: f.kind || "particulier", phone: n(f.phone), email: n(f.email), address: n(f.address), city: n(f.city), notes: n(f.notes), updated_at: now };
       const { error } = client.id ? await db.from("ent_crm_clients").update(patch).eq("id", client.id) : await db.from("ent_crm_clients").insert({ company_id: companyId, ...patch });
-      if (error) toast({ title: "Refusé — votre saisie est conservée", description: error.message, variant: "destructive" }); else { store.finalize(); toast({ title: locked ? "Notes internes enregistrées" : "Client enregistré" }); onSaved(); }
+      if (error) toast({ title: "Refusé — votre saisie est conservée", description: error.message, variant: "destructive" }); else { if(!client.id)recordAction(me?.id,companyId,"client"); store.finalize(); toast({ title: locked ? "Notes internes enregistrées" : "Client enregistré" }); onSaved(); }
     } finally { saving.current = false; }
   };
-  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>{client.id ? client.name : "Nouveau client"}</DialogTitle></DialogHeader>
+  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>{client.id ? client.name : "Nouveau client"}</DialogTitle><ContextHelp role="proprietaire" userId={me?.id??"guide"} companyId={companyId} articleId="clients"/></DialogHeader>
     {canWrite && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setF(pickClient(client)); setStale(null); }} discardConfirm="Abandonner la préparation de ce client ? Les saisies non enregistrées seront effacées; la fiche enregistrée n'est pas modifiée." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
     {stale && <div role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Cette fiche a été modifiée ailleurs depuis votre préparation. L'état actuel est affiché; votre saisie est conservée à part.
       <div className="mt-1 flex gap-2"><Button size="sm" variant="outline" onClick={() => { setF((x: any) => ({ ...x, ...stale })); setStale(null); }}>Appliquer ma saisie préparée</Button><Button size="sm" variant="ghost" onClick={() => setStale(null)}>Garder l'état actuel</Button></div></div>}

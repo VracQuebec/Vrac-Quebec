@@ -1,0 +1,9 @@
+import asyncio,json
+from playwright.async_api import async_playwright
+async def main():
+ async with async_playwright() as p:
+  b=await p.chromium.launch(headless=True);c=await b.new_context(viewport={'width':1280,'height':1800});page=await c.new_page();completed=[];failed=[]
+  page.on('requestfinished',lambda r:completed.append(r.url.split('?')[0]) if not r.url.startswith('http://localhost') else None)
+  page.on('requestfailed',lambda r:failed.append({'url':r.url.split('?')[0],'reason':r.failure}) if not r.url.startswith('http://localhost') else None)
+  await page.goto('http://localhost:8080/entrepreneur/aide?help_test=local');await page.get_by_label('Identité fictive d’aide').wait_for();await page.get_by_label('Identité fictive d’aide').select_option('operateur');await page.wait_for_function("document.querySelector('select').value==='operateur'");await page.get_by_role('button',name='Ouvrir mon pointage TEST').click();await page.get_by_label('Chantier ou adresse').wait_for();await page.get_by_label('Chantier ou adresse').fill('TEST mobile sans perte');await page.set_viewport_size({'width':393,'height':852});await page.get_by_role('button',name='Aide et démonstrations',exact=True).click();await page.get_by_role('dialog').screenshot(path='/tmp/browser/exec07/06-dialog-mobile.png');await page.get_by_role('button',name='Revenir à mon travail').click();assert await page.get_by_label('Chantier ou adresse').input_value()=='TEST mobile sans perte';assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth');await page.get_by_role('dialog').wait_for(state='hidden');await page.screenshot(path='/tmp/browser/exec07/07-work-mobile.png');print(json.dumps({'completedExternal':completed,'blockedExternal':failed,'mobileDraftPreserved':True},ensure_ascii=False));await b.close()
+asyncio.run(main())

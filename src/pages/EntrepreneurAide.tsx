@@ -1,0 +1,6 @@
+import EntrepreneurAppShell from '@/components/entrepreneur-app/EntrepreneurAppShell';
+import HelpWorkspace from '@/components/help/HelpWorkspace';
+import { useCompanyRole } from '@/components/todo/useCompanyRole';
+import { useAuthReady } from '@/hooks/useAuthReady';
+import type { HelpRole } from '@/lib/help/catalog';
+export default function EntrepreneurAide(){const {companies,companyId,setCompanyId,role,ready,isAdmin}=useCompanyRole();const {user}=useAuthReady();const field=!!role&&!['proprietaire','gestionnaire','support'].includes(role);return <EntrepreneurAppShell title="Aide et démonstrations" allowCompanyMembers employeeMode={field}><div className="mx-auto max-w-3xl space-y-4 px-4 py-5 sm:px-6">{companies.length>1&&<select aria-label="Entreprise active" className="h-11 w-full rounded-md border border-input bg-background px-2" value={companyId??''} onChange={e=>setCompanyId(e.target.value)}>{companies.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>}{!ready||role===null?<p>Vérification des droits…</p>:companyId&&user&&role!=='aucun'?<HelpWorkspace key={user.id+companyId+role} role={(isAdmin?'support':role) as HelpRole} userId={user.id} companyId={companyId}/>:<p>Aucune entreprise autorisée. L’accès aux guides de travail nécessite un contexte actif.</p>}</div></EntrepreneurAppShell>;}
