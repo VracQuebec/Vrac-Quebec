@@ -32,6 +32,9 @@ Constats déterminants :
   l'adaptateur local/Cloud; accès réel désactivé.
 - `schema.sql` et `quota.sql` restent **préparés** : aucune migration publique appliquée.
   Le local applique ces mêmes fichiers byte pour byte, avec fixture structurelle vide.
+- Empaquetage répétable : `bun prepared/exec01b/package.ts`; sorties `/tmp/exec01c-package`.
+  Contrôle des types : `deno check --config /tmp/exec01c-package/deno.json /tmp/exec01c-package/prepared/exec01b/edge-entry.ts`.
+  Ce contrôle prépare les sources; il n'exécute pas l'entrée ni n'appelle Cloud.
 - `photos.ts` + adaptateur `lead-photos` : chemin par dossier, empreinte du contenu,
   pas de nom privé dans le chemin, référence privée stockée, URL de lecture 120 secondes.
   Autorisation et code récent avant upload; propriétaire d'un autre dossier refusé.
