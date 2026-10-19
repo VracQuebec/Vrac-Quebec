@@ -115,7 +115,7 @@ BEGIN
  IF kind='network' THEN RETURN exec04_network(); END IF;
  IF kind='campaign_list' THEN RETURN jsonb_build_object('campaigns',coalesce((SELECT jsonb_agg(to_jsonb(c) ORDER BY created_at DESC) FROM mkt_campaigns c),'[]'),
  'messages',coalesce((SELECT jsonb_agg(to_jsonb(m)-'email' ORDER BY id) FROM mkt_promo_sends m WHERE message_key IS NOT NULL),'[]')); END IF;
- IF kind='commissions' THEN RETURN jsonb_build_object('commissions',coalesce((SELECT jsonb_agg(to_jsonb(c)) FROM mkt_commissions c),'[]'),'rules',coalesce((SELECT jsonb_agg(to_jsonb(r)) FROM mkt_pricing_rules r),'[]')); END IF;
+ IF kind='commissions' THEN RETURN jsonb_build_object('commissions',coalesce((SELECT jsonb_agg(to_jsonb(c)||jsonb_build_object('financialState',CASE WHEN c.finance_invoice_id IS NOT NULL THEN CASE WHEN EXISTS(SELECT 1 FROM fin_expected_inflows f JOIN fin_invoices i ON i.id=f.invoice_id WHERE i.id=c.finance_invoice_id AND f.received>=i.total) THEN 'payee' ELSE 'facturee' END ELSE c.status END)) FROM mkt_commissions c),'[]'),'rules',coalesce((SELECT jsonb_agg(to_jsonb(r)) FROM mkt_pricing_rules r),'[]')); END IF;
  IF kind='partner_list' THEN
   IF p->>'role'<>'partner' OR NOT EXISTS(SELECT 1 FROM jsc_company_members WHERE company_id=(p->>'companyId')::uuid AND user_id=(p->>'actorId')::uuid AND is_active AND archived_at IS NULL) THEN RAISE EXCEPTION 'Entreprise refusée' USING ERRCODE='42501'; END IF;
  END IF;
@@ -191,7 +191,7 @@ BEGIN
  ELSIF kind='service_create' THEN
   IF NOT EXISTS(SELECT 1 FROM jsonb_array_elements(exec04_available((p->>'requestId')::uuid,(p->>'categoryId')::uuid))) THEN RAISE EXCEPTION 'Service indisponible dans ce secteur';END IF;
   INSERT INTO mkt_quote_requests(origin_submission_id,title,description,category_id,city,contact_name,contact_email,status,contact_visibility,source)
-  SELECT id,p->>'title',p->>'description',(p->>'categoryId')::uuid,city,name,email,'a_qualifier','toujours_cachees','portail_remblai' FROM submissions WHERE id=(p->>'requestId')::uuid RETURNING id INTO cid;
+  SELECT s.id,p->>'title',p->>'description',(p->>'categoryId')::uuid,s.city,s.name,s.email,'a_qualifier','toujours_cachees','portail_remblai' FROM submissions s WHERE s.id=(p->>'requestId')::uuid RETURNING id INTO cid;
   result:=jsonb_build_object('id',cid);
  ELSIF kind='service_action' THEN
   IF req.id IS NULL OR (NOT admin AND (p->>'role')<>'partner' AND req.origin_submission_id IS DISTINCT FROM (p->>'requestId')::uuid) THEN RAISE EXCEPTION 'Autre dossier refusé';END IF;
