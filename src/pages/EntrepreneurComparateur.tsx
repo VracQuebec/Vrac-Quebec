@@ -14,7 +14,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { getEligibleEntrepreneurDumpSites, crmDompeNumber } from "@/lib/entrepreneur/dompes";
 import { routingBatches, compareRankedDumps } from "@/lib/entrepreneur/comparateur-candidates";
 import { toast } from "@/hooks/use-toast";
-import { useAuthReady } from "@/hooks/useAuthReady";
+import { useSearchIdentity } from "@/hooks/useSearchIdentity";
+import { useSearchSector, searchRoute } from "@/hooks/useSearchSector";
+import { inSector, type RouteFact } from "@/lib/entrepreneur/search-sector";
+import { localSearchCall, SEARCH_CLOUD_ENABLED } from "@/lib/entrepreneur/search-runtime";
+import TransportSavingsPanel from "@/components/entrepreneur/TransportSavingsPanel";
+import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
+import { saveActiveChantier, toActiveChantier } from "@/lib/entrepreneur-app/chantier-context";
 import { useUserRoles } from "@/hooks/useUserRole";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import { ChantierContextBar } from "@/components/entrepreneur-app/ui";
@@ -46,6 +52,8 @@ type Lead = SiteLike & {
   id: string;
   submission_number: number;
   dompe_number: string | null;
+  city?: string | null;
+  region?: string | null;
   postal_prefix: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -54,7 +62,7 @@ type Lead = SiteLike & {
   availability_note: string | null;
 };
 
-type Ranked = Lead & { distance_km: number | null; duration_minutes: number | null };
+type Ranked = Lead & { distance_km: number | null; duration_minutes: number | null; routeFact?:RouteFact|null };
 
 // Numéro CRM réel uniquement — aucun repli (les fiches sans numéro sont écartées au chargement).
 const label = (l: Lead) => crmDompeNumber(l) ?? "";
@@ -75,11 +83,12 @@ const MATERIAL_TO_WIZARD: Record<MaterialKey, string> = {
 export default function EntrepreneurComparateur() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isReady } = useAuthReady();
-  const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, isReady);
+  const { user, isReady, isEntrepreneur, isAdmin, loading: roleLoading, session, isolated } = useSearchIdentity();
+  const search = useSearchSector(user?.id,session,isolated);
+  const { chantiers } = useEntrepreneurData();
 
   // Chantier actif (lecture seule) : rappel du contexte pendant la comparaison.
-  const [activeChantier] = useState(() => loadActiveChantier());
+  const [activeChantier, setActiveChantier] = useState(() => loadActiveChantier());
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState("");
@@ -99,8 +108,8 @@ export default function EntrepreneurComparateur() {
 
   // Référentiel administré (aucune valeur en dur) : capacités de camions
   // et densités de matériaux servent au calcul du nombre de voyages.
-  const publicTrucks = usePublicTrucks();
-  const { materials: calcMaterials } = useCalcMaterials();
+  const publicTrucks = usePublicTrucks(!isolated);
+  const { materials: calcMaterials } = useCalcMaterials(!isolated);
 
   useEffect(() => {
     document.title = "Comparateur de sites de dépôt | Vrac Québec";
@@ -166,7 +175,7 @@ export default function EntrepreneurComparateur() {
   // Source de vérité après sélection : la demande existante (CRM).
   // Au rechargement, on relit la sélection réellement enregistrée.
   useEffect(() => {
-    const id = request?.submissionId;
+    const id = isolated ? null : request?.submissionId;
     if (!id || !isReady || roleLoading || (!isEntrepreneur && !isAdmin)) return;
     void (async () => {
       const p = await fetchPersistedSelection(id);
@@ -205,14 +214,16 @@ export default function EntrepreneurComparateur() {
   useEffect(() => {
     if (!isReady || roleLoading || (!isEntrepreneur && !isAdmin)) return;
     void (async () => {
-      const { sites, error } = await getEligibleEntrepreneurDumpSites();
+      const { sites, error } = isolated
+        ? await localSearchCall<{sites: Lead[];error:null}>("sites").catch(()=>({sites:[],error:"Serveur isolé indisponible"}))
+        : SEARCH_CLOUD_ENABLED ? await (async()=>{const {data,error}=await (supabase as any).rpc('exec03_search_sites');return {sites:data??[],error:error?.message??null};})() : await getEligibleEntrepreneurDumpSites();
       if (error) toast({ title: "Erreur", description: error, variant: "destructive" });
       else setLeads((sites as unknown as Lead[]).filter((d) => crmDompeNumber(d) !== null));
       setLoading(false);
     })();
   }, [isReady, roleLoading, isEntrepreneur, isAdmin]);
 
-  const geoLeads = useMemo(() => leads.filter((l) => l.latitude && l.longitude), [leads]);
+  const geoLeads = useMemo(() => leads.filter((l) => l.latitude !== null && l.longitude !== null && inSector(l, search.sector)), [leads, search.sector]);
 
   // Capacité du camion choisi : administrée (jsc_trucks), jamais inventée.
   const capacityTonnes = useMemo(() => {
@@ -261,26 +272,20 @@ export default function EntrepreneurComparateur() {
       const eligible = geoLeads.filter(
         (l) => evaluateSite(l as Ranked, material || null, truck || null).status !== "incompatible",
       );
-      const batches = routingBatches(eligible, coords);
-      const results: Record<string, { distance_km: number; duration_minutes: number } | null> = {};
-      let anyOk = false;
-      for (const batch of batches) {
-        const { data, error } = await supabase.functions.invoke("transport-distance-matrix", {
-          body: {
-            origin: coords,
-            dumps: batch.map((l) => ({ id: l.id, lat: l.latitude!, lng: l.longitude! })),
-          },
-        });
-        if (error) continue; // ce lot reste « Distance à confirmer »
-        anyOk = true;
-        Object.assign(results, (data?.results ?? {}) as typeof results);
+      const results: Record<string, { distance_km: number | null; duration_minutes: number | null } | null> = {};
+      const facts:Record<string,RouteFact|null>={};
+      // Explicit action, bounded lookups. No billable external calls in this preview lot.
+      for (const lead of routingBatches(eligible,coords,25,25).flat()) {
+        const r=await searchRoute(coords,lead,isolated).catch(()=>null);
+        facts[lead.id]=r;
+        results[lead.id]=r?{distance_km:r.distanceKm,duration_minutes:r.minutes}:null;
       }
-      if (batches.length > 0 && !anyOk) throw new Error("matrix");
       const rows: Ranked[] = geoLeads.map((l) => ({
         ...l,
-        distance_km: typeof results[l.id]?.distance_km === "number" ? results[l.id]!.distance_km : null,
-        duration_minutes: typeof results[l.id]?.duration_minutes === "number" ? results[l.id]!.duration_minutes : null,
-      }));
+        routeFact:facts[l.id]??null,
+        distance_km: results[l.id]?.distance_km ?? null,
+        duration_minutes: results[l.id]?.duration_minutes ?? null,
+      })).filter(l=>inSector(l,search.sector,{distanceKm:l.distance_km,minutes:l.duration_minutes,source:'Google Routes DRIVE',calculatedAt:'',heavyTruckValidated:false,approximateDestination:true}));
       const rank = { compatible: 0, unknown: 1, incompatible: 2 } as const;
       const fit = (l: Ranked) => {
         const ev = evaluateSite(l, material || null, truck || null);
@@ -292,6 +297,7 @@ export default function EntrepreneurComparateur() {
         compareRankedDumps({ distance_km: a.distance_km, fit: fit(a) }, { distance_km: b.distance_km, fit: fit(b) }),
       );
       setRanked(rows);
+      if (!rows.some(r=>r.duration_minutes!==null)) toast({title:"Routage indisponible",description:"Résultats conservés; distances et durées à confirmer. Itinéraires camion lourd non validés."});
     } catch {
       toast({
         title: "Distance indisponible",
@@ -350,7 +356,7 @@ export default function EntrepreneurComparateur() {
     setSelection(sel);
     setSaveError(null);
 
-    if (!sel.submissionId) {
+    if (isolated || !sel.submissionId) {
       // Aucune demande existante : rien n'est écrit au CRM (pas de doublon).
       setPersisted(null);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -372,6 +378,7 @@ export default function EntrepreneurComparateur() {
   };
 
   const continueToRequest = (sel: ComparateurSelection) => {
+    if(isolated){toast({title:'Demande réelle désactivée',description:'Aucun accès ou transport autorisé en TEST.'});return;}
     navigate("/demande-transport", {
       state: {
         vqPrefill: {
@@ -496,7 +503,7 @@ export default function EntrepreneurComparateur() {
   return (
     <EntrepreneurAppShell
       title="Meilleur choix de site"
-      subtitle="Comparaison par distance réelle"
+      subtitle="Secteurs et économies estimées"
       backTo="/entrepreneur"
     >
       <div className="mx-auto w-full min-w-0 max-w-3xl px-4 py-5 sm:px-6">
@@ -568,12 +575,12 @@ export default function EntrepreneurComparateur() {
 
         {/* Rattachement inverse : demande de transport déjà créée pour cette
             demande (lecture seule, la base fait foi). */}
-        <LinkedTransportCard submissionId={request?.submissionId ?? persisted?.submissionId ?? null} />
+        {!isolated && <LinkedTransportCard submissionId={request?.submissionId ?? persisted?.submissionId ?? null} />}
 
         <section className="mt-6 space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-5">
           <div className="space-y-1.5">
             <Label>Adresse du chantier</Label>
-            <GooglePlaceAutocomplete
+            {isolated || !SEARCH_CLOUD_ENABLED ? <Input aria-label="Adresse du chantier" value={address} onChange={e=>{setAddress(e.target.value);setCoords(null);setRanked(null);}}/> : <GooglePlaceAutocomplete
               value={address}
               placeholder="123 rue Principale, Québec, QC"
               className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -583,7 +590,9 @@ export default function EntrepreneurComparateur() {
                 setCoords(p.lat != null && p.lng != null ? { lat: p.lat, lng: p.lng } : null);
                 setRanked(null);
               }}
-            />
+            />}
+            <select aria-label="Changer le chantier de comparaison" className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm" value="" onChange={e=>{const key=e.target.value;const found=chantiers.find(c=>c.key===key);const c=session?.chantiers.find(c=>c.key===key)??(found?toActiveChantier(found):null);if(c){setActiveChantier(c);saveActiveChantier(c);setAddress(c.address??"");setCoords(c.coords);setRanked(null);}}}><option value="">Sélectionner un chantier enregistré</option>{(session?.chantiers??chantiers).map(c=><option key={c.key} value={c.key}>{c.label}</option>)}</select>
+            <p className="text-xs text-muted-foreground">Google Routes automobile uniquement; destinations approximatives, trajet camion lourd non validé. Routage externe désactivé dans ce lot.</p>
           </div>
 
           <div className="space-y-1.5">
@@ -766,21 +775,7 @@ export default function EntrepreneurComparateur() {
           </section>
         )}
 
-        {best && worst && tripCount != null && best.distance_km != null && worst.distance_km != null && (
-          <div className="mt-6 rounded-2xl border-2 border-primary/40 bg-primary/5 p-4 sm:p-5">
-            <p className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-foreground">
-              <TrendingDown className="h-4 w-4 text-primary" aria-hidden /> Économie potentielle
-            </p>
-            <p className="mt-2 font-body text-sm text-foreground">
-              En choisissant le site le plus proche plutôt que le plus éloigné :{" "}
-              <strong>{Math.round((worst.distance_km - best.distance_km) * 2 * tripCount)} km</strong> de moins au total
-              {best.duration_minutes != null && worst.duration_minutes != null && (
-                <> et environ <strong>{Math.round((worst.duration_minutes - best.duration_minutes) * 2 * tripCount)} minutes</strong> de route en moins</>
-              )}{" "}
-              pour {tripCount} voyage{tripCount > 1 ? "s" : ""} aller-retour.
-            </p>
-          </div>
-        )}
+        <TransportSavingsPanel trips={tripCount} options={(ranked??geoLeads.map(l=>({...l,distance_km:null,duration_minutes:null,routeFact:null}))).map(l=>({id:l.id,label:`Dompe ${label(l)}`,minutes:l.duration_minutes,source:l.routeFact?.source??"Hypothèse saisie; routage indisponible",datedAt:l.routeFact?.calculatedAt??""}))}/>
 
         {ranked && (
           <section className="mt-6 space-y-3">

@@ -1,6 +1,7 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## EXEC-01 — suivi remblai sans compte (19 oct.)
+- [ ] EXEC-03 : secteurs multi-villes/régions, polygone/rayon, origine chantier, préférences isolées, filtres carte/liste partagés et comparaison exportable; essais ciblés sans appels externes ni activation publique.
 - [x] EXEC-02B : messages durables et copies préparées de l’envoi/worker existants, rappels/expiration Toronto, mesures partielles/corrections; SQL isolé, capture React Email et navigateur aux trois largeurs vérifiés. Bilan et activation commune actualisés.
 - [x] EXEC-02 local : matching explicable, trois modes explicites, réservations concurrentes, débit unique par voyage, transaction lien/message, exceptions; navigateur 360/768/1280, SQL ciblé et sources Deno vérifiés. Bilan : docs/audit/exec02-bilan.md.
 - [ ] EXEC-02 activation : autorisation d’environnement Cloud isolé puis validation JWT/PostgREST/Storage/file réelle/proxy et installation du scheduler préparé; code courrier et mesures terminé, copies non déployées. Détails : prepared/exec01b/activation-checklist.md.

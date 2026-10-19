@@ -11,7 +11,14 @@ import {
    Maximize2, Minimize2, Search, SlidersHorizontal, MapPin,
 } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRole";
-import { useAuthReady } from "@/hooks/useAuthReady";
+import { useSearchIdentity } from "@/hooks/useSearchIdentity";
+import { useSearchSector, searchRoute } from "@/hooks/useSearchSector";
+import { inSector, validPoint, type RouteFact } from "@/lib/entrepreneur/search-sector";
+import { routingBatches } from "@/lib/entrepreneur/comparateur-candidates";
+import { isolatedSearch, localSearchCall, SEARCH_CLOUD_ENABLED } from "@/lib/entrepreneur/search-runtime";
+import SearchSectorPanel from "@/components/entrepreneur/SearchSectorPanel";
+import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
+import { toActiveChantier } from "@/lib/entrepreneur-app/chantier-context";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import { BottomSheet, ChantierContextBar, FilterSheet, SiteCard } from "@/components/entrepreneur-app/ui";
 import {
@@ -37,6 +44,8 @@ interface EntLead {
   id: string;
   submission_number: number;
   dompe_number?: string | null;
+  city?: string | null;
+  region?: string | null;
   materials: string[];
   other_material: string | null;
   request_type: string;
@@ -104,12 +113,20 @@ const Entrepreneur = () => {
   const [leads, setLeads] = useState<EntLead[]>([]);
   const [loading, setLoading] = useState(true);
   const mapRef = useRef<google.maps.Map | null>(null);
+  const [mapReady,setMapReady]=useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Record<string, google.maps.Marker>>({});
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const navigate = useNavigate();
-  const { user, isReady: authReady } = useAuthReady();
-  const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
+  const { user, isReady: authReady, isEntrepreneur, isAdmin, loading: roleLoading, session, isolated } = useSearchIdentity();
+  const search = useSearchSector(user?.id, session, isolated);
+  const { chantiers } = useEntrepreneurData();
+  const [drawing, setDrawing] = useState(false);
+  const drawingRef = useRef(false);
+  drawingRef.current = drawing;
+  const [routes, setRoutes] = useState<Record<string, RouteFact | null>>({});
+  const polygonRef = useRef<google.maps.Polygon | null>(null);
+  const circleRef = useRef<google.maps.Circle | null>(null);
   const [activeFilters, setActiveFilters] = useState<Set<MaterialColorKey>>(new Set());
   const [query, setQuery] = useState("");
   const [onlyAvailable, setOnlyAvailable] = useState(false);
@@ -138,6 +155,7 @@ const Entrepreneur = () => {
     setDetail(null);
     // La dompe consultée part avec la demande : jamais à resélectionner.
     const base = activeChantier ? (prefillFromChantier(activeChantier) as Record<string, unknown>) : {};
+    if(isolated){search.setMessage("Demande réelle désactivée; aucun accès ou transport autorisé en TEST.");return;}
     navigate("/demande-transport", {
       state: { vqPrefill: { ...base, ...(lead ? { dumpId: lead.id } : {}), fromEntrepreneur: true } },
     });
@@ -161,6 +179,7 @@ const Entrepreneur = () => {
   const filteredLeads = useMemo(() => {
     const q = query.trim().toLowerCase();
     const rows = leads.filter((l) => {
+      if (!inSector(l, search.sector, routes[l.id])) return false;
       if (activeFilters.size > 0 && !leadMaterialKeys(l).some((k) => activeFilters.has(k))) return false;
       if (onlyAvailable && (l.availability_status || "available") !== "available") return false;
       if (onlyBigVolume && !hasBigVolume(l)) return false;
@@ -177,7 +196,21 @@ const Entrepreneur = () => {
       return [...rows].sort((a, b) => (order[a.availability_status || "available"] ?? 9) - (order[b.availability_status || "available"] ?? 9));
     }
     return rows;
-  }, [leads, activeFilters, query, onlyAvailable, onlyBigVolume, only12, onlySemi, sortMode]);
+  }, [leads, activeFilters, query, onlyAvailable, onlyBigVolume, only12, onlySemi, sortMode, search.sector, routes]);
+
+  useEffect(() => {
+    setRoutes({});
+    if (!activeChantier?.coords || (search.sector.maxRoadKm === null && search.sector.maxMinutes === null)) return;
+    let alive = true;
+    const origin = activeChantier.coords;
+    // Bounded sequential lookups; unavailable routes stay unknown, cache includes origin and coordinates.
+    void (async () => { for (const lead of routingBatches(leads.filter(l => inSector(l, {...search.sector,maxRoadKm:null,maxMinutes:null})),origin,25,25).flat()) {
+      const route = await searchRoute(origin,lead,isolated).catch(()=>null);
+      if (!alive) return;
+      setRoutes(r=>({...r,[lead.id]:route}));
+    } })();
+    return () => {alive=false;};
+  }, [activeChantier?.key, search.sector, leads, isolated]);
 
   const activeCount =
     activeFilters.size + [onlyAvailable, onlyBigVolume, only12, onlySemi].filter(Boolean).length + (query ? 1 : 0);
@@ -185,7 +218,7 @@ const Entrepreneur = () => {
   const resetFilters = () => {
     setActiveFilters(new Set());
     setOnlyAvailable(false); setOnlyBigVolume(false); setOnly12(false); setOnlySemi(false);
-    setQuery("");
+    setQuery(""); search.setSector({ ...search.sector, mode: "quebec", maxRoadKm: null, maxMinutes: null });
   };
 
   useEffect(() => {
@@ -201,7 +234,7 @@ const Entrepreneur = () => {
 
   // Realtime: refresh leads when admin changes visibility/status
   useEffect(() => {
-    if (!isEntrepreneur && !isAdmin) return;
+    if (isolated || (!isEntrepreneur && !isAdmin)) return;
     const channel = supabase
       .channel(`ent-submissions-` + Math.random().toString(36).slice(2))
       .on("postgres_changes", { event: "*", schema: "public", table: "submissions" }, () => fetchLeads())
@@ -211,7 +244,9 @@ const Entrepreneur = () => {
 
   const fetchLeads = async () => {
     setLoading(true);
-    const { sites, error } = await getEligibleEntrepreneurDumpSites();
+    const { sites, error } = isolated
+      ? await localSearchCall<{sites: EntLead[];error:null}>("sites").catch(()=>({sites:[],error:"Serveur isolé indisponible"}))
+      : SEARCH_CLOUD_ENABLED ? await (async()=>{const {data,error}=await (supabase as any).rpc('exec03_search_sites');return {sites:data??[],error:error?.message??null};})() : await getEligibleEntrepreneurDumpSites();
     if (error) toast({ title: "Erreur", description: error, variant: "destructive" });
     else setLeads((sites as any[]).filter((d) => crmDompeNumber(d) !== null));
     setLoading(false);
@@ -222,6 +257,7 @@ const Entrepreneur = () => {
     let cancelled = false;
     const geo = filteredLeads.filter((l) => l.latitude && l.longitude);
 
+    if (isolated) return; // Maps-dependent checks are unsupported in the sandbox; do not mock Google Maps.
     loadGoogleMaps().then((g) => {
       if (cancelled || !containerRef.current) return;
       if (!mapRef.current) {
@@ -231,8 +267,15 @@ const Entrepreneur = () => {
           mapTypeControl: false,
           streetViewControl: false,
           gestureHandling: "greedy",
+          clickableIcons: false,
         });
         infoRef.current = new g.maps.InfoWindow();
+        setMapReady(true);
+        mapRef.current.addListener("click", (event: google.maps.MapMouseEvent) => {
+          if (!drawingRef.current || !event.latLng) return;
+          const p={lat:event.latLng.lat(),lng:event.latLng.lng()};
+          search.setSector(s=>({...s,mode:"polygon",polygon:[...s.polygon,p].slice(0,200)}));
+        });
       }
       const map = mapRef.current;
       if (!map) return;
@@ -284,7 +327,7 @@ const Entrepreneur = () => {
         markersRef.current[l.id] = m;
         bounds.extend(pos);
       });
-      if (Object.keys(markersRef.current).length > 0) {
+      if (Object.keys(markersRef.current).length > 0 && !drawingRef.current && search.sector.mode!=='polygon') {
         if (activeChantier?.coords && !globalView) {
           map.setCenter(activeChantier.coords);
           map.setZoom(10);
@@ -301,7 +344,22 @@ const Entrepreneur = () => {
       Object.values(markersRef.current).forEach((marker) => marker.setMap(null));
       markersRef.current = {};
     };
-  }, [filteredLeads, activeChantier, globalView]);
+  }, [filteredLeads, activeChantier, globalView, isolated]);
+
+  useEffect(() => {
+    const map=mapRef.current;
+    if (!map || isolated || !window.google?.maps) return;
+    polygonRef.current?.setMap(null); circleRef.current?.setMap(null);
+    if (search.sector.mode === "polygon" && search.sector.polygon.length) {
+      polygonRef.current=new google.maps.Polygon({map,paths:search.sector.polygon,editable:!drawing,clickable:!drawing});
+      const path=polygonRef.current.getPath();
+      const update=()=>search.setSector(s=>({...s,polygon:path.getArray().map(p=>({lat:p.lat(),lng:p.lng()}))}));
+      path.addListener("set_at",update); path.addListener("insert_at",update); path.addListener("remove_at",update);
+    }
+    if (search.sector.mode === "radius" && validPoint(search.sector.center) && search.sector.radiusKm !== null)
+      circleRef.current=new google.maps.Circle({map,center:search.sector.center,radius:search.sector.radiusKm*1000,clickable:false});
+    return()=>{polygonRef.current?.setMap(null);circleRef.current?.setMap(null);};
+  }, [search.sector, filteredLeads, drawing, isolated, mapReady]);
 
   const focusLead = (l: EntLead) => {
     setSelectedId(l.id);
@@ -318,7 +376,7 @@ const Entrepreneur = () => {
     }
   };
 
-  const handleLogout = async () => { markVoluntarySignOut(); await supabase.auth.signOut(); navigate("/login"); };
+  const handleLogout = async () => { if(isolated){await localSearchCall('logout',{});window.location.assign('/entrepreneur/carte?exec03=local');return;}markVoluntarySignOut(); await supabase.auth.signOut(); navigate("/login"); };
 
   if (!authReady || !user || roleLoading) {
     return <FullPageState title="Connexion en cours" message="Votre espace entrepreneur se charge automatiquement." />;
@@ -383,6 +441,13 @@ const Entrepreneur = () => {
           )}
         </section>
 
+        <SearchSectorPanel sector={search.sector} onChange={search.setSector} drawing={drawing}
+          onDraw={()=>{setDrawing(v=>!v); if (isolated) search.setMessage("Dessin Google Maps non vérifiable ici; zone enregistrée utilisable, validation sur domaine autorisé requise.");}}
+          onSave={()=>void search.save()} onRestore={()=>void search.restore()}
+          origin={activeChantier?.address??""} onOrigin={()=>{if(activeChantier?.coords)search.setSector(s=>({...s,address:activeChantier.address??"",center:activeChantier.coords}));}}
+          companies={search.companies} companyId={search.companyId} onCompany={search.setCompanyId}
+          chantiers={session?.chantiers??chantiers} onChantier={key=>{const c=session?.chantiers.find(c=>c.key===key)??(chantiers.find(c=>c.key===key)?toActiveChantier(chantiers.find(c=>c.key===key) as typeof chantiers[number]):null);if(c){saveActiveChantier(c);setActiveChantier(c);search.setSector(s=>s.mode==="radius"?{...s,center:c.coords,address:c.address??""}:s);}}}
+          message={search.message} resolveAddress={search.resolveAddress}/>
         {/* Recherche : l'outil principal de l'écran */}
         <section className="ent-sticky -mx-4 bg-background px-4 py-1 sm:mx-0 sm:px-0">
           <div className="flex items-center gap-2">
@@ -461,6 +526,7 @@ const Entrepreneur = () => {
           <section className={`grid gap-4 ${expanded ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-5"}`}>
             {/* Carte */}
              <div className={`${expanded ? "" : "lg:col-span-3"} relative isolate min-w-0 rounded-lg bg-card overflow-hidden`}>
+              {isolated && <p className="absolute bottom-4 left-4 right-4 text-sm text-muted-foreground">Carte Google Maps non exécutée en environnement isolé. {filteredLeads.length} positions dans les mêmes résultats que la liste.</p>}
               <div
                 ref={containerRef}
                 style={{ height: expanded ? "78vh" : "64vh", minHeight: 320, maxHeight: 900, width: "100%" }}
@@ -478,7 +544,7 @@ const Entrepreneur = () => {
             <div className={`${expanded ? "" : "lg:col-span-2"} min-w-0 space-y-3`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="font-display font-bold text-base">
-                  {activeChantier && !globalView ? "Dompes compatibles avec votre chantier" : `${filteredLeads.length} dompe${filteredLeads.length > 1 ? "s" : ""}`}
+                  {activeChantier && !globalView ? "Dompes à évaluer pour votre chantier" : `${filteredLeads.length} dompe${filteredLeads.length > 1 ? "s" : ""}`}
                 </h2>
                 {activeCount > 0 && <span className="text-xs text-muted-foreground font-body">sur {leads.length}</span>}
               </div>
@@ -487,7 +553,7 @@ const Entrepreneur = () => {
                 <span className="font-body text-xs text-muted-foreground">Trier par</span>
                 <button type="button" onClick={() => setSortMode("compatibility")} className={`min-h-9 rounded-md px-3 font-body text-xs ${sortMode === "compatibility" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>Compatibilité</button>
                 <button type="button" onClick={() => setSortMode("availability")} className={`min-h-9 rounded-md px-3 font-body text-xs ${sortMode === "availability" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>Disponibilité</button>
-                <button type="button" onClick={() => navigate("/entrepreneur/comparateur")} className="min-h-9 rounded-md bg-secondary px-3 font-body text-xs text-muted-foreground">Distance routière</button>
+                <button type="button" onClick={() => navigate(`/entrepreneur/comparateur${isolated ? "?exec03=local" : ""}`)} className="min-h-9 rounded-md bg-secondary px-3 font-body text-xs text-muted-foreground">Distance routière</button>
               </div>
               <div className={`space-y-3 ${expanded ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 space-y-0" : "lg:max-h-[58vh] lg:overflow-auto lg:pr-1"}`}>
                 {filteredLeads.length === 0 && (
@@ -504,7 +570,7 @@ const Entrepreneur = () => {
                       title={`Dompe #${dompeLabel(l)}`}
                       sector={`Secteur ${l.postal_prefix?.toUpperCase() || "—"}${l.quantity ? ` · ${l.quantity}` : ""}`}
                       availability={{ label: l.availability_status ? availMeta(l.availability_status).label : "Disponibilité à confirmer", color: av.color }}
-                      freshness={freshnessLabel(l.freshness, l.availability_updated_at)}
+                      freshness={`${freshnessLabel(l.freshness, l.availability_updated_at)} · Aucune réception autorisée${search.sector.maxRoadKm!==null||search.sector.maxMinutes!==null ? routes[l.id]?.minutes!=null ? ` · ${routes[l.id]?.minutes} min automobile` : " · Trajet à confirmer" : ""}`}
                       tags={keys.map((k) => MATERIAL_COLORS[k].label)}
                       accentColor={MATERIAL_COLORS[keys[0] ?? "remblai"].color}
                       selected={selectedId === l.id}

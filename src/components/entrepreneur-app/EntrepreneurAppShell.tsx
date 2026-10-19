@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuthReady } from "@/hooks/useAuthReady";
+import { useSearchIdentity } from "@/hooks/useSearchIdentity";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useEntrepreneurNotifications } from "@/hooks/useEntrepreneurNotifications";
 import { Button } from "@/components/ui/button";
@@ -136,9 +136,8 @@ export default function EntrepreneurAppShell({
 }: Props & { allowCompanyMembers?: boolean }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isReady: authReady } = useAuthReady();
-  const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
-  const { unread: unreadCount } = useEntrepreneurNotifications(true);
+  const { user, isReady: authReady, isEntrepreneur, isAdmin, loading: roleLoading, isolated } = useSearchIdentity();
+  const { unread: unreadCount } = useEntrepreneurNotifications(!isolated);
   const [moreOpen, setMoreOpen] = useState(false);
   const [openSections, setOpenSections] = useState<string[]>([]);
   useEffect(() => {
@@ -178,7 +177,8 @@ export default function EntrepreneurAppShell({
   }, [authReady, user, navigate]);
 
   const handleLogout = async () => {
-    markVoluntarySignOut(); await supabase.auth.signOut();
+    if (!isolated) {markVoluntarySignOut(); await supabase.auth.signOut();}
+    if(isolated){ await fetch("http://localhost:55440/search/logout",{method:"POST",credentials:"include"});window.location.assign("/entrepreneur/carte?exec03=local");return;}
     navigate("/login");
   };
 
@@ -205,7 +205,7 @@ export default function EntrepreneurAppShell({
     const active = isActive(currentLocation, item.to, item.end);
     const Icon = item.icon;
     return <Button key={item.to} asChild variant="ghost" className={`h-auto min-h-11 w-full justify-start gap-3 whitespace-normal px-3 py-2 text-left font-body text-sm hover:bg-secondary hover:text-foreground ${active ? "bg-secondary font-semibold text-primary" : "text-muted-foreground"}`}>
-      <NavLink to={item.to} aria-current={active ? "page" : undefined}><Icon className="h-4 w-4 shrink-0" /><span>{item.label}</span></NavLink>
+      <NavLink to={`${item.to}${isolated ? "?exec03=local" : ""}`} aria-current={active ? "page" : undefined}><Icon className="h-4 w-4 shrink-0" /><span>{item.label}</span></NavLink>
     </Button>;
   };
 

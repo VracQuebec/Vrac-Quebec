@@ -1,0 +1,36 @@
+// @vitest-environment node
+import {describe,it,expect,beforeAll,afterAll} from 'vitest';
+import postgres from 'postgres';
+import {readFile} from 'node:fs/promises';
+import {emptySector,inSector,validateSector} from '../lib/entrepreneur/search-sector';
+import {compareTransportSavings,type SavingsInput} from '../lib/entrepreneur/transport-savings';
+import {cachedRoute} from '../lib/entrepreneur/search-runtime';
+import {makeMapsProvider} from '../../prepared/exec03/maps-provider';
+const a={id:'a',city:'Québec',latitude:46.81,longitude:-71.21},b={id:'b',city:'Lévis',latitude:46.74,longitude:-71.18};
+describe('EXEC03 geographic filters and costs',()=>{
+ it('multiple cities and regions are a union',()=>{const s={...emptySector(),mode:'places' as const,cities:['Québec'],regions:['Chaudière-Appalaches']};expect([a,b,{...a,id:'c',city:'Gatineau'}].filter(d=>inSector(d,s)).map(d=>d.id)).toEqual(['a','b']);});
+ it('polygon includes boundary and rejects outside',()=>{const s={...emptySector(),mode:'polygon' as const,polygon:[{lat:46,lng:-72},{lat:47,lng:-72},{lat:47,lng:-71},{lat:46,lng:-71}]};expect(inSector(a,s)).toBe(true);expect(inSector({...a,longitude:-72},s)).toBe(true);expect(inSector({...a,longitude:-75},s)).toBe(false);});
+ it('radius is geographic and changing origin changes results',()=>{const s={...emptySector(),mode:'radius' as const,center:{lat:46.81,lng:-71.21},radiusKm:2};expect(inSector(a,s)).toBe(true);expect(inSector(b,s)).toBe(false);expect(inSector(b,{...s,center:{lat:46.74,lng:-71.18}})).toBe(true);});
+ it('unknown routing remains pending rather than invented',()=>{const s={...emptySector(),maxRoadKm:5,maxMinutes:10};expect(inSector(a,s,null)).toBe(true);expect(inSector(a,s,{distanceKm:8,minutes:15,source:'test',calculatedAt:'2026-10-19',heavyTruckValidated:false,approximateDestination:true})).toBe(false);});
+ it('invalid radius and polygon cannot persist',()=>{expect(()=>validateSector({...emptySector(),mode:'radius',radiusKm:10})).toThrow();expect(()=>validateSector({...emptySector(),mode:'polygon'})).toThrow();});
+ const d={label:'A',outboundMinutes:30,returnMinutes:30,waitMinutes:0,receptionTotal:0,otherTotal:0,source:'hypothèse TEST',datedAt:'2026-10-19'};
+ const input:SavingsInput={trips:12,hourlyRate:150,rateSource:'TEST coût complet',includesDriver:true,includesFuel:true,assumptions:'aller-retour explicitement saisi',baseline:d,alternative:{...d,label:'B',outboundMinutes:20,returnMinutes:20}};
+ it('12 trips x 20 minutes / 60 x 150 equals gross 600',()=>{expect(compareTransportSavings(input)).toMatchObject({hoursReleased:4,gross:600,net:600,measured:null});});
+ it('differential fees reduce net once without multiplying trips again',()=>{expect(compareTransportSavings({...input,alternative:{...input.alternative,receptionTotal:200,otherTotal:50}})).toMatchObject({gross:600,differentialFees:250,net:350});});
+ it('unknown return or fees never become zero',()=>{expect(compareTransportSavings({...input,alternative:{...input.alternative,returnMinutes:null}})).toBeNull();expect(compareTransportSavings({...input,trips:12.5})).toBeNull();});
+ it('cache deduplicates in-flight and keeps origin-specific keys',async()=>{let count=0;const lookup=async()=>{count++;return null;};await Promise.all([cachedRoute('exec03-origin-a',lookup),cachedRoute('exec03-origin-a',lookup)]);expect(count).toBe(1);await cachedRoute('exec03-origin-b',lookup);expect(count).toBe(2);});
+ it('disabled provider never makes a request',async()=>{let calls=0;const provider=makeMapsProvider({enabled:false,gatewayKey:'',connectionKey:'',fetcher:async()=>{calls++;return Response.json([]);}});expect(await provider.route({lat:46,lng:-71},{lat:47,lng:-72})).toBeNull();expect(calls).toBe(0);});
+});
+const run=process.env.EXEC01B_LOCAL_TEST==='1',name='exec03_test_'+crypto.randomUUID().replace(/-/g,'');
+const root=postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable',{ssl:false});
+const db=postgres(`postgresql://lovable@127.0.0.1:55439/${name}?sslmode=disable`,{ssl:false});
+const user=crypto.randomUUID(),other=crypto.randomUUID(),company=crypto.randomUUID(),company2=crypto.randomUUID();
+beforeAll(async()=>{if(!run)return;await root.unsafe(`DO $$ BEGIN IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF; IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF; IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='service_role') THEN CREATE ROLE service_role BYPASSRLS; END IF; END $$;`);await root.unsafe(`CREATE DATABASE ${name} TEMPLATE template0 ENCODING 'UTF8'`);for(const f of ['prepared/exec03/local-fixture.sql','prepared/exec03/preferences.sql'])await db.unsafe(await readFile(f,'utf8'));for(const c of [company,company2]){await db`insert into jsc_companies values(${c},'Fiction')`;await db`insert into jsc_company_members(user_id,company_id) values(${user},${c})`;}},30000);
+afterAll(async()=>{await db.end();if(run)await root.unsafe(`DROP DATABASE ${name}`);await root.end();});
+const pref=(u:string,c:string,s:unknown|null)=>db.begin(async tx=>{await tx`select set_config('request.jwt.claim.sub',${u},true)`;return (await tx`select exec03_sector_preference(${c}::uuid,${s===null?null:tx.json(s as postgres.JSONValue)}) r`)[0].r;});
+describe.skipIf(!run)('same prepared SQL on isolated PostgreSQL',()=>{
+ it('direct RPC cannot bypass geometric validation',async()=>{await expect(pref(user,company,{...emptySector(),mode:'radius',center:{lat:500,lng:0},radiusKm:-1})).rejects.toThrow();});
+ it('preferences survive new session and stay company scoped',async()=>{const s={...emptySector(),mode:'places',cities:['Québec','Lévis']};await pref(user,company,s);expect((await pref(user,company,null)).sector.cities).toEqual(['Québec','Lévis']);expect((await pref(user,company2,null)).sector).toBeNull();});
+ it('other user and revoked membership denied server-side',async()=>{await expect(pref(other,company,null)).rejects.toMatchObject({code:'42501'});await db`update jsc_company_members set is_active=false where user_id=${user} and company_id=${company2}`;await expect(pref(user,company2,null)).rejects.toMatchObject({code:'42501'});});
+ it('GET read does not mutate preference timestamp',async()=>{const before=(await db`select updated_at from entrepreneur_search_preferences where user_id=${user}`)[0].updated_at;await pref(user,company,null);expect((await db`select updated_at from entrepreneur_search_preferences where user_id=${user}`)[0].updated_at).toEqual(before);});
+});

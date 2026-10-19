@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
-export const useAuthReady = () => {
+export const useAuthReady = (enabled = true) => {
   const [user, setUser] = useState<User | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
     let subscription: { unsubscribe: () => void } | null = null;
 
@@ -34,7 +35,7 @@ export const useAuthReady = () => {
       active = false;
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [enabled]);
 
   return { user, isReady, isAuthenticated: !!user };
 };

@@ -60,11 +60,12 @@ export type CalcMaterial = {
 };
 
 /** Matériaux publics disposant d'une densité configurée en administration. */
-export function useCalcMaterials() {
+export function useCalcMaterials(enabled = true) {
   const [materials, setMaterials] = useState<CalcMaterial[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!enabled) {setLoading(false);return;}
     void (async () => {
       const { data } = await supabase.rpc("jsc_public_materials_calc" as never);
       const rows = (data ?? []) as Array<{
@@ -82,7 +83,7 @@ export function useCalcMaterials() {
       );
       setLoading(false);
     })();
-  }, []);
+  }, [enabled]);
 
   return { materials, loading };
 }

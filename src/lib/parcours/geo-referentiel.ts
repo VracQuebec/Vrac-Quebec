@@ -89,6 +89,8 @@ const QC_REGIONS: Record<string, string[]> = {
   "Centre-du-Québec": ["Drummondville", "Victoriaville", "Nicolet", "Plessisville", "Warwick"],
 };
 
+export const quebecRegionNames = () => Object.keys(QC_REGIONS);
+
 export interface CityRef {
   /** Nom officiel de la municipalité (casse et accents corrects). */
   name: string;
