@@ -46,4 +46,5 @@ export function evaluateReception(offer:MaterialOffer,c:ReceptionConditions,quan
  return {result:reasons.some(r=>r.level==='BLOCKER')?'INCOMPATIBLE':reasons.some(r=>r.level==='REVIEW')?'NEEDS_REVIEW':'COMPATIBLE',reasons};
 }
 export type CoordinationRow={id:string;offerId:string;originId:string;quantity:number;unit:string;vehicle:string|null;components:string[];start:string;end:string;state:string;expiresAt:string;reasons:CoordinationReason[];reference:string;acceptedAt:string|null;counterStart?:string|null;counterEnd?:string|null};
-export type CoordinationView={remaining:number|null;total:number|null;reserved:number;unit:string;policy:ReceptionPolicy|null;rows:CoordinationRow[];offers:{id:string;label:string}[];exceptions:{reason:string;at:string;next:string}[]};
+export type ReceptionMeasurement={id:string;tripId:string;reservationId:string;quantity:number;unit:string;receivedAt:string;ticketRef:string;outcome:'accepted'|'refused';corrects:string|null;reason:string|null};
+export type CoordinationView={remaining:number|null;total:number|null;reserved:number;delivered?:number;measurements?:ReceptionMeasurement[];unit:string;policy:ReceptionPolicy|null;rows:CoordinationRow[];offers:{id:string;label:string}[];exceptions:{reason:string;at:string;next:string}[]};

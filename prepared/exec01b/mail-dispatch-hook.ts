@@ -7,7 +7,7 @@ import {makeCoordinationEndpoint,type CoordinationDependencies} from './coordina
 // Caller must perform existing suppression/unsubscribe checks first. SQL reads canonical contact.
 export async function enqueueExistingClientConfirmation(submissionId:string,operationId:string,deps:CoordinationDependencies){
  if(!deps.enabled)return {state:'disabled' as const};
- const handler=makeCoordinationEndpoint(deps);
+ const handler=makeCoordinationEndpoint({...deps,authenticate:async()=>({role:'admin',actorId:operationId})});
  const response=await handler(new Request(`${deps.origin}/coordination`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'mail',requestId:submissionId,operationId,confirmed:true})}));
  if(!response.ok)throw Error('Confirmation non mise en file');
  return {state:'queued' as const,...await response.json()};
