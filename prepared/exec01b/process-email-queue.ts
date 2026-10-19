@@ -269,6 +269,13 @@ Deno.serve(async (req) => {
           await supabase.from('email_send_log').insert({message_id:payload.message_id,template_name:payload.label||queue,recipient_email:payload.to,status:'suppressed',error_message:'Message de réception devenu inutile'});
           continue;
         }
+        if(payload.reception_guard){
+          const delayed=await supabase.rpc('exec02_message_delay',{p:payload});if(delayed.error)throw Error('Reception timing unavailable');
+          if(Number(delayed.data)>0){
+            const deferred=await supabase.rpc('exec02_defer_message',{message_id:msg.msg_id,seconds:Number(delayed.data)});if(deferred.error)throw Error('Reception deferral unavailable');
+            continue;
+          }
+        }
         await sendLovableEmail(
           {
             run_id: payload.run_id,

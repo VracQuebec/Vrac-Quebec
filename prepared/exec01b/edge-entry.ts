@@ -73,7 +73,7 @@ Deno.serve(async request=>{
  try {
   if(new URL(request.url).pathname.endsWith('/reception-lifecycle')){
    // Disabled without an environment override; authenticated internal scheduler only on activation.
-   if(request.method!=='POST'||request.headers.get('authorization')!==`Bearer ${env('EXEC02_SCHEDULER_SECRET')}`)return new Response('Forbidden',{status:403,headers:corsHeaders});
+   if(request.method!=='POST'||request.headers.get('authorization')!==`Bearer ${env('SUPABASE_SERVICE_ROLE_KEY')}`)return new Response('Forbidden',{status:403,headers:corsHeaders});
    return Response.json(await processReceptionLifecycle({enabled:false,due:async()=>{const {data,error}=await db.rpc('exec02_due');if(error)throw Error('Due jobs unavailable');return data;},dispatch:async p=>{const response=await lifecycleCoordination(new Request(`${origin}/submission-reception`,{method:'POST',body:JSON.stringify(p)}));if(!response.ok)throw Error('Lifecycle retry required');return response.json();}}),{headers:{...corsHeaders,'Cache-Control':'no-store'}});
   }
   return await (new URL(request.url).pathname.endsWith('/submission-reception')?coordination(request):handler(request));
