@@ -34,7 +34,7 @@ Tests SQL nouveaux :
 4. Avoir sur taxes figées, émission rejouée sans deuxième effet, entrée attendue archivée après crédit complet.
 5. Capture courrier TEST persistante unique; contenu différent sur même clé, entreprise étrangère et adresse réelle refusés.
 6. Grand livre **original 0148** : facture **229,95 $**, paiement **100 $**, avoir **229,95 $**, écritures équilibrées, une écriture par source et synchronisation répétée sans doublon; modification directe et lecture interentreprises refusées. Le mode avoir « balance » crédite le brut encore créditable, pas le solde net après encaissements; le trop-perçu reste calculé par l'existant, jamais réaffecté automatiquement.
-7. Acompte puis solde par le dossier progressif existant; cumul hors taxes **1 000 $**, total facturé **1 149,75 $**, pas de seconde facture au rejeu et conversion intégrale refusée après engagement progressif.
+7. Acompte puis solde par le dossier progressif existant; cumul hors taxes **1 000 $**, total facturé **1 149,76 $** (taxes arrondies séparément par facture, écart de 0,01 $ avec une facture unique), pas de seconde facture au rejeu et conversion intégrale refusée après engagement progressif.
 
 Les migrations existantes utiles jusqu'à 0148 sont chargées, non réécrites. 0118/0119/0120 et les modules non concernés restent exclus; fixture membres/Storage et queue locale ne reproduisent pas tous les déclencheurs/services hébergés. Les tentatives initiales de chargement ont échoué sur champs de fixture absents; fixtures complétées, dernière exécution 29/29 réussie. Avertissements d'accessibilité Radix dans des tests existants de facturation progressive; aucun échec de test associé. Dernier signal aperçu : `build OK`.
 
