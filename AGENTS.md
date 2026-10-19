@@ -12,6 +12,8 @@
 - Ronde de sécurité : référentiel rds_categories/rds_codes (lecture seule, listes 1-3); rds_reports/rds_defects écrits seulement par les RPC rds_* (rapport figé, correction = nouvelle version liée); classement mineur/majeur séparé du statut de circulation (48 h depuis le premier constat, jamais remis à zéro); chaque défaut crée une fleet_repairs — blocage levé seulement après validation.
 - Règles par dossier : supabase/AGENTS.md (agenda, obligations, assurances) ; supabase/functions/AGENTS.md ; src/lib/{logbook,seo (dont SEO START),parcours,ops (voyages, OPS-02, CPN-01)}/AGENTS.md.
 - PWA : `push-sw.js` unique, enregistré au chargement, sans cache métier.
+- EXEC-01 follow-up uses the existing submissions dossier model and a repository-injected domain service; preview uses fictional local data only, while real access stays disabled until a transactional hosted adapter is authorized and deployed.
+- Personal follow-up entrypoints bypass analytics, production providers and notification mounts; this prevents bearer credentials and test actions reaching existing telemetry or business services.
 <!-- LOVABLE:BEGIN -->
 - Entrepreneur UI uses the existing shell to own safe areas and measured header/navigation heights; one owner prevents duplicate offsets without changing backend behavior.
 - Brand colors use one HSL token and presentation-only route scoping preserves excluded admin/fleet palettes; functional and tenant-configured colors remain independent.
