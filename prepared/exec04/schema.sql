@@ -154,13 +154,13 @@ BEGIN
    IF email IS NULL OR contact->>'verified'<>'true' OR NOT exec04_permission(email,camp.purpose) THEN CONTINUE; END IF;
    PERFORM pg_advisory_xact_lock(hashtext('exec04-mail:'||email));key:='exec04:'||camp.id||':'||encode(digest(email,'sha256'),'hex');
    IF EXISTS(SELECT 1 FROM mkt_promo_sends WHERE message_key=key) THEN CONTINUE;END IF;
-   IF EXISTS(SELECT 1 FROM mkt_promo_sends WHERE mkt_promo_sends.email=email AND purpose=camp.purpose AND state IN ('queued','captured_test','sent','delivered') AND coalesce(captured_at,sent_at)>now()-make_interval(hours=>camp.frequency_hours)) THEN CONTINUE; END IF;
+   IF EXISTS(SELECT 1 FROM mkt_promo_sends ms WHERE ms.email=email AND ms.purpose=camp.purpose AND ms.state IN ('prepared','queued','captured_test','sent','delivered') AND coalesce(ms.captured_at,ms.sent_at,(SELECT created_at FROM mkt_campaigns WHERE id=ms.campaign::uuid))>now()-make_interval(hours=>camp.frequency_hours)) THEN CONTINUE; END IF;
    INSERT INTO mkt_promo_sends(email,campaign,message_key,state,purpose,subject_type,subject_id) VALUES(email,camp.id::text,key,'prepared',camp.purpose,audience,subject);
   END LOOP;
   result:=jsonb_build_object('ok',true);
  ELSIF kind='campaign_claim' THEN
   IF camp.id IS NULL THEN RAISE EXCEPTION 'Campagne absente';END IF;
-  SELECT * INTO msg FROM mkt_promo_sends WHERE campaign=camp.id::text AND state IN ('prepared','failed') AND attempts<3 ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED;
+  SELECT * INTO msg FROM mkt_promo_sends ms WHERE ms.campaign=camp.id::text AND ms.state IN ('prepared','failed') AND ms.attempts<3 ORDER BY ms.id LIMIT 1 FOR UPDATE SKIP LOCKED;
   IF msg.id IS NULL THEN RETURN jsonb_build_object('empty',true);END IF;
   IF NOT exec04_permission(msg.email,msg.purpose) THEN UPDATE mkt_promo_sends SET state='excluded',last_error='permission_retirée_ou_absente' WHERE id=msg.id;RETURN jsonb_build_object('excluded',true);END IF;
   IF p->'message' IS NULL THEN RETURN jsonb_build_object('render',true,'id',msg.id,'contact',exec04_contact(msg.subject_type,msg.subject_id),'subjectId',msg.subject_id,'audience',msg.subject_type,'template',camp.template_key,'key',msg.message_key);END IF;
