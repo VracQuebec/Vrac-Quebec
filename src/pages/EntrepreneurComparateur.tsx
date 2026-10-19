@@ -592,7 +592,7 @@ export default function EntrepreneurComparateur() {
               }}
             />}
             <select aria-label="Changer le chantier de comparaison" className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm" value="" onChange={e=>{const key=e.target.value;const found=chantiers.find(c=>c.key===key);const c=session?.chantiers.find(c=>c.key===key)??(found?toActiveChantier(found):null);if(c){setActiveChantier(c);saveActiveChantier(c);setAddress(c.address??"");setCoords(c.coords);setRanked(null);}}}><option value="">Sélectionner un chantier enregistré</option>{(session?.chantiers??chantiers).map(c=><option key={c.key} value={c.key}>{c.label}</option>)}</select>
-            <p className="text-xs text-muted-foreground">Google Routes automobile uniquement; destinations approximatives, trajet camion lourd non validé. Routage externe désactivé dans ce lot.</p>
+            <p className="text-xs text-muted-foreground">Google Routes automobile uniquement; destinations approximatives, trajet camion lourd non validé. Routage externe désactivé dans ce lot. Compatibilité matériau/véhicule : admissibilité documentaire, quantité restante et horaire à valider dans la proposition; aucune réception autorisée par ce classement.</p>
           </div>
 
           <div className="space-y-1.5">
