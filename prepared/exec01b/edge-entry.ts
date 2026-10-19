@@ -4,9 +4,25 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { makeEndpoint, type Message } from './endpoint.ts';
 import { digest } from '../../src/lib/remblai/service.ts';
 import { makeCoordinationEndpoint } from './coordination-endpoint.ts';
+import {makeServiceMailPreparer} from './service-mail.ts';
+import {renderReceptionMail} from './reception-service-email.tsx';
+import {processReceptionLifecycle} from './lifecycle.ts';
 const env=(key:string)=>{const value=Deno.env.get(key);if(!value) throw Error('Missing configuration');return value;};
 const db=createClient(env('SUPABASE_URL'),env('SUPABASE_SERVICE_ROLE_KEY'),{auth:{persistSession:false}});
 const origin=env('EXEC01_PORTAL_ORIGIN');
+// Reuse the sender constants exported by the existing sender on authorized packaging;
+// no manually changed sender-domain configuration is introduced here.
+const prepareMail=makeServiceMailPreparer({sender:{from:env('EXEC01_EXISTING_FROM'),domain:env('EXEC01_EXISTING_SENDER_DOMAIN')},render:renderReceptionMail,
+ lookup:async recipient=>{
+  const blocked=await db.from('suppressed_emails').select('id').eq('email',recipient).maybeSingle();if(blocked.error)throw Error('Suppression unavailable');
+  if(blocked.data)return {suppressed:true,unsubscribeToken:null};
+  const existing=await db.from('email_unsubscribe_tokens').select('token,used_at').eq('email',recipient).maybeSingle();if(existing.error)throw Error('Unsubscribe lookup unavailable');
+  if(existing.data?.used_at)return {suppressed:true,unsubscribeToken:null};
+  if(existing.data?.token)return {suppressed:false,unsubscribeToken:existing.data.token};
+  const insert=await db.from('email_unsubscribe_tokens').upsert({email:recipient,token:crypto.randomUUID()},{onConflict:'email',ignoreDuplicates:true});if(insert.error)throw Error('Unsubscribe insert unavailable');
+  const stored=await db.from('email_unsubscribe_tokens').select('token,used_at').eq('email',recipient).single();if(stored.error||!stored.data)throw Error('Unsubscribe unavailable');
+  return {suppressed:!!stored.data.used_at,unsubscribeToken:stored.data.token};
+ }});
 const handler=makeEndpoint({portalOrigin:origin,corsOrigin:origin,
  enabled:false, // Separate authorization required; no environment override.
  quota:async request=>{
@@ -36,6 +52,7 @@ const handler=makeEndpoint({portalOrigin:origin,corsOrigin:origin,
  },
 });
 const coordination=makeCoordinationEndpoint({enabled:false,origin,
+ prepareMail,
  rpc:async p=>{const {data,error}=await db.rpc('exec02_dispatch',{p});if(error)throw Error('RPC unavailable');return data;},
  authenticate:async request=>{
   const token=request.headers.get('authorization')?.replace(/^Bearer /i,'');if(!token)return null;
@@ -49,6 +66,12 @@ const coordination=makeCoordinationEndpoint({enabled:false,origin,
 });
 Deno.serve(async request=>{
  if(request.method==='OPTIONS') return new Response('ok',{headers:corsHeaders});
- try { return await (new URL(request.url).pathname.endsWith('/submission-reception')?coordination(request):handler(request)); }
+ try {
+  if(new URL(request.url).pathname.endsWith('/reception-lifecycle')){
+   // Disabled without an environment override; authenticated internal scheduler only on activation.
+   return Response.json(await processReceptionLifecycle({enabled:false,due:async()=>{const {data,error}=await db.rpc('exec02_due');if(error)throw Error('Due jobs unavailable');return data;},dispatch:async()=>{throw Error('Lifecycle not activated');}}),{headers:{...corsHeaders,'Cache-Control':'no-store'}});
+  }
+  return await (new URL(request.url).pathname.endsWith('/submission-reception')?coordination(request):handler(request));
+ }
  catch {return new Response(JSON.stringify({error:'Service indisponible.'}),{status:503,headers:{...corsHeaders,'Content-Type':'application/json','Cache-Control':'no-store'}});}
 });

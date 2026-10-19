@@ -10,7 +10,7 @@ await mkdir(`${output}/src/lib/remblai`,{recursive:true});
 await mkdir(`${output}/src/integrations/supabase`,{recursive:true});
 function imports(text:string){return text.replace(/(from ['"])(\.[^'"]+?)(['"])/g,(_whole,start,path,end)=>`${start}${path}${path.endsWith('.ts')?'':'.ts'}${end}`);}
 for(const file of await readdir(`${project}/prepared/exec01b`)){
- if(!file.endsWith('.ts')||file==='package.ts')continue;
+ if((!file.endsWith('.ts')&&!file.endsWith('.tsx'))||file==='package.ts')continue;
  await writeFile(`${output}/prepared/exec01b/${file}`,imports(await readFile(`${project}/prepared/exec01b/${file}`,'utf8')));
 }
 for(const file of ['conditions','service','cloud-contract','coordination']){
@@ -30,7 +30,7 @@ async function stage(path:string){
  for(const dependency of dependencies){
   if(!dependency.startsWith('.')&&!dependency.startsWith('@/'))continue;
   const absolute=dependency.startsWith('@/')?resolve(project,'src',dependency.slice(2)):resolve(project,path,'..',dependency);
-  let target=absolute.endsWith('.ts')?absolute:`${absolute}.ts`;
+  let target=/\.tsx?$/.test(absolute)?absolute:`${absolute}.ts`;
   try{await access(target);}catch{target=resolve(absolute,'index.ts');await access(target);}
   const relative=target.slice(project.length+1);
   if(!relative.startsWith('src/')&&!relative.startsWith('prepared/'))throw Error('Dependency outside prepared source graph');
