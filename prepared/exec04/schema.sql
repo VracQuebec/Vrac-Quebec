@@ -129,7 +129,7 @@ BEGIN
  'messages',coalesce((SELECT jsonb_agg(to_jsonb(m)-'email' ORDER BY id) FROM mkt_promo_sends m WHERE message_key IS NOT NULL),'[]')); END IF;
  IF kind='commissions' THEN RETURN jsonb_build_object('commissions',coalesce((SELECT jsonb_agg(to_jsonb(c)||jsonb_build_object('financialState',CASE WHEN c.status IN ('annulee','contestee') THEN c.status WHEN c.finance_invoice_id IS NOT NULL THEN CASE WHEN fin_invoice_balance(c.finance_invoice_id)->>'settled_by_credit'='true' THEN 'annulee' WHEN fin_invoice_balance(c.finance_invoice_id)->>'paid'='true' THEN 'payee' ELSE 'facturee' END ELSE c.status END)) FROM mkt_commissions c),'[]'),'rules',coalesce((SELECT jsonb_agg(to_jsonb(r)) FROM mkt_pricing_rules r),'[]')); END IF;
  IF kind='partner_list' THEN
-  IF p->>'role'<>'partner' OR NOT EXISTS(SELECT 1 FROM jsc_company_members WHERE company_id=(p->>'companyId')::uuid AND user_id=(p->>'actorId')::uuid AND is_active AND archived_at IS NULL) THEN RAISE EXCEPTION 'Entreprise refusée' USING ERRCODE='42501'; END IF;
+  IF p->>'role'<>'partner' OR NOT EXISTS(SELECT 1 FROM jsc_company_members WHERE company_id=(p->>'companyId')::uuid AND user_id=(p->>'actorId')::uuid AND role IN ('proprietaire','gestionnaire') AND is_active AND archived_at IS NULL) THEN RAISE EXCEPTION 'Entreprise refusée' USING ERRCODE='42501'; END IF;
  END IF;
  IF kind IN ('services','preferences','permission','service_create','service_action') THEN
   IF NOT admin AND NOT (kind='service_action' AND p->>'role'='partner') AND NOT coalesce(exec04_owner_ok(p,kind IN ('permission','service_create','service_action')),false) THEN RAISE EXCEPTION 'Lien ou vérification récente requis' USING ERRCODE='42501'; END IF;
@@ -217,7 +217,7 @@ BEGIN
    UPDATE mkt_consents SET withdrawn_at=now(),permission_state='withdrawn',withdrawn_source='portail' WHERE scope='partner_share' AND service_request_id=req.id AND withdrawn_at IS NULL;
    IF state='share' THEN INSERT INTO mkt_consents(email,scope,consent_text,consent_version,sender_snapshot,source,partner_company_id,service_request_id,subject_type,subject_id) VALUES(lower(req.contact_email),'partner_share',p->>'proof','exec04-v1','{}','portail_vérifié',part,req.id,'owner',req.origin_submission_id);END IF;
   ELSIF state IN ('respond','quote') THEN
-   IF p->>'role'<>'partner' OR req.answers->>'partnerId' IS DISTINCT FROM p->>'companyId' OR NOT EXISTS(SELECT 1 FROM jsc_company_members WHERE company_id=(p->>'companyId')::uuid AND user_id=(p->>'actorId')::uuid AND is_active AND archived_at IS NULL) OR NOT exec04_permission(req.contact_email,'partner_share',now(),(p->>'companyId')::uuid,req.id) THEN RAISE EXCEPTION 'Partage absent ou autre entreprise' USING ERRCODE='42501';END IF;
+   IF p->>'role'<>'partner' OR req.answers->>'partnerId' IS DISTINCT FROM p->>'companyId' OR NOT EXISTS(SELECT 1 FROM jsc_company_members WHERE company_id=(p->>'companyId')::uuid AND user_id=(p->>'actorId')::uuid AND role IN ('proprietaire','gestionnaire') AND is_active AND archived_at IS NULL) OR NOT exec04_permission(req.contact_email,'partner_share',now(),(p->>'companyId')::uuid,req.id) THEN RAISE EXCEPTION 'Partage absent ou autre entreprise' USING ERRCODE='42501';END IF;
    IF req.status IN ('annulee','litige') THEN RAISE EXCEPTION 'Demande non active';END IF;
    IF state='quote' THEN
     INSERT INTO mkt_bids(request_id,company_id,amount,scope,status,submitted_at) VALUES(req.id,(p->>'companyId')::uuid,(p->>'amount')::numeric,p->>'response','envoyee',now());
