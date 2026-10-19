@@ -16,7 +16,7 @@ import { conditionsSchema, quantityLabel, WAITING_MESSAGE, type ReceptionConditi
 import { previewRepository, previewService, PREVIEW_EVENT, FICTIONAL_ID, startPreview, resetPreview, type PreviewSession } from "@/lib/remblai/preview";
 import type { Action, RequestRecord } from "@/lib/remblai/service";
 import { isLocalServerMode, takeFragment, isolatedService, readIsolatedCrm } from "@/lib/remblai/isolated-client";
-import { REMBLAI_CLOUD_ENABLED } from "@/lib/remblai/activation";
+import { REMBLAI_CLOUD_ENABLED, RECEPTION_CLOUD_ENABLED } from "@/lib/remblai/activation";
 import { cloudPortalService, cloudPortalCall } from "@/lib/remblai/cloud-client";
 type PublicRequest = Omit<RequestRecord, "history">;
 const availabilityLabels = { a_confirmer: "À confirmer", available: "Besoin confirmé", suspended: "En pause", owner_closed: "Fermée" };
@@ -57,7 +57,7 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
         setRow(result); setHistory(result?.history ?? []);
       } else {
         const current = local || hosted ? takeFragment() : await startPreview(scenario);
-        if (!current) throw new Error("Lien personnel requis. Ouvrez le lien capturé dans le courriel TEST.");
+        if (!current) throw new Error(hosted ? "Lien personnel requis. Ouvrez le lien reçu dans votre courriel de confirmation." : "Lien personnel requis. Ouvrez le lien capturé dans le courriel TEST.");
         setSession(current);
         const result = await service.read(current.linkId, current.secret, current.requestId);
         setRow(result); setDraft(result.conditions);
@@ -135,7 +135,7 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
             ["Quantité totale", quantityLabel(row.conditions.total, row.conditions.unit)], ["Minimum par livraison", quantityLabel(row.conditions.minimumDelivery, row.conditions.unit)], ["Minimum par journée", quantityLabel(row.conditions.minimumDay, row.conditions.unit)], ["Réception progressive", row.conditions.progressive], ["Taille maximale de roche", row.conditions.maxRockCm == null ? "Inconnue" : `${row.conditions.maxRockCm} cm`], ["Compositions mixtes", `${row.conditions.mixed} — ${row.conditions.mixedDetails ?? "Composition inconnue"}`], ["Accès", row.conditions.access ?? "Inconnu"], ["Horaires", row.conditions.hours ?? "Inconnus"], ["Présence nécessaire", row.conditions.presence], ["Consignes", row.conditions.instructions ?? "Inconnues"], ["Mode souhaité", row.conditions.mode], ["Période et créneaux", `${row.conditions.periodStart ?? "Inconnu"} → ${row.conditions.periodEnd ?? "Inconnu"}; ${row.conditions.slots ?? "Non renseignés"}`], ["Conditions explicites", row.conditions.explicitConditions ?? "Inconnues"], ["Admissibilité environnementale/documentaire", row.conditions.environmental], ["Adéquation au projet", row.conditions.projectFit], ["Communications promotionnelles", row.conditions.promotional ? "Consentement explicite" : "Aucun consentement"],
           ].map(([label, value]) => <div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 break-words">{value}</dd></div>)}</dl><h3 className="font-semibold">Préférences propriétaire — matériaux</h3><div className="flex flex-wrap gap-2">{row.conditions.materials.map(m => <Badge variant="outline" key={m.name}>{m.name} : {m.stance.replace(/_/g, " ")}</Badge>)}</div><h3 className="font-semibold">Véhicules</h3><div className="flex flex-wrap gap-2">{row.conditions.vehicles.map(v => <Badge variant="outline" key={v.name}>{v.name} : {v.stance.replace(/_/g, " ")}</Badge>)}</div><p className="text-sm text-muted-foreground">Enregistrer ces préférences ne réserve ni n’autorise une livraison. L’admissibilité environnementale et l’adéquation au projet doivent être validées séparément.</p>{row.conditions.photos.length > 0 && <div className="grid grid-cols-2 gap-3">{row.conditions.photos.map((p, i) => <ReceptionPhoto key={i} photo={p} />)}</div>}</section>}
           {row.operationalState && <p className="mt-5 text-sm text-muted-foreground">{row.operationalState}</p>}</>}
-          {(local || hosted) && <ReceptionCoordinationPanel requestId={row.id} session={session} staff={crm} verified={verified} />}
+          {(local || (hosted && RECEPTION_CLOUD_ENABLED)) && <ReceptionCoordinationPanel requestId={row.id} session={session} staff={crm} verified={verified} />}
           <RelatedServicesPanel session={session} staff={crm} verified={verified}/>
           {!crm&&<OwnerCommunicationPreferences session={session} verified={verified}/>}
           {!coordinationOnly&&<><div className="grid gap-6 py-6 sm:grid-cols-2">{[["Propositions", row.proposals], ["Livraisons", row.deliveries]].map(([title, items]) => <section key={String(title)}><h2 className="mb-3 font-display text-xl font-semibold">{String(title)}</h2>{(items as RequestRecord["proposals"]).length === 0 ? <p className="text-sm text-muted-foreground">{title === "Propositions" ? "Aucune proposition pour le moment." : "Aucun voyage opérationnel lié."}</p> : (items as RequestRecord["proposals"]).map(item => <p className="text-sm" key={item.id}>{item.label} — {item.status}</p>)}</section>)}</div>

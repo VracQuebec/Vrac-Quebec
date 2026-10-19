@@ -133,3 +133,9 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [ ] EN ATTENTE : vérifier état prod des fonctions, staging, sauvegarde vérifiée, colonne guard_claim_id (autorisation)
 - [x] Préparé (16 oct., 13 h) : migration guard_claim_id + module claimed-create (prepared/, non déployé) ; tests PG 31/31, simulés 5/5 ; revue 3 fonctions ; procédure sauvegarde
 - [ ] EN ATTENTE : export, staging, migrations, copie du module dans supabase/functions, restrictions (autorisation)
+
+## EXEC-01 — publication et activation autorisées (19 octobre)
+- [ ] Publier version complète et vérifier page personnelle directe et navigation sans traceurs.
+- [ ] Activer portail et vérifier dossier fictif complet sur site publié, même CRM et photo privée.
+- [ ] Activer courriel réel seulement après succès; sinon conserver parcours désactivé et préciser le blocage.
+- [ ] Conserver EXEC-02 à 06 désactivés et consigner état réel, sans restauration globale.
