@@ -1,9 +1,10 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## EXEC-01 — suivi remblai sans compte (19 oct.)
-- [ ] Parcours fictif isolé, conditions complètes, aperçu courriel et lecture CRM du même dossier.
-- [ ] Contrôles de sécurité et transitions testés sans accès métier réel.
-- [ ] Captures mobile/ordinateur et bilan des dépendances non déployées.
+- [x] Parcours fictif isolé, conditions complètes, aperçu courriel et vue CRM TEST du même dossier.
+- [x] Contrôles du service et transitions testés sans accès métier réel; handler serveur préparé, non déployé.
+- [x] Captures mobile/ordinateur et dépendances explicites : prepared/exec01/README.md.
+- [ ] Activation et synchronisation CRM hébergée : bloquées par l'absence d'environnement serveur TEST isolé et l'interdiction de déploiement/migration sur la base partagée. Aucun accès réel au portail activé.
 
 Source : /mnt/documents/audit-global-2026-10-15.md (22 constats classés P1–P3).
 Contraintes : aperçu = même base que la production (confirmé) → aucune soumission réelle, aucune écriture de test, aucune notification réelle. Aucune publication, aucun déploiement serveur sans autorisation. Les 1 281 meta_title SEO = chantier séparé, non touché.
