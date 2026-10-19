@@ -97,6 +97,13 @@ CREATE FUNCTION exec04_available(_submission uuid,_category uuid) RETURNS jsonb 
  AND NOT EXISTS(SELECT 1 FROM mkt_partner_availability a WHERE a.company_id=p.company_id AND a.is_active
  AND a.quantity=0 AND a.starts_on<=current_date AND a.ends_on>=current_date);
 $$;
+CREATE FUNCTION exec04_message_current(p jsonb) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
+ SELECT EXISTS(SELECT 1 FROM mkt_promo_sends m WHERE m.id=(p->'exec04_guard'->>'messageId')::uuid
+ AND m.state='queued' AND m.email=lower(trim(p->>'to')) AND exec04_permission(m.email,m.purpose)
+ AND (m.subject_type<>'owner' OR EXISTS(SELECT 1 FROM submissions s WHERE s.id=m.subject_id AND s.availability_status NOT IN ('owner_closed','suspended'))));
+$$;
+REVOKE ALL ON FUNCTION exec04_message_current(jsonb) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION exec04_message_current(jsonb) TO service_role;
 CREATE FUNCTION exec04_dispatch(p jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,extensions AS $$
 #variable_conflict use_variable
 DECLARE kind text:=p->>'kind'; admin boolean:=coalesce(p->>'role'='admin',false); subject uuid; audience text; contact jsonb; email text;
@@ -205,6 +212,17 @@ BEGIN
    IF state IN ('cancel','dispute') AND length(coalesce(reason,''))<3 THEN RAISE EXCEPTION 'Motif requis';END IF;
    UPDATE mkt_quote_requests SET status=CASE state WHEN 'cancel' THEN 'annulee' WHEN 'dispute' THEN 'litige' WHEN 'result' THEN 'terminee' ELSE status END,answers=answers||jsonb_build_object(state,coalesce(reason,p->>'response')) WHERE id=req.id;
    IF state IN ('cancel','known') THEN UPDATE mkt_commissions SET status='annulee',exec04_cancelled_at=now(),notes=reason WHERE request_id=req.id AND finance_invoice_id IS NULL; END IF;
+   IF state='result' AND p->>'ruleId' IS NOT NULL THEN
+    IF NOT admin OR req.answers->>'partnerId' IS NULL OR req.answers ? 'known' OR req.status IN ('annulee','litige') THEN RAISE EXCEPTION 'Attribution non admissible'; END IF;
+    INSERT INTO mkt_commissions(request_id,company_id,rule_id,rule_snapshot,base_amount,amount,status)
+    SELECT req.id,(req.answers->>'partnerId')::uuid,r.id,jsonb_build_object('exec04',true,'agreement',r.agreement),
+    (p->>'amount')::numeric,
+    CASE WHEN r.agreement->>'fixed' IS NOT NULL THEN (r.agreement->>'fixed')::numeric
+      WHEN r.agreement->>'rate' IS NOT NULL AND p->>'amount' IS NOT NULL THEN (p->>'amount')::numeric*(r.agreement->>'rate')::numeric/100 END,'a_confirmer'
+    FROM mkt_pricing_rules r WHERE r.id=(p->>'ruleId')::uuid AND r.agreement->>'attribution' IS NOT NULL
+    AND (r.company_id IS NULL OR r.company_id=(req.answers->>'partnerId')::uuid)
+    ON CONFLICT(request_id,company_id) WHERE rule_snapshot ? 'exec04' DO NOTHING;
+   END IF;
   ELSE RAISE EXCEPTION 'Étape invalide';END IF;
   UPDATE mkt_quote_requests SET exec04_rev=exec04_rev+1 WHERE id=req.id;result:=jsonb_build_object('ok',true);
  ELSIF kind='agreement' THEN

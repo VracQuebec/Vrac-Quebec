@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import ReceptionConditionsForm from "@/components/remblai/ReceptionConditionsForm";
 import ReceptionCoordinationPanel from "@/components/remblai/ReceptionCoordinationPanel";
 import RelatedServicesPanel from "@/components/marketplace/RelatedServicesPanel";
+import OwnerCommunicationPreferences from "@/components/marketing/OwnerCommunicationPreferences";
 import { conditionsSchema, quantityLabel, WAITING_MESSAGE, type ReceptionConditions } from "@/lib/remblai/conditions";
 import { previewRepository, previewService, PREVIEW_EVENT, FICTIONAL_ID, startPreview, resetPreview, type PreviewSession } from "@/lib/remblai/preview";
 import type { Action, RequestRecord } from "@/lib/remblai/service";
@@ -127,6 +128,7 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
           {row.operationalState && <p className="mt-5 text-sm text-muted-foreground">{row.operationalState}</p>}</>}
           {(local || hosted) && <ReceptionCoordinationPanel requestId={row.id} session={session} staff={crm} verified={verified} />}
           <RelatedServicesPanel session={session} staff={crm} verified={verified}/>
+          {!crm&&<OwnerCommunicationPreferences session={session} verified={verified}/>}
           {!coordinationOnly&&<><div className="grid gap-6 py-6 sm:grid-cols-2">{[["Propositions", row.proposals], ["Livraisons", row.deliveries]].map(([title, items]) => <section key={String(title)}><h2 className="mb-3 font-display text-xl font-semibold">{String(title)}</h2>{(items as RequestRecord["proposals"]).length === 0 ? <p className="text-sm text-muted-foreground">{title === "Propositions" ? "Aucune proposition pour le moment." : "Aucun voyage opérationnel lié."}</p> : (items as RequestRecord["proposals"]).map(item => <p className="text-sm" key={item.id}>{item.label} — {item.status}</p>)}</section>)}</div>
           {crm && <section className="border-t border-border py-5"><h2 className="mb-3 font-display text-xl font-semibold">Historique du dossier TEST</h2><p className="mb-2 text-sm">Version {row.version} · Même identifiant fictif que le suivi personnel.</p>{history.length === 0 ? <p className="text-sm text-muted-foreground">Aucune modification.</p> : <ol className="space-y-2">{history.map(h => <li className="text-sm" key={h.id}>{h.action} · {new Date(h.at).toLocaleString("fr-CA")} · version {h.version}</li>)}</ol>}</section>}</>}
         </>}

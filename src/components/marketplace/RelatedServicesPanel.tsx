@@ -15,7 +15,7 @@ export default function RelatedServicesPanel({session,verified=false,staff=false
   else if(session)setData(await exec04Call('services',credentials));
  };
  useEffect(()=>{if(isExec04Local()&&(session||staff))void load().catch(e=>setError(e.message));},[session?.requestId,staff]);
- const run=async(kind:string,fields:any)=>{if(busy)return;setBusy(true);setError('');try{await exec04Call(kind,{...credentials,...fields,confirmed:true,operationId:crypto.randomUUID()});setShare(false);await load();}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
+ const run=async(kind:string,fields:any)=>{if(busy)return;setBusy(true);setError('');try{await exec04Call(kind,{...credentials,...fields,...(fields.action==='share'?{proof:'J’autorise le partage de mon nom, courriel, ville et description de ce besoin au partenaire sélectionné.'}:{}),confirmed:true,operationId:crypto.randomUUID()});setShare(false);await load();}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
  if(!isExec04Local())return null;
  const categories=Array.from(new Map<string,any>(data.available.map((a:any)=>[a.categoryId,a])).values());
  return <section className="space-y-4 border-y border-border py-6"><h2 className="font-display text-xl font-semibold">Services connexes</h2>{error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
