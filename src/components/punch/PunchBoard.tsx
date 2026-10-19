@@ -14,7 +14,7 @@ const PLACES = [
 ];
 const STATUS: Record<string, string> = { ouvert: "En cours", soumis: "À approuver", approuve: "Approuvé", refuse: "Refusé" };
 const MANAGERS = ["support", "proprietaire", "gestionnaire"];
-const fmtMin = (x: number) => { const m = Math.max(0, Number(x) || 0); return `${Math.floor(m / 60)} h ${String(Math.round(m % 60)).padStart(2, "0")}`; };
+const fmtMin = (x: number) => { const m = Math.round(Math.max(0, Number(x) || 0)); return `${Math.floor(m / 60)} h ${String(Math.round(m % 60)).padStart(2, "0")}`; };
 const dt = (s: string) => new Date(s).toLocaleString("fr-CA", { timeZone: "America/Toronto", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const localInput = torontoInput;
 const ymd = (d: Date) => torontoDay(d);

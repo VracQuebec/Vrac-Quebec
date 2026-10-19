@@ -82,7 +82,10 @@ describe.skipIf(process.env.EXEC06_LOCAL_TEST!=='1')('EXEC-06 SQL isolé',()=>{
  const e=await manual(h.second,'2026-10-03T09:00:00-04:00','2026-10-03T10:00:00-04:00');const q=`select pun_decide('${h.ids.company}',ARRAY['${e.id}']::uuid[],true,null)`;await call(h.ids.user,q);await call(h.ids.user,q);expect(Number((await h.db`select count(*) n from pun_log where entry_id=${e.id} and action='approuvee'`)[0].n)).toBe(1);
  });
  it('révocation bloque lectures, sortie, pauses, résumé, acceptation rejouée, archives conservées',async()=>{
+ await h.db`insert into pay_employees(company_id,user_id,hourly_rate) values(${h.ids.company},${h.employee},0)`;
+ expect(await h.asUser(h.employee,async tx=>tx`select user_id from pay_employees`)).toHaveLength(1);
  await call(h.ids.user,`select entcrm_set_member('${h.ids.company}','lea@test.invalid','operateur',false)`);
+ expect(await h.asUser(h.employee,async tx=>tx`select user_id from pay_employees`)).toHaveLength(0);
  expect(await h.asUser(h.employee,async tx=>tx`select id from pun_entries where company_id=${h.ids.company}`)).toHaveLength(0);
  expect(await h.asUser(h.employee,async tx=>tx`select * from pun_summary(${h.ids.company}::uuid,'2026-10-01','2026-10-19')`)).toHaveLength(0);
  for(const sql of [`select pun_out('${h.ids.company}',null,null,null)`,`select pun_break('${h.ids.company}',true)`,`select pun_invite_accept('${inviteToken}')`])await expect(call(h.employee,sql)).rejects.toThrow(/refusé|retiré/);

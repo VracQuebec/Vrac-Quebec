@@ -161,3 +161,8 @@ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public AS $$ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.pun_project_hours FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.pun_project_hours TO authenticated;
+-- Employee revocation also gates the existing own-pay projections (archives remain stored).
+DROP POLICY r ON public.pay_employees;
+CREATE POLICY r ON public.pay_employees FOR SELECT TO authenticated USING(pun_can_read(company_id) AND (user_id=auth.uid() OR entcrm_can_finance(company_id)));
+DROP POLICY r ON public.pay_stubs;
+CREATE POLICY r ON public.pay_stubs FOR SELECT TO authenticated USING(pun_can_read(company_id) AND (entcrm_can_finance(company_id) OR(user_id=auth.uid() AND EXISTS(SELECT 1 FROM pay_runs r WHERE r.id=run_id AND r.status='finalise'))));
