@@ -83,7 +83,8 @@ CREATE FUNCTION exec04_permission(_email text,_purpose text,_at timestamptz DEFA
  AND c.scope=CASE _purpose WHEN 'promotion' THEN 'promotions_courriel' ELSE _purpose END AND c.channel='email'
  AND c.permission_state='granted' AND c.withdrawn_at IS NULL AND c.accepted_at<=_at AND (c.expires_at IS NULL OR c.expires_at>_at)
  AND c.source<>'' AND c.consent_text<>'' AND c.partner_company_id IS NOT DISTINCT FROM _partner AND c.service_request_id IS NOT DISTINCT FROM _request)
- AND NOT EXISTS(SELECT 1 FROM suppressed_emails WHERE email=lower(trim(_email)) AND (reason IN ('bounce','complaint') OR _purpose='promotion'));
+ AND NOT EXISTS(SELECT 1 FROM suppressed_emails WHERE email=lower(trim(_email)) AND (reason IN ('bounce','complaint') OR _purpose='promotion'))
+ AND (_purpose<>'promotion' OR NOT EXISTS(SELECT 1 FROM email_unsubscribe_tokens t WHERE t.email=lower(trim(_email)) AND t.used_at IS NOT NULL));
 $$;
 CREATE FUNCTION exec04_available(_submission uuid,_category uuid) RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
  SELECT coalesce(jsonb_agg(jsonb_build_object('companyId',p.company_id,'name',coalesce(p.trade_name,p.legal_name),'categoryId',c.id,'service',c.name)),'[]'::jsonb)

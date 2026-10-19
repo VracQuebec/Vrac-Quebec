@@ -41,6 +41,7 @@ async function stage(path:string){
  await mkdir(resolve(output,path,'..'),{recursive:true});await writeFile(resolve(output,path),imports(normalized));
 }
 await stage('prepared/exec01b/edge-entry.ts');
+await stage('prepared/exec04/queue-guard.ts');
 // Preserve the sender's existing relative imports in staging, without touching active sources.
 for(const file of ['send-transactional-email.ts','process-email-queue.ts']){
  const source=await readFile(`${project}/prepared/exec01b/${file}`,'utf8');

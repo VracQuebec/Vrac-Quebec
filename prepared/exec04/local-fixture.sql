@@ -5,6 +5,7 @@ CREATE TABLE entrepreneurs(id uuid PRIMARY KEY,name text,company text,email text
 CREATE TABLE fin_invoices(id uuid PRIMARY KEY,company_id uuid,status text,subtotal numeric,total numeric,private_note text,issued_at timestamptz);
 CREATE TABLE fin_expected_inflows(id uuid PRIMARY KEY,invoice_id uuid,received numeric);
 CREATE TABLE suppressed_emails(email text PRIMARY KEY,reason text);
+CREATE TABLE email_unsubscribe_tokens(email text PRIMARY KEY,token text,used_at timestamptz);
 CREATE TABLE public.mkt_service_categories (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   parent_id uuid ,

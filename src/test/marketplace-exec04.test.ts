@@ -55,4 +55,35 @@ describe.skipIf(!enabled)('EXEC04 same SQL isolated',()=>{
   await db`update mkt_consents set permission_state='withdrawn',withdrawn_at=now() where email=${msg.email} and scope='service'`;
   expect((await db`select exec04_message_current(${db.json({to:msg.email,exec04_guard:{messageId:msg.id}})}) ok`)[0].ok).toBe(false);
  });
+ it('queued capture recovers without a new link or message',async()=>{
+  const {ids,db}=local;await db`update mkt_consents set permission_state='granted',withdrawn_at=NULL where email='camille@test.invalid' and scope='service'`;
+  const m=(await db`select * from mkt_promo_sends where queue_id is not null limit 1`)[0];
+  const before=Number((await db`select count(*) n from submission_portal_links`)[0].n);
+  const recovered=await p('campaign_claim',{campaignId:m.campaign});expect(recovered.recover).toBe(true);
+  expect(Number((await db`select count(*) n from submission_portal_links`)[0].n)).toBe(before);
+  expect(Number((await db`select count(*) n from local_email_capture where id=${m.queue_id}`)[0].n)).toBe(1);
+ });
+ it('finance link reads invoice and actual receipts without creating another inflow',async()=>{
+  const {ids,db}=local;const id=crypto.randomUUID(),invoice=crypto.randomUUID();
+  await db`insert into mkt_commissions(id,company_id,status,amount) values(${id},${ids.company},'a_facturer',55)`;
+  await db`insert into fin_invoices values(${invoice},${ids.company},'emise',55,55,${'mkt_commission:'+id},now())`;
+  await db`insert into fin_expected_inflows values(${crypto.randomUUID()},${invoice},0)`;
+  await p('finance_link',{commissionId:id,invoiceId:invoice,billingCompanyId:ids.company});
+  expect((await db`select status from mkt_commissions where id=${id}`)[0].status).toBe('facturee');
+  await db`update fin_expected_inflows set received=55 where invoice_id=${invoice}`;
+  expect((await p('commissions')).commissions.find((x:any)=>x.id===id).financialState).toBe('payee');
+  await expect(p('commission',{commissionId:id,action:'cancel',reason:'Annuler deux fois'})).rejects.toThrow('note de crédit');
+  expect(Number((await db`select count(*) n from fin_expected_inflows where invoice_id=${invoice}`)[0].n)).toBe(1);
+ });
+ it('promotion withdrawal token blocks promotion but preserves service permission',async()=>{
+  const {ids,db}=local;await p('permission',{audience:'owner',subjectId:ids.owner,purpose:'promotion',channel:'email',state:'granted',source:'formulaire_TEST',proof:'Choix explicite'});
+  await db`insert into email_unsubscribe_tokens values('camille@test.invalid','fictif',now())`;
+  expect((await db`select exec04_permission('camille@test.invalid','promotion') ok`)[0].ok).toBe(false);
+  expect((await db`select exec04_permission('camille@test.invalid','service') ok`)[0].ok).toBe(true);
+ });
+ it('offer and appointment broadcasts never invent a compatible offer or confirmed booking',async()=>{
+  const ca=await p('campaign_save',{name:'Aucun rendez-vous inventé',template:'appointment',frequencyHours:1,segment:{audience:'owner'}});
+  await p('prepare',{campaignId:ca.id,recipients:[{id:local.ids.owner,audience:'owner'}]});
+  expect(Number((await local.db`select count(*) n from mkt_promo_sends where campaign=${ca.id}`)[0].n)).toBe(0);
+ });
 });
