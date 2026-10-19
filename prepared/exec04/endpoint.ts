@@ -26,7 +26,8 @@ export function makeCommunicationEndpoint(d:CommDeps){
   if(mutations.has(data.kind)&&(!data.operationId||data.confirmed!==true))return reply({error:'Confirmation explicite requise'},400);
   try{
    if(d.quota&&!await d.quota(r))return reply({error:'Trop de tentatives'},429);
-   const staff=await d.authenticate(r);if(!staff&&(!data.linkId||!data.secret||!data.requestId))return reply({error:'Accès refusé'},403);
+   const personal=Boolean(data.linkId&&data.secret&&data.requestId);
+   const staff=personal?null:await d.authenticate(r);if(!staff&&(!data.linkId||!data.secret||!data.requestId))return reply({error:'Accès refusé'},403);
    const p:Record<string,unknown>={...data,testMode:d.local,role:staff?.role??'owner',actorId:staff?.actorId??data.linkId};delete p.secret;
    // Personal credentials remain in process memory/request body only; SQL receives the fingerprint.
    if(data.secret)p.secretHash=await digest(data.secret);
