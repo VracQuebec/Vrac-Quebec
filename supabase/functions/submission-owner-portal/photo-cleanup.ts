@@ -1,4 +1,4 @@
-import { scopedPhotoPath } from './photos';
+import { scopedPhotoPath } from './photos.ts';
 type CleanupDependencies = {
  claim:(requestId:string,path:string)=>Promise<{claimed:boolean;claimId?:string}>;
  remove:(path:string)=>Promise<void>;

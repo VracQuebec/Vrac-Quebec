@@ -1,7 +1,7 @@
 // Insert ONLY after the canonical sender's suppression/unsubscribe checks.
 // This replaces its ordinary enqueue, never adds a second confirmation.
-import { confirmationMessage } from './endpoint';
-import { digest, randomSecret } from '../../src/lib/remblai/service';
+import { confirmationMessage } from './endpoint.ts';
+import { digest, randomSecret } from './lib/service.ts';
 
 type Submission = {id:string; request_type:string; parcours_direction:string|null; email:string|null; name:string|null};
 type QueueDependencies = {

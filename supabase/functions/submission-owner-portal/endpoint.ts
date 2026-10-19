@@ -1,9 +1,9 @@
 // Prepared edge handler: dependency-injected RPC and email. No hosted access on import.
 import { z } from 'zod';
-import { conditionsSchema, unknownConditions, WAITING_MESSAGE } from '../../src/lib/remblai/conditions';
-import { legacyReception } from '../../src/lib/remblai/cloud-contract';
-import { preparePhotos, signPhotos, type PhotoStorage } from './photos';
-import { digest, randomSecret } from '../../src/lib/remblai/service';
+import { conditionsSchema, unknownConditions, WAITING_MESSAGE } from './lib/conditions.ts';
+import { legacyReception } from './lib/cloud-contract.ts';
+import { preparePhotos, signPhotos, type PhotoStorage } from './photos.ts';
+import { digest, randomSecret } from './lib/service.ts';
 const credentials = { requestId: z.string().uuid(), linkId: z.string().uuid(), secret: z.string().regex(/^[a-f0-9]{64}$/) };
 const bodySchema = z.discriminatedUnion('kind', [
  z.object({kind:z.literal('read'),...credentials}).strict(),

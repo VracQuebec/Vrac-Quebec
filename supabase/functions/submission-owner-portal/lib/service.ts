@@ -1,6 +1,6 @@
 // Application service independent of its repository. The preview supplies fictional
 // memory only. A hosted implementation must supply transactions and protected storage.
-import { conditionsSchema, type ReceptionConditions } from "./conditions";
+import { conditionsSchema, type ReceptionConditions } from "./conditions.ts";
 export type Action = "modifier" | "confirmer" | "pause" | "reprendre" | "fermer";
 export type RequestRecord = {
   id: string; reference: string; name: string; city: string; status: string;

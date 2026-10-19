@@ -1,5 +1,5 @@
-import type { Database } from '@/integrations/supabase/types';
-import { unknownConditions, type ReceptionConditions } from './conditions';
+type Row=Record<string,any>;type Database={public:{Tables:{submissions:{Row:Row};submission_fill_profile:{Row:Row}}}};
+import { unknownConditions, type ReceptionConditions } from './conditions.ts';
 type Submission = Database['public']['Tables']['submissions']['Row'];
 type Profile = Database['public']['Tables']['submission_fill_profile']['Row'];
 export type LegacyReception = Pick<Submission, 'quantity_value' | 'quantity_unit' | 'opening_hours'> & Partial<Pick<Profile, 'capacity_value' | 'capacity_unit' | 'capacity_kind' | 'access_notes'>>;
