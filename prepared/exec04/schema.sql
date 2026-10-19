@@ -99,7 +99,7 @@ CREATE FUNCTION exec04_available(_submission uuid,_category uuid) RETURNS jsonb 
 $$;
 CREATE FUNCTION exec04_dispatch(p jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,extensions AS $$
 #variable_conflict use_variable
-DECLARE kind text:=p->>'kind'; admin boolean:=p->>'role'='admin'; subject uuid; audience text; contact jsonb; email text;
+DECLARE kind text:=p->>'kind'; admin boolean:=coalesce(p->>'role'='admin',false); subject uuid; audience text; contact jsonb; email text;
  prev mkt_communication_events; result jsonb; req mkt_quote_requests; camp mkt_campaigns; msg mkt_promo_sends; comm mkt_commissions;
  recipient jsonb; permission boolean; key text; qid bigint; part uuid; invoice fin_invoices; state text; reason text; cid uuid;
 BEGIN
@@ -113,7 +113,7 @@ BEGIN
   IF p->>'role'<>'partner' OR NOT EXISTS(SELECT 1 FROM jsc_company_members WHERE company_id=(p->>'companyId')::uuid AND user_id=(p->>'actorId')::uuid AND is_active AND archived_at IS NULL) THEN RAISE EXCEPTION 'Entreprise refusée' USING ERRCODE='42501'; END IF;
  END IF;
  IF kind IN ('services','preferences','permission','service_create','service_action') THEN
-  IF NOT admin AND NOT exec04_owner_ok(p,kind IN ('permission','service_create','service_action')) THEN RAISE EXCEPTION 'Lien ou vérification récente requis' USING ERRCODE='42501'; END IF;
+  IF NOT admin AND NOT (kind='service_action' AND p->>'role'='partner') AND NOT coalesce(exec04_owner_ok(p,kind IN ('permission','service_create','service_action')),false) THEN RAISE EXCEPTION 'Lien ou vérification récente requis' USING ERRCODE='42501'; END IF;
  END IF;
  IF kind='preferences' THEN
   SELECT s.email INTO email FROM submissions s WHERE s.id=(p->>'requestId')::uuid;
