@@ -4877,6 +4877,111 @@ export type Database = {
         }
         Relationships: []
       }
+      exec01_mail_capture: {
+        Row: {
+          created_at: string
+          dedupe_key: string
+          id: string
+          payload: Json
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          dedupe_key: string
+          id?: string
+          payload: Json
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          dedupe_key?: string
+          id?: string
+          payload?: Json
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec01_mail_capture_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "exec01_mail_capture_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exec01_mail_receipts: {
+        Row: {
+          created_at: string
+          dedupe_key: string
+          delivery: string
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          dedupe_key: string
+          delivery: string
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          dedupe_key?: string
+          delivery?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec01_mail_receipts_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "exec01_mail_receipts_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exec01_test_dossiers: {
+        Row: {
+          created_at: string
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec01_test_dossiers_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "exec01_test_dossiers_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount_before_tax: number | null
@@ -31383,6 +31488,10 @@ export type Database = {
         }[]
       }
       exec01_dispatch: { Args: { p: Json }; Returns: Json }
+      exec01_dispatch_mail: {
+        Args: { capture?: boolean; message: Json; p: Json }
+        Returns: Json
+      }
       exec01_enqueue_confirmation: { Args: { p: Json }; Returns: Json }
       exec01_projection: {
         Args: { _crm?: boolean; _id: string }
