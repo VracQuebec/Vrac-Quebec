@@ -22,7 +22,7 @@ CREATE FUNCTION storage.extension(text) RETURNS text LANGUAGE sql AS $$ SELECT l
 CREATE TABLE public.jsc_trucks(id uuid PRIMARY KEY);
 GRANT SELECT ON public.jsc_trucks TO authenticated; GRANT ALL ON public.jsc_trucks TO service_role;
 ALTER TABLE public.jsc_trucks ENABLE ROW LEVEL SECURITY;
-CREATE TABLE public.ent_crm_files(id uuid PRIMARY KEY,company_id uuid,title text,file_name text,mime_type text,size_bytes int,archived_at timestamptz);
+CREATE TABLE public.ent_crm_files(id uuid PRIMARY KEY,company_id uuid,title text,file_name text,mime_type text,size_bytes int,archived_at timestamptz,is_field boolean DEFAULT false);
 GRANT SELECT ON public.ent_crm_files TO authenticated; GRANT ALL ON public.ent_crm_files TO service_role;
 ALTER TABLE public.ent_crm_files ENABLE ROW LEVEL SECURITY;
 CREATE TABLE public.ent_crm_file_links(id uuid PRIMARY KEY,file_id uuid,owner_id uuid,owner_type text,company_id uuid,client_visible boolean);
