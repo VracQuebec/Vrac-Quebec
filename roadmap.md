@@ -1,12 +1,14 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## Correctifs audit EXEC-03 / EXEC-04 (19 oct. 2026)
-- [ ] Corriger consentements, confidentialité, transitions et admissibilité serveur.
-- [ ] Corriger reprise des communications, renouvellement et séparation TEST.
-- [ ] Corriger preuves de commissions et segmentation géographique.
-- [ ] Corriger raccordement géographique EXEC-03, CORS et sortie du dessin.
-- [ ] Exécuter les tests ciblés dans une base locale jetable; produire le bilan et le statut d'intégration.
+- [x] Corriger consentements, confidentialité, transitions et admissibilité serveur.
+- [x] Corriger reprise des communications, renouvellement et séparation TEST.
+- [x] Corriger preuves de commissions et segmentation géographique.
+- [x] Corriger raccordement géographique EXEC-03, CORS et sortie du dessin.
+- [x] Exécuter les tests ciblés dans une base locale jetable; produire le bilan et le statut d'intégration.
 - Activation hébergée et EXEC-05 interdits sans nouvelle autorisation.
+
+- Preuves : 66 tests ciblés, sources Deno EXEC-03/04 contrôlées, capture TEST navigateur 1280/420; bilan docs/audit/exec03-exec04-correctifs.md. GO limité à validation d’intégration isolée autorisée; NO-GO production.
 
 ## EXEC-01 — suivi remblai sans compte (19 oct.)
 - [x] EXEC-04 sources/local : segmentation réseau explicite, droits/finalités, campagnes persistantes/capture, services/partage et commissions; 21 tests ciblés, parcours navigateur 393/1280, sources serveur vérifiées. Bilan : docs/audit/exec04-bilan.md.
