@@ -323,7 +323,8 @@ Deno.serve(async (req) => {
         }
         totalProcessed++
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error)
+        if(payload.exec04_guard)await supabase.rpc('exec04_message_result',{p:payload,_state:'failed'});
+        const errorMsg = payload.exec04_guard?'Targeted message processing failed':error instanceof Error ? error.message : String(error)
         console.error('Email send failed', {
           queue,
           msg_id: msg.msg_id,

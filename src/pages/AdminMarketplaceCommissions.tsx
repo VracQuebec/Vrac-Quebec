@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useEditorDraft } from "@/lib/drafts/useEditorDraft";
 import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import CommissionAgreementPanel from "@/components/marketplace/CommissionAgreementPanel";
-import {isExec04Local} from "@/lib/marketplace/communications";
+import {isExec04Local,EXEC04_CLOUD_ENABLED} from "@/lib/marketplace/communications";
 import {
   COMMISSION_STATUSES, PRICING_MODELS, commissionStatusLabel, deletePricingRule,
   fetchCategories, fetchCommissions, fetchPartnerCompanies, fetchPricingRules,
@@ -172,6 +172,7 @@ function ExistingCommissions(){
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-8">
+        {EXEC04_CLOUD_ENABLED&&<CommissionAgreementPanel/>}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <Button asChild variant="ghost" size="sm">

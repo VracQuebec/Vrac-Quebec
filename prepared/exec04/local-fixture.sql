@@ -4,6 +4,10 @@ CREATE TABLE jsc_company_members(company_id uuid,user_id uuid,role text,is_activ
 CREATE TABLE entrepreneurs(id uuid PRIMARY KEY,name text,company text,email text,city text,user_id uuid,is_network_visible boolean DEFAULT true);
 CREATE TABLE fin_invoices(id uuid PRIMARY KEY,company_id uuid,status text,subtotal numeric,total numeric,private_note text,issued_at timestamptz);
 CREATE TABLE fin_expected_inflows(id uuid PRIMARY KEY,invoice_id uuid,received numeric);
+-- Empty external finance contract fixture; production uses its canonical immutable credit/receipt engine.
+CREATE FUNCTION fin_invoice_balance(_invoice uuid) RETURNS jsonb LANGUAGE sql AS $$
+ SELECT jsonb_build_object('paid',coalesce(f.received,0)>0 AND f.received>=i.total,'settled_by_credit',false) FROM fin_invoices i LEFT JOIN fin_expected_inflows f ON f.invoice_id=i.id WHERE i.id=_invoice;
+$$;
 CREATE TABLE suppressed_emails(email text PRIMARY KEY,reason text);
 CREATE TABLE email_unsubscribe_tokens(email text PRIMARY KEY,token text,used_at timestamptz);
 CREATE TABLE public.mkt_service_categories (

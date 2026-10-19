@@ -244,6 +244,7 @@ function ExistingPartnerSoumissions(){
     <div className="min-h-screen bg-background">
       <SupportBanner tenant={tenant} />
       <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
+        <RelatedServicesPanel session={null} partner/>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <Link to="/place-de-marche" className="min-h-10 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
