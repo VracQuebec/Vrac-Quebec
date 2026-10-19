@@ -1,5 +1,7 @@
 # Bilan commun EXEC-01 à EXEC-07
 
+**Consolidation EXEC-08 :** état actualisé, code incomplet séparé de l’activation et matrice A–E dans [exec08-bilan.md](exec08-bilan.md). Les preuves ci-dessous restent historiques. Correction PDF/EML et aide contextuelle contrôlées en EXEC-08; aucun parcours complet nouvellement certifié faute de stack isolée adaptée.
+
 19 octobre 2026. **GO limité aux parcours de démonstration vérifiés; NO-GO production.** Les preuves des anciens lots ci-dessous sont reprises de leurs bilans, non rejouées dans EXEC-07. Une capture locale ne prouve jamais une activation Cloud, un envoi ou un paiement.
 
 | Fonction intégrée | Preuve disponible | Limite restante | Action précise pour la résoudre |
