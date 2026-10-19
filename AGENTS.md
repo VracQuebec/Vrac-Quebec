@@ -12,11 +12,11 @@
 - Ronde de sécurité : référentiel rds_categories/rds_codes (lecture seule, listes 1-3); rds_reports/rds_defects écrits seulement par les RPC rds_* (rapport figé, correction = nouvelle version liée); classement mineur/majeur séparé du statut de circulation (48 h depuis le premier constat, jamais remis à zéro); chaque défaut crée une fleet_repairs — blocage levé seulement après validation.
 - Règles par dossier : supabase/AGENTS.md (agenda, obligations, assurances) ; supabase/functions/AGENTS.md ; src/lib/{logbook,seo (dont SEO START),parcours,ops (voyages, OPS-02, CPN-01)}/AGENTS.md.
 - PWA : `push-sw.js` unique, enregistré au chargement, sans cache métier.
-- EXEC-01 follow-up uses the existing submissions dossier model and a repository-injected domain service; preview uses fictional local data only, while real access stays disabled until a transactional hosted adapter is authorized and deployed.
-- EXEC-01B SQL and edge adapters stay in prepared/exec01b; loopback PostgreSQL tests use an empty schema fixture and the same submission-bound RPC, never the shared backend, so hosted activation remains a separate authorized operation.
+- EXEC-01 uses submissions and shared domain handlers; SQL/adapters in prepared/exec01b run against empty loopback fixtures only, with hosted activation separately authorized.
 - EXEC-01C/02/02B keep CRM, sender and queue-worker adapters disabled in prepared sources. Reservations lock dossier/offer capacity and commit link/message atomically; immutable trip corrections debit only the delta. The existing queue rechecks reminder eligibility and suppression. Preferences never override regulatory rules; private photos require dossier authorization.
 - Personal follow-up entrypoints bypass analytics, production providers and notification mounts; this prevents bearer credentials and test actions reaching existing telemetry or business services.
 - EXEC-03 reuses map/comparator filters and membership-checked preferences; loopback tests share domain code, hosted adapters stay disabled.
+- EXEC-04 extends mkt consent/send/request/commission records, excludes private CRM audiences and links existing invoices without duplicate money movements; shared handlers run locally, hosted adapters stay disabled.
 <!-- LOVABLE:BEGIN -->
 - Entrepreneur UI uses the existing shell to own safe areas and measured header/navigation heights; one owner prevents duplicate offsets without changing backend behavior.
 - Brand colors use one HSL token and presentation-only route scoping preserves excluded admin/fleet palettes; functional and tenant-configured colors remain independent.

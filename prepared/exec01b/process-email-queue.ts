@@ -1,5 +1,6 @@
 // PREPARED COPY ONLY; install after isolated validation and explicit deployment authorization.
 import {receptionMessageAllowed} from './queue-reception-guard.ts';
+import {targetedMessageAllowed} from '../exec04/queue-guard.ts';
 import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 
@@ -262,6 +263,11 @@ Deno.serve(async (req) => {
       }
 
       try {
+        if(!await targetedMessageAllowed(payload,async p=>{const {data,error}=await supabase.rpc('exec04_message_current',{p});if(error)throw Error('Target permission check unavailable');return data===true;})){
+          const excluded=await supabase.rpc('exec04_message_result',{p:payload,_state:'excluded'});if(excluded.error)throw Error('Target journal unavailable');
+          await supabase.rpc('delete_email',{queue_name:queue,message_id:msg.msg_id});
+          continue;
+        }
         if (!await receptionMessageAllowed(payload, {
           current: async p => { const {data,error}=await supabase.rpc('exec02_message_current',{p}); if(error)throw Error('Reception validation unavailable');return data===true; },
           suppressed: async recipient => { const {data,error}=await supabase.from('suppressed_emails').select('id').eq('email',recipient.toLowerCase()).maybeSingle();if(error)throw Error('Suppression unavailable');return !!data; },
@@ -298,6 +304,7 @@ Deno.serve(async (req) => {
           { apiKey, sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
         )
 
+        if(payload.exec04_guard){const logged=await supabase.rpc('exec04_message_result',{p:payload,_state:'sent'});if(logged.error)throw Error('Target journal unavailable');}
         // Log success
         await supabase.from('email_send_log').insert({
           message_id: payload.message_id,
@@ -316,7 +323,8 @@ Deno.serve(async (req) => {
         }
         totalProcessed++
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error)
+        if(payload.exec04_guard)await supabase.rpc('exec04_message_result',{p:payload,_state:'failed'});
+        const errorMsg = payload.exec04_guard?'Targeted message processing failed':error instanceof Error ? error.message : String(error)
         console.error('Email send failed', {
           queue,
           msg_id: msg.msg_id,

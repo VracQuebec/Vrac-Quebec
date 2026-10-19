@@ -5,6 +5,8 @@
 // L'isolation par entreprise est appliquée par la base (RLS).
 // ============================================================
 import { useCallback, useEffect, useMemo, useState } from "react";
+import RelatedServicesPanel from '@/components/marketplace/RelatedServicesPanel';
+import {isExec04Local} from '@/lib/marketplace/communications';
 import { Link } from "react-router-dom";
 import { ArrowLeft, Loader2, Plus, Send, Trash2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -78,6 +80,10 @@ function Badge({ children }: { children: React.ReactNode }) {
 }
 
 export default function PartenaireSoumissions() {
+  if(isExec04Local())return <div className="mx-auto max-w-5xl p-4"><RelatedServicesPanel session={null} partner/></div>;
+  return <ExistingPartnerSoumissions/>;
+}
+function ExistingPartnerSoumissions(){
   const { user, isReady, isAuthenticated } = useAuthReady();
   const { isAdmin, loading: roleLoading } = useUserRoles(user, isReady);
   const tenant = useFleetTenant(isAdmin, isReady && !roleLoading && isAuthenticated);
@@ -238,6 +244,7 @@ export default function PartenaireSoumissions() {
     <div className="min-h-screen bg-background">
       <SupportBanner tenant={tenant} />
       <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
+        <RelatedServicesPanel session={null} partner/>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <Link to="/place-de-marche" className="min-h-10 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">

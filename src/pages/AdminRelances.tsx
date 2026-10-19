@@ -9,11 +9,17 @@ import PageHeader from "@/components/layout/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import MailchimpAdmin from "@/components/marketing/MailchimpAdmin";
+import TargetedCommunications from "@/components/marketing/TargetedCommunications";
+import {isExec04Local} from "@/lib/marketplace/communications";
 import { nextStep, PROMO_GAP_DAYS, type Profile } from "@/lib/ops/cadence";
 
 type Row = { name: string; email: string | null; p: Profile };
 
 export default function AdminRelances() {
+  if(isExec04Local())return <TargetedCommunications/>;
+  return <ExistingRelances/>;
+}
+function ExistingRelances(){
   const { isReady, user } = useAuthReady();
   const { isAdmin, loading: rl } = useUserRoles(user, isReady);
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -50,6 +56,7 @@ export default function AdminRelances() {
           La colonne « si consentement » montre ce qui serait envoyé.
         </CardContent></Card>
         <MailchimpAdmin />
+        <TargetedCommunications />
         {!rows ? <Loader2 className="h-4 w-4 animate-spin" /> : due.map((r, i) => (
           <Card key={i}><CardContent className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
             <div className="min-w-0"><p className="font-semibold">{r.name}</p><p className="text-xs text-muted-foreground">{r.p.audience === "client" ? "Client dompe" : "Entrepreneur"} · inscrit le {new Date(r.p.signedUpAt).toLocaleDateString("fr-CA")}</p></div>
