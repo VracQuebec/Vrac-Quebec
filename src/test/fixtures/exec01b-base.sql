@@ -8,13 +8,14 @@ DO $$ BEGIN
  IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='service_role') THEN CREATE ROLE service_role BYPASSRLS; END IF;
 END $$;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT null::uuid $$;
-CREATE FUNCTION public.has_role(uuid,text) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
+CREATE TYPE public.app_role AS ENUM ('admin','user','entrepreneur','proprietaire','transporteur');
+CREATE FUNCTION public.has_role(uuid,app_role) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
 CREATE TABLE public.submissions (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), materials text[] NOT NULL, property_type text NOT NULL,
  quantity text NOT NULL, tonnage text NOT NULL, address text NOT NULL,name text NOT NULL,email text NOT NULL,
- city text,submission_number integer,status text DEFAULT 'nouvelle',request_type text DEFAULT 'remblai',
+ city text,submission_number integer,status text NOT NULL DEFAULT 'nouveau',request_type text NOT NULL DEFAULT 'livraison',parcours_direction text,deliver_or_remove text,
  quantity_value numeric,quantity_unit text,remaining_capacity text,opening_hours text,truck_types_allowed text[],access_details jsonb,
- availability_status text DEFAULT 'unavailable' CHECK(availability_status IN ('available','limited','unavailable','completed','suspended','owner_closed')),
+ availability_status text NOT NULL DEFAULT 'available' CHECK(availability_status IN ('available','limited','unavailable','completed','suspended','owner_closed')),
  availability_updated_at timestamptz,availability_source text,availability_reason text,availability_note text,revalidation_requested_at timestamptz,internal_notes text
 );
 CREATE TABLE public.submission_fill_profile (
