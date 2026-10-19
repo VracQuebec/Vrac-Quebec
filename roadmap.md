@@ -1,5 +1,10 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## EXEC-07 — aide intégrée et démonstrations (19 oct. 2026)
+- [ ] Compléter l’aide existante et les articles par tâche, selon le rôle, sans perte de saisie.
+- [ ] Vérifier démarrage réel/reprise, accompagnement TEST, recherche et mobile; livrer scripts et captures.
+- [ ] Livrer tableau commun EXEC-01–07 et conserver toutes les dépendances d’activation, dont punch hors connexion indisponible.
+
 ## EXEC-06 — accès employés et punch opérationnel (19 oct. 2026)
 - [x] Compléter sources accès/contexte employé et punch/corrections, sans activation réelle.
 - [x] Vérifier identité fictive, permissions, révocation, pauses, dates Toronto, corrections/export : 17 tests ciblés et parcours navigateur isolé.
