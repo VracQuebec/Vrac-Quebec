@@ -33,17 +33,18 @@ export function makeEndpoint(deps:Dependencies) {
   if(request.method!=='POST') return reply({error:'Méthode refusée.'},405);
   const origin=request.headers.get('origin');
   if(origin && origin!==deps.corsOrigin) return reply({error:'Accès refusé.'},403);
+  if(deps.quota && !await deps.quota(request)) return reply({error:'Trop de tentatives.'},429);
   // Bound actual bytes, not only an attacker-supplied Content-Length.
   const reader=request.body?.getReader(); let raw='',size=0;
   if(!reader) return reply({error:'Requête invalide.'},400);
   const decoder=new TextDecoder();
-  while(true) { const {done,value}=await reader.read(); if(done) break; size+=value.byteLength; if(size>60000000) {await reader.cancel();return reply({error:'Requête trop volumineuse.'},413);} raw+=decoder.decode(value,{stream:true}); }
+  try {while(true) { const {done,value}=await reader.read(); if(done) break; size+=value.byteLength; if(size>60000000) {await reader.cancel();return reply({error:'Requête trop volumineuse.'},413);} raw+=decoder.decode(value,{stream:true}); }}
+  catch {return reply({error:'Requête invalide.'},400);}
   let json:unknown; try {json=JSON.parse(raw);} catch {return reply({error:'Requête invalide.'},400);}
   const parsed=bodySchema.safeParse(json); if(!parsed.success) return reply({error:'Requête invalide.'},400);
   const data=parsed.data;
   try {
    if((data.kind==='issue'||data.kind==='crm'||data.kind==='cleanup') && !await deps.isAdmin(request)) return reply({error:'Accès refusé.'},403);
-   if(deps.quota && !await deps.quota(request)) return reply({error:'Trop de tentatives.'},429);
    if(data.kind==='cleanup') {
     if(!deps.cleanup)return reply({error:'Nettoyage indisponible.'},503);
     return reply(await deps.cleanup(data.requestId,data.paths));

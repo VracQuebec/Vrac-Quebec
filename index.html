@@ -26,6 +26,7 @@
       }
       if (window.__vqPersonalDocument) {
         window.__vqPortalFragment = location.hash.slice(1);
+        window.__vqPortalRequestId = new URLSearchParams(location.search).get('requestId');
         history.replaceState(null, '', location.pathname + (new URLSearchParams(location.search).get('test') === '1' ? '?test=1' : new URLSearchParams(location.search).get('server') === 'local' ? '?server=local' : ''));
         window['ga-disable-G-T6HYZVY8E0'] = true;
         document.write('<meta name="referrer" content="no-referrer">');

@@ -36,6 +36,17 @@ beforeAll(async()=>{
 },30000);
 afterAll(async()=>{await db.end();if(enabled)await root.unsafe(`DROP DATABASE IF EXISTS ${name}`);await root.end();});
 describe.skipIf(!enabled)('EXEC01 additive SQL installation',()=>{
+ it('requires verification of the current contact, not a previous address',async()=>{
+  const f=await fixture();await mail({kind:'issue',...f});const codeHash=await digest(`${f.linkId}:123456`);
+  await mail({kind:'code',...f,codeHash});await rpc({kind:'verify',...f,codeHash});
+  await db`update submissions set email='new@test.invalid' where id=${f.requestId}`;
+  const next={requestId:f.requestId,linkId:crypto.randomUUID(),secretHash:await digest('new-contact')};
+  expect(await rpc({kind:'issue',...next})).toMatchObject({ok:true});
+  expect(await rpc({kind:'read',...next})).toMatchObject({denied:true});
+  expect(await rpc({kind:'renew',...next,nextId:crypto.randomUUID(),nextHash:await digest('renew')})).toMatchObject({denied:true});
+  const nextCode=await digest(`${next.linkId}:654321`);await mail({kind:'code',...next,codeHash:nextCode});await rpc({kind:'verify',...next,codeHash:nextCode});
+  expect((await rpc({kind:'read',...next})).id).toBe(f.requestId);
+ });
  it('uses the actual captured link and code across the prepared endpoint and same dossier',async()=>{
   const f=await fixture();
   const objects=new Map<string,Uint8Array>();

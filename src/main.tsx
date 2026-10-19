@@ -9,9 +9,10 @@ import {isHelpLocal} from "@/lib/help/progress";
 import {isPunchLocal} from "@/lib/punch/runtime";
 import {isExec05Local} from "@/lib/finances/exec05";
 import { startRdsOutbox } from "@/lib/fleet/rdsOutbox";
+import { privateTelemetryBlocked } from '@/lib/analytics/privacy';
 
 // EXEC-01 isolation: visiting a fictitious dossier must not flush a real outbox.
-const personalFollowup = ["/portail/remblai", "/admin/apercu-suivi-remblai"].includes(window.location.pathname) || isolatedSearch() || isExec04Local() || isHelpLocal() || isPunchLocal() || isExec05Local();
+const personalFollowup = privateTelemetryBlocked() || isolatedSearch() || isExec04Local() || isHelpLocal() || isPunchLocal() || isExec05Local();
 if (!personalFollowup) startRdsOutbox(supabase);
 if (personalFollowup) {
   (window as unknown as Record<string, unknown>)["ga-disable-G-T6HYZVY8E0"] = true;
