@@ -39,6 +39,14 @@ BEGIN
   IF result->>'denied'='true' THEN RETURN result;END IF;
   RETURN jsonb_build_object('recipient',s.email,'verified',s.exec01_contact_verified_at IS NOT NULL);
  END IF;
+ IF kind='deliver' THEN
+  IF p->>'role'<>'admin' THEN RETURN jsonb_build_object('denied',true);END IF;
+  SELECT * INTO t FROM trips WHERE id=(p->>'tripId')::uuid;
+  SELECT * INTO m FROM submission_reception_measurements WHERE trip_id=t.id AND reservation_id=(p->>'reservationId')::uuid AND submission_id=s.id ORDER BY created_at DESC LIMIT 1;
+  IF m.id IS NOT NULL THEN RETURN jsonb_build_object('ok',true,'replay',true);END IF;
+  IF t.received_quantity IS NULL OR t.received_unit IS NULL OR t.received_ticket_ref IS NULL OR t.delivered_at IS NULL THEN RETURN jsonb_build_object('denied',true);END IF;
+  RETURN exec02_dispatch(p||jsonb_build_object('kind','measure','quantity',t.received_quantity,'unit',t.received_unit,'ticketRef',t.received_ticket_ref,'receivedAt',t.delivered_at,'outcome','accepted'));
+ END IF;
  IF kind NOT IN ('measure','correct','remind','communication','list','expire') THEN RETURN exec02_dispatch_base(p);END IF;
  IF kind='list' THEN
   result:=exec02_dispatch_base(p);IF result->>'denied'='true' THEN RETURN result;END IF;
@@ -68,11 +76,12 @@ BEGIN
    UPDATE submission_reception_reservations SET last_reminded_at=now() WHERE id=r.id;result:=jsonb_build_object('ok',true);
   ELSIF kind='expire' THEN
    IF r.state NOT IN ('pending','counter','reserved') OR r.expires_at>now() THEN RETURN jsonb_build_object('ok',true,'skipped',true);END IF;
-   UPDATE submission_reception_reservations SET state='expired' WHERE id=r.id;PERFORM exec02_exception(s.id,'Absence de réponse ou expiration','Vérifier le besoin avant toute nouvelle proposition',r.id);result:=jsonb_build_object('ok',true);
+   UPDATE submission_reception_reservations SET state='expired' WHERE id=r.id;PERFORM exec02_exception(s.id,'Absence de réponse ou expiration','Relancer ou annuler',r.id);result:=jsonb_build_object('ok',true);
   ELSE
    SELECT * INTO t FROM trips WHERE id=(p->>'tripId')::uuid FOR UPDATE;
    IF t.id IS NULL OR t.submission_id IS DISTINCT FROM s.id OR p->>'unit' IS DISTINCT FROM r.unit OR p->>'unit' IS DISTINCT FROM c->>'unit' OR coalesce(p->>'ticketRef','')='' OR (p->>'receivedAt')::timestamptz>now() OR (p->>'quantity')::numeric<0 OR p->>'outcome' NOT IN ('accepted','refused') OR (p->>'outcome'='refused' AND (p->>'quantity')::numeric<>0) THEN RETURN jsonb_build_object('denied',true);END IF;
    SELECT * INTO previous FROM submission_reception_measurements WHERE trip_id=t.id ORDER BY created_at DESC LIMIT 1;
+   IF EXISTS(SELECT 1 FROM submission_reception_debits WHERE trip_id=t.id) THEN RETURN jsonb_build_object('denied',true);END IF;
    IF kind='correct' THEN
     IF previous.id IS NULL OR previous.id IS DISTINCT FROM (p->>'measurementId')::uuid OR previous.reservation_id<>r.id OR coalesce(p->>'reason','')='' THEN RETURN jsonb_build_object('denied',true);END IF;
     old_quantity:=previous.quantity;
@@ -85,6 +94,7 @@ BEGIN
    INSERT INTO submission_reception_measurements(trip_id,reservation_id,submission_id,quantity,unit,received_at,ticket_ref,outcome,reason,corrects,actor_id,operation_id)
    VALUES(t.id,r.id,s.id,(p->>'quantity')::numeric,r.unit,(p->>'receivedAt')::timestamptz,p->>'ticketRef',p->>'outcome',p->>'reason',CASE WHEN kind='correct' THEN previous.id END,(p->>'actorId')::uuid,(p->>'operationId')::uuid) RETURNING * INTO m;
    UPDATE trips SET received_quantity=m.quantity,received_unit=m.unit,received_ticket_ref=m.ticket_ref,received_at=m.received_at,received_outcome=m.outcome WHERE id=t.id;
+   IF kind='measure' AND m.quantity>0 THEN INSERT INTO submission_reception_debits(trip_id,reservation_id,submission_id,quantity,unit,ticket_ref) VALUES(t.id,r.id,s.id,m.quantity,m.unit,m.ticket_ref);END IF;
    UPDATE submission_fill_profile SET reception_conditions=jsonb_set(c,'{remaining}',to_jsonb((c->>'remaining')::numeric-delta)) WHERE submission_id=s.id;
    UPDATE submissions SET remaining_capacity=((c->>'remaining')::numeric-delta)::text||' '||r.unit WHERE id=s.id;
    UPDATE submission_reception_reservations rr SET state=CASE WHEN effective+delta=rr.quantity THEN 'delivered' WHEN m.outcome='refused' THEN 'exception' WHEN rr.expires_at<=now() THEN 'expired' ELSE 'reserved' END WHERE rr.id=r.id;
