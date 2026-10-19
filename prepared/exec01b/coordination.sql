@@ -91,7 +91,8 @@ BEGIN
   IF FOUND THEN IF d.submission_id<>s.id OR d.input_hash<>p->>'inputHash' THEN RETURN jsonb_build_object('denied',true);END IF;RETURN jsonb_build_object('ok',true,'queued',true,'replay',true);END IF;
   IF s.email IS NULL OR s.email!~'^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' THEN PERFORM exec02_exception(s.id,'Contact invalide','Vérifier le contact');RETURN jsonb_build_object('denied',true);END IF;
   INSERT INTO submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at) VALUES((p->>'nextId')::uuid,s.id,p->>'nextHash',encode(digest(lower(trim(s.email)),'sha256'),'hex'),now()+interval '30 days');
-  qh:=enqueue_email('transactional_emails',(p->'message')||jsonb_build_object('to',s.email,'recipientEmail',s.email,'idempotency_key',key,'purpose','service','tracking',false));
+  IF p->'message'->>'blocked'='true' THEN RETURN jsonb_build_object('ok',true,'suppressed',true);END IF;
+  qh:=enqueue_email('transactional_emails',(p->'message')||jsonb_build_object('to',s.email,'recipientEmail',s.email,'idempotency_key',key,'purpose','transactional','tracking',false));
   INSERT INTO submission_portal_dispatches(dedupe_key,submission_id,input_hash,queue_id) VALUES(key,s.id,p->>'inputHash',qh);
   RETURN jsonb_build_object('ok',true,'queued',true);
  END IF;
@@ -135,7 +136,7 @@ BEGIN
    IF kind<>'accept' THEN compatible:=compatible AND ((pol->'conditions')-'remaining')=(c-'remaining') AND (pol->>'start')::timestamptz<=r.starts_at AND (pol->>'end')::timestamptz>=r.ends_at;END IF;
    SELECT x INTO slot FROM jsonb_array_elements(coalesce(pol->'windows','[]')) x WHERE (x->>'start')::timestamptz<=r.starts_at AND (x->>'end')::timestamptz>=r.ends_at LIMIT 1;
    IF kind<>'accept' AND (slot IS NULL OR (c->>'presence'='oui' AND slot->'presenceConfirmed' IS DISTINCT FROM 'true'::jsonb)) THEN compatible:=false;END IF;
-   SELECT coalesce(sum(quantity),0) INTO reserved FROM submission_reception_reservations WHERE submission_id=s.id AND state='reserved' AND expires_at>now();
+   SELECT coalesce(sum(greatest(0,a.quantity-coalesce((SELECT sum(mm.quantity) FROM submission_reception_measurements mm WHERE mm.reservation_id=a.id AND NOT EXISTS(SELECT 1 FROM submission_reception_measurements newer WHERE newer.corrects=mm.id)),0))),0) INTO reserved FROM submission_reception_reservations a WHERE a.submission_id=s.id AND a.state='reserved' AND a.expires_at>now();
    SELECT coalesce(sum(quantity),0) INTO source_reserved FROM submission_reception_reservations WHERE offer_id=o.id AND state IN ('reserved','delivered') AND (expires_at>now() OR state='delivered');
    SELECT coalesce(sum(quantity),0) INTO slot_reserved FROM submission_reception_reservations WHERE submission_id=s.id AND state='reserved' AND expires_at>now() AND window_id=(slot->>'id')::uuid;
    IF NOT coalesce(compatible,false) OR o.quantity_value IS NULL OR r.unit IS DISTINCT FROM c->>'unit' OR r.unit IS DISTINCT FROM o.quantity_unit OR c->>'remaining' IS NULL OR r.quantity+reserved>(c->>'remaining')::numeric OR r.quantity+source_reserved>o.quantity_value OR (slot IS NOT NULL AND r.quantity+slot_reserved>(slot->>'capacity')::numeric) THEN
@@ -180,7 +181,7 @@ BEGIN
  END IF;
  IF res IS NULL THEN RETURN jsonb_build_object('denied',true);END IF;
  -- Link creation and queue insertion in THIS transaction: an enqueue failure rolls back all mutations.
- IF p->'message' IS NOT NULL THEN
+ IF p->'message' IS NOT NULL AND p->'message'->>'blocked' IS DISTINCT FROM 'true' THEN
   IF res->'ok' IS DISTINCT FROM 'true'::jsonb THEN p:=jsonb_set(p,'{message,subject}',to_jsonb('Réception non confirmée : validation nécessaire'::text));
   ELSIF r.id IS NOT NULL AND kind IN ('propose','reserve_auto','accept','book','change') THEN
    p:=jsonb_set(p,'{message,subject}',to_jsonb(CASE WHEN (SELECT state FROM submission_reception_reservations WHERE id=r.id)='reserved' THEN 'Réception confirmée selon les conditions acceptées' ELSE 'Proposition : aucune réception confirmée' END));
@@ -188,7 +189,7 @@ BEGIN
   IF s.exec01_contact_verified_at IS NULL OR s.email!~'^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' THEN PERFORM exec02_exception(s.id,'Contact invalide','Vérifier le contact',r.id);
   ELSE
    INSERT INTO submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at) VALUES((p->>'nextId')::uuid,s.id,p->>'nextHash',encode(digest(lower(trim(s.email)),'sha256'),'hex'),now()+interval '30 days');
-   qh:=enqueue_email('transactional_emails',p->'message'||jsonb_build_object('to',s.email,'recipientEmail',s.email,'idempotency_key',p->>'dedupeKey','purpose','service','tracking',false));
+   qh:=enqueue_email('transactional_emails',p->'message'||jsonb_build_object('to',s.email,'recipientEmail',s.email,'idempotency_key',p->>'dedupeKey','purpose','transactional','tracking',false));
    INSERT INTO submission_portal_dispatches(dedupe_key,submission_id,input_hash,queue_id) VALUES(p->>'dedupeKey',s.id,p->>'inputHash',qh);
   END IF;
  END IF;

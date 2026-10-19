@@ -4,10 +4,11 @@ import { evaluateReception, receptionPolicySchema } from '../../src/lib/remblai/
 import type { MaterialOffer } from '../../src/lib/offers/types';
 import { conditionsSchema } from '../../src/lib/remblai/conditions';
 import { confirmationMessage } from './endpoint';
+import {localServiceMail,type ServiceMailContext} from './service-mail';
 const uuid=z.string().uuid(),time=z.string().datetime({offset:true});
-const schema=z.object({kind:z.enum(['list','policy','propose','accept','book','refuse','cancel','counter','change','exception','deliver','expire','mail']),requestId:uuid,
- linkId:uuid.optional(),secret:z.string().regex(/^[a-f0-9]{64}$/).optional(),operationId:uuid.optional(),confirmed:z.boolean().optional(),offerId:uuid.optional(),reservationId:uuid.optional(),quantity:z.number().positive().max(999999).optional(),unit:z.enum(['tonnes','m3','verges3','voyages']).optional(),start:time.optional(),end:time.optional(),policy:receptionPolicySchema.optional(),tripId:uuid.optional(),reason:z.enum(['absence_reponse','contact_invalide','materiau_incertain','conflit','refus_arrivee','acces_impossible']).optional(),next:z.string().min(3).max(500).optional()}).strict();
-export type CoordinationDependencies={enabled:boolean;origin:string;local?:boolean;rpc:(p:Record<string,unknown>)=>Promise<Record<string,unknown>>;authenticate:(r:Request)=>Promise<{role:'admin'|'entrepreneur';actorId:string}|null>;quota?:(r:Request)=>Promise<boolean>;prepareMail?:(context:Record<string,unknown>)=>Promise<Record<string,unknown>>};
+const schema=z.object({kind:z.enum(['list','policy','propose','accept','book','refuse','cancel','counter','change','exception','deliver','expire','mail','measure','correct','remind','communication']),requestId:uuid,
+ linkId:uuid.optional(),secret:z.string().regex(/^[a-f0-9]{64}$/).optional(),operationId:uuid.optional(),confirmed:z.boolean().optional(),offerId:uuid.optional(),reservationId:uuid.optional(),quantity:z.number().nonnegative().max(999999).optional(),unit:z.enum(['tonnes','m3','verges3','voyages']).optional(),start:time.optional(),end:time.optional(),policy:receptionPolicySchema.optional(),tripId:uuid.optional(),reason:z.string().min(3).max(500).optional(),next:z.string().min(3).max(500).optional(),measurementId:uuid.optional(),ticketRef:z.string().min(1).max(100).optional(),receivedAt:time.optional(),outcome:z.enum(['accepted','refused']).optional(),communication:z.object({serviceEmail:z.boolean(),reminderHours:z.number().int().min(1).max(720),startHour:z.number().int().min(0).max(23),endHour:z.number().int().min(1).max(24),weekdays:z.array(z.number().int().min(1).max(7)).min(1).max(7)}).strict().refine(p=>p.endHour>p.startHour).optional()}).strict();
+export type CoordinationDependencies={enabled:boolean;origin:string;local?:boolean;rpc:(p:Record<string,unknown>)=>Promise<Record<string,unknown>>;authenticate:(r:Request)=>Promise<{role:'admin'|'entrepreneur';actorId:string}|null>;quota?:(r:Request)=>Promise<boolean>;prepareMail?:(context:ServiceMailContext)=>Promise<Record<string,unknown>>};
 export function makeCoordinationEndpoint(deps:CoordinationDependencies){
  const reply=(v:unknown,status=200)=>new Response(JSON.stringify(v),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','Access-Control-Allow-Origin':deps.origin,'Access-Control-Allow-Headers':'Content-Type, Authorization','Access-Control-Allow-Methods':'GET,POST,OPTIONS',...(deps.local?{'Access-Control-Allow-Credentials':'true'}:{})}});
  return async(r:Request)=>{
@@ -27,6 +28,9 @@ export function makeCoordinationEndpoint(deps:CoordinationDependencies){
    if(['accept','book','refuse','cancel','counter','change','exception','deliver','expire'].includes(data.kind)&&!data.reservationId)return reply({error:'Référence requise.'},400);
    if(['propose','counter','change'].includes(data.kind)&&(!data.start||!data.end||Date.parse(data.end)<=Date.parse(data.start)))return reply({error:'Horaire invalide.'},400);
    if(data.kind==='deliver'&&!data.tripId)return reply({error:'Voyage réel requis.'},400);
+   if(['measure','correct'].includes(data.kind)&&(!staff||staff.role!=='admin'||!data.tripId||!data.reservationId||data.quantity==null||!data.unit||!data.ticketRef||!data.receivedAt||!data.outcome))return reply({error:'Mesure, billet et voyage requis.'},400);
+   if(data.kind==='correct'&&(!data.measurementId||!data.reason))return reply({error:'Correction liée et motif requis.'},400);
+   if(data.kind==='communication'&&!data.communication)return reply({error:'Préférences explicites requises.'},400);
    if(data.kind==='exception'&&(!data.reason||!data.next))return reply({error:'Motif et prochaine action requis.'},400);
    if(data.kind==='propose'||data.kind==='change'){
     if(!staff)return reply({error:'Accès refusé.'},403);
@@ -50,12 +54,14 @@ export function makeCoordinationEndpoint(deps:CoordinationDependencies){
     const url=`${deps.origin}/portail/remblai${deps.local?'?server=local':''}#${new URLSearchParams({requestId:data.requestId,linkId:nextId,secret})}`;
     const message=confirmationMessage('', '',url);
     const subjects:Record<string,string>={propose:'Proposition de réception',accept:'Réception confirmée',book:'Rendez-vous confirmé',refuse:'Réception refusée',change:'Changement : nouvel accord requis',counter:'Autre moment proposé',expire:'Rappel : proposition expirée',cancel:'Réservation annulée',deliver:'Réception enregistrée',policy:'Conditions de réception enregistrées',exception:'Réception à vérifier',mail:'Confirmation de votre demande'};
-    const subject=subjects[data.kind]??'Suivi de réception';
+    const subject=['accept','book','propose'].includes(data.kind)?'Décision de réception : consultez les conditions':subjects[data.kind]??(data.kind==='remind'?'Proposition sans réponse — aucune réception confirmée':'Suivi de réception');
     const escape=(v:string)=>v.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]??c));
-    const summary=data.kind==='mail'?message.text:`${subject}\nConsultez le matériau, la quantité, le véhicule et l’horaire dans votre dossier. Le silence ne vaut jamais accord.\nSuivre ou modifier ma demande : ${url}`;
+    const summary='Consultez le matériau, la quantité, le véhicule, l’horaire et la décision dans votre dossier. Le silence ne vaut jamais accord.';
     if(!deps.local&&!deps.prepareMail)throw Error('Managed mail preparation not connected');
-    p.message=deps.local?{...message,subject,text:summary,html:`<html lang="fr"><meta name="referrer" content="no-referrer"><h1>Vrac Québec</h1><h2>${escape(subject)}</h2><p>Consultez les conditions et la décision dans votre dossier. Le silence ne vaut jamais accord.</p><a href="${escape(url)}">Suivre ou modifier ma demande</a></html>`,template_name:'client-confirmation'}:await deps.prepareMail?.({requestId:data.requestId,kind:data.kind,subject,url,summary});
     p.dedupeKey=data.kind==='mail'?`client-confirm-${data.requestId}`:`exec02-${staff?.actorId??data.linkId}-${data.operationId}`;
+    const context=await deps.rpc({...p,kind:'mail_context'});if(context.denied)return reply({error:'Accès refusé.'},403);
+    const prepare=deps.prepareMail??localServiceMail();
+    p.message=context.verified?await prepare({requestId:data.requestId,kind:data.kind,subject,url,summary,dedupeKey:String(p.dedupeKey),recipient:String(context.recipient)}):{blocked:true,reason:'unverified_contact'};
    }
    const result=await deps.rpc(p);if(result.denied)return reply({error:'Accès refusé ou accord à relire.'},403);return reply(result);
   }catch{return reply({error:'Coordination indisponible. Aucune confirmation enregistrée en cas d’échec.'},503);}

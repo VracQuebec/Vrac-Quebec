@@ -54,7 +54,7 @@ BEGIN
   IF p->>'role'<>'admin' OR p->>'actorId' IS NULL OR p->>'confirmed'<>'true' THEN RETURN jsonb_build_object('denied',true);END IF;
  END IF;
  actor:=coalesce(p->>'role','')||':'||coalesce(p->>'actorId',p->>'linkId');
- SELECT * INTO prior FROM submission_reception_operations WHERE actor=actor AND operation_id=(p->>'operationId')::uuid;
+ SELECT * INTO prior FROM submission_reception_operations ops WHERE ops.actor=coalesce(p->>'role','')||':'||coalesce(p->>'actorId',p->>'linkId') AND ops.operation_id=(p->>'operationId')::uuid;
  IF FOUND THEN IF prior.input_hash IS DISTINCT FROM p->>'inputHash' THEN RETURN jsonb_build_object('denied',true);END IF;RETURN prior.result;END IF;
  SELECT reception_conditions,reception_communication INTO c,comm FROM submission_fill_profile WHERE submission_id=s.id;
  IF kind='communication' THEN
