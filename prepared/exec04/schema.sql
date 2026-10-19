@@ -127,6 +127,7 @@ BEGIN
   RETURN coalesce((SELECT jsonb_agg(jsonb_build_object('purpose',scope,'channel',channel,'state',CASE WHEN withdrawn_at IS NOT NULL THEN 'withdrawn' ELSE permission_state END,'source',source,'proof',consent_text,'at',accepted_at,'expiresAt',expires_at,'withdrawnAt',withdrawn_at)) FROM mkt_consents c WHERE c.email=email AND c.subject_type='owner' AND c.subject_id=(p->>'requestId')::uuid),'[]');
  END IF;
  IF kind='services' THEN RETURN jsonb_build_object('available',exec04_available((p->>'requestId')::uuid,NULL),
+ 'history',coalesce((SELECT jsonb_agg(jsonb_build_object('at',e.created_at,'action',e.detail->>'action','reason',e.detail->>'reason','requestId',e.request_id) ORDER BY e.created_at DESC) FROM mkt_communication_events e JOIN mkt_quote_requests r ON r.id=e.request_id WHERE r.origin_submission_id=(p->>'requestId')::uuid),'[]'),
  'requests',coalesce((SELECT jsonb_agg(to_jsonb(r)-'internal_notes'-'contact_email'-'contact_phone'-'contact_name') FROM mkt_quote_requests r WHERE origin_submission_id=(p->>'requestId')::uuid),'[]')); END IF;
  IF kind IN ('partner_list','service_admin') THEN RETURN coalesce((SELECT jsonb_agg(jsonb_build_object('id',r.id,'title',r.title,'city',r.city,'status',r.status,'answers',r.answers-'shared',
  'description',CASE WHEN admin THEN r.description END,
@@ -140,6 +141,8 @@ BEGIN
  SELECT * INTO prev FROM mkt_communication_events WHERE operation_id=(p->>'operationId')::uuid;
  IF FOUND THEN IF prev.detail->>'inputHash' IS DISTINCT FROM p->>'inputHash' OR prev.actor_id IS DISTINCT FROM (p->>'actorId')::uuid THEN RAISE EXCEPTION 'Rejeu différent'; END IF; RETURN prev.detail->'result'; END IF;
  IF kind='permission' THEN
+  IF NOT admin AND p->>'role' IS DISTINCT FROM 'owner' THEN RAISE EXCEPTION 'Droit de préférence refusé' USING ERRCODE='42501'; END IF;
+  IF p->>'purpose'='partner_share' THEN RAISE EXCEPTION 'Partager depuis le besoin qualifié uniquement'; END IF;
   IF p->>'purpose' NOT IN ('service','promotion','partner_share') OR p->>'channel' NOT IN ('email','sms','app') OR p->>'state' NOT IN ('granted','withdrawn') THEN RAISE EXCEPTION 'Finalité/canal invalide'; END IF;
   IF p->>'role'='owner' THEN audience:='owner';subject:=(p->>'requestId')::uuid; ELSE audience:=p->>'audience';subject:=(p->>'subjectId')::uuid; END IF;
   contact:=exec04_contact(audience,subject);email:=lower(trim(contact->>'email'));IF email IS NULL THEN RAISE EXCEPTION 'Contact réseau absent'; END IF;
