@@ -1,6 +1,7 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## EXEC-01 — suivi remblai sans compte (19 oct.)
+- [ ] EXEC-04 : segmentation réseau sans clients privés, droits/finalités, campagnes persistantes/capture locale, services et partage autorisé, commissions liées aux finances; vérifications ciblées et bilan/activation commune sans déploiement.
 - [x] EXEC-03 sources/local : secteurs, origine chantier, préférences persistantes, filtres partagés et économies PDF; 17 tests et navigateur 393/1280, 600 $ confirmé, aucun appel externe. Bilan : docs/audit/exec03-bilan.md.
 - [ ] EXEC-03 activation : Cloud isolé autorisé pour preferences/search-sites/JWT/RLS; géocodage, dessin/rendu et routes Google sur origine autorisée non vérifiés. Instructions communes : prepared/exec01b/activation-checklist.md.
 - [x] EXEC-02B : messages durables et copies préparées de l’envoi/worker existants, rappels/expiration Toronto, mesures partielles/corrections; SQL isolé, capture React Email et navigateur aux trois largeurs vérifiés. Bilan et activation commune actualisés.
