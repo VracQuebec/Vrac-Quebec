@@ -64,12 +64,17 @@ const coordination=makeCoordinationEndpoint({enabled:false,origin,
  },
  quota:async request=>{const ip=request.headers.get('cf-connecting-ip');if(!ip)return false;const {data,error}=await db.rpc('exec01_quota',{_identity:await digest(ip)});return !error&&data===true;},
 });
+const lifecycleCoordination=makeCoordinationEndpoint({enabled:false,origin,prepareMail,
+ rpc:async p=>{const {data,error}=await db.rpc('exec02_dispatch',{p});if(error)throw Error('RPC unavailable');return data;},
+ authenticate:async()=>({role:'admin',actorId:env('EXEC02_SYSTEM_ACTOR_ID')}),
+});
 Deno.serve(async request=>{
  if(request.method==='OPTIONS') return new Response('ok',{headers:corsHeaders});
  try {
   if(new URL(request.url).pathname.endsWith('/reception-lifecycle')){
    // Disabled without an environment override; authenticated internal scheduler only on activation.
-   return Response.json(await processReceptionLifecycle({enabled:false,due:async()=>{const {data,error}=await db.rpc('exec02_due');if(error)throw Error('Due jobs unavailable');return data;},dispatch:async()=>{throw Error('Lifecycle not activated');}}),{headers:{...corsHeaders,'Cache-Control':'no-store'}});
+   if(request.method!=='POST'||request.headers.get('authorization')!==`Bearer ${env('EXEC02_SCHEDULER_SECRET')}`)return new Response('Forbidden',{status:403,headers:corsHeaders});
+   return Response.json(await processReceptionLifecycle({enabled:false,due:async()=>{const {data,error}=await db.rpc('exec02_due');if(error)throw Error('Due jobs unavailable');return data;},dispatch:async p=>{const response=await lifecycleCoordination(new Request(`${origin}/submission-reception`,{method:'POST',body:JSON.stringify(p)}));if(!response.ok)throw Error('Lifecycle retry required');return response.json();}}),{headers:{...corsHeaders,'Cache-Control':'no-store'}});
   }
   return await (new URL(request.url).pathname.endsWith('/submission-reception')?coordination(request):handler(request));
  }

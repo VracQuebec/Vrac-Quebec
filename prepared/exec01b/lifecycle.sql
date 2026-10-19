@@ -81,7 +81,7 @@ BEGIN
    SELECT * INTO t FROM trips WHERE id=(p->>'tripId')::uuid FOR UPDATE;
    IF t.id IS NULL OR t.submission_id IS DISTINCT FROM s.id OR p->>'unit' IS DISTINCT FROM r.unit OR p->>'unit' IS DISTINCT FROM c->>'unit' OR coalesce(p->>'ticketRef','')='' OR (p->>'receivedAt')::timestamptz>now() OR (p->>'quantity')::numeric<0 OR p->>'outcome' NOT IN ('accepted','refused') OR (p->>'outcome'='refused' AND (p->>'quantity')::numeric<>0) THEN RETURN jsonb_build_object('denied',true);END IF;
    SELECT * INTO previous FROM submission_reception_measurements WHERE trip_id=t.id ORDER BY created_at DESC LIMIT 1;
-   IF EXISTS(SELECT 1 FROM submission_reception_debits WHERE trip_id=t.id) THEN RETURN jsonb_build_object('denied',true);END IF;
+   IF kind='measure' AND EXISTS(SELECT 1 FROM submission_reception_debits WHERE trip_id=t.id) THEN RETURN jsonb_build_object('denied',true);END IF;
    IF kind='correct' THEN
     IF previous.id IS NULL OR previous.id IS DISTINCT FROM (p->>'measurementId')::uuid OR previous.reservation_id<>r.id OR coalesce(p->>'reason','')='' THEN RETURN jsonb_build_object('denied',true);END IF;
     old_quantity:=previous.quantity;
@@ -104,7 +104,7 @@ BEGIN
  END IF;
  IF p->'message' IS NOT NULL AND p->'message'->>'blocked' IS DISTINCT FROM 'true' AND s.exec01_contact_verified_at IS NOT NULL THEN
   INSERT INTO submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at) VALUES((p->>'nextId')::uuid,s.id,p->>'nextHash',encode(digest(lower(trim(s.email)),'sha256'),'hex'),now()+interval '30 days');
-  key:=p->>'dedupeKey';qh:=enqueue_email('transactional_emails',p->'message'||jsonb_build_object('to',s.email,'idempotency_key',key,'purpose','transactional','tracking',false));
+  key:=p->>'dedupeKey';qh:=enqueue_email('transactional_emails',p->'message'||jsonb_build_object('to',s.email,'idempotency_key',key,'purpose','transactional','tracking',false,'reception_guard',jsonb_build_object('submissionId',s.id,'reservationId',r.id,'kind',kind,'expiresAt',r.expires_at,'linkId',p->>'nextId')));
   INSERT INTO submission_portal_dispatches(dedupe_key,submission_id,input_hash,queue_id) VALUES(key,s.id,p->>'inputHash',qh);
  END IF;
  INSERT INTO submission_reception_operations(actor,operation_id,input_hash,result) VALUES(actor,(p->>'operationId')::uuid,p->>'inputHash',result);
@@ -113,3 +113,15 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION exec02_dispatch(jsonb) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION exec02_dispatch(jsonb) TO service_role;
+CREATE FUNCTION exec02_message_current(p jsonb) RETURNS boolean LANGUAGE sql SECURITY DEFINER SET search_path=public,extensions AS $$
+ SELECT EXISTS(SELECT 1 FROM submissions s JOIN submission_portal_links l ON l.submission_id=s.id
+ WHERE s.id=(p->'reception_guard'->>'submissionId')::uuid AND l.id=(p->'reception_guard'->>'linkId')::uuid
+ AND s.exec01_contact_verified_at IS NOT NULL AND lower(trim(s.email))=lower(trim(p->>'to'))
+ AND l.contact_hash=encode(digest(lower(trim(s.email)),'sha256'),'hex') AND l.revoked_at IS NULL AND l.expires_at>now()
+ AND (p->'reception_guard'->>'kind'<>'remind' OR EXISTS(SELECT 1 FROM submission_reception_reservations r JOIN submission_fill_profile f ON f.submission_id=r.submission_id WHERE r.id=(p->'reception_guard'->>'reservationId')::uuid AND r.submission_id=s.id AND r.state='pending' AND r.expires_at>now() AND r.expires_at=(p->'reception_guard'->>'expiresAt')::timestamptz AND f.reception_communication->>'serviceEmail'='true'
+ AND extract(isodow FROM now() AT TIME ZONE 'America/Toronto')::int IN (SELECT jsonb_array_elements_text(f.reception_communication->'weekdays')::int)
+ AND extract(hour FROM now() AT TIME ZONE 'America/Toronto')>=(f.reception_communication->>'startHour')::int
+ AND extract(hour FROM now() AT TIME ZONE 'America/Toronto')<(f.reception_communication->>'endHour')::int)));
+$$;
+REVOKE ALL ON FUNCTION exec02_message_current(jsonb) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION exec02_message_current(jsonb) TO service_role;
