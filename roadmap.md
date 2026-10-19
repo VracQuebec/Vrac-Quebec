@@ -1,6 +1,7 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## EXEC-01 — suivi remblai sans compte (19 oct.)
+- [ ] EXEC-01B : adapter serveur et SQL préparés uniquement; parcours HTTP/PostgreSQL local, capture courriel fictive, sécurité et synchronisation du même dossier.
 - [x] Parcours fictif isolé, conditions complètes, aperçu courriel et vue CRM TEST du même dossier.
 - [x] Contrôles du service et transitions testés sans accès métier réel; handler serveur préparé, non déployé.
 - [x] Captures mobile/ordinateur et dépendances explicites : prepared/exec01/README.md.
