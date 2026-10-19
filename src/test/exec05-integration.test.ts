@@ -96,7 +96,8 @@ describe.skipIf(process.env.EXEC05_LOCAL_TEST !== "1")("EXEC-05 SQL isolé", () 
     const receipts=await h.db`select e.id,sum(l.debit) amount from fin_gl_entries e join fin_gl_lines l on l.entry_id=e.id join fin_invoice_receipts r on r.id=e.source_id where e.source_kind='receipt' and r.invoice_id=${id} group by e.id`;
     expect(receipts).toHaveLength(1);expect(Number(receipts[0].amount)).toBe(100);
     const credit=entries.filter(e=>e.source_kind==='credit_note'&&e.source_id===r.id);
-    expect(credit).toHaveLength(1);expect(Number(credit[0].debit)).toBe(129.95);
+    // Le mode balance crédite le brut restant à créditer, pas le solde après encaissements.
+    expect(credit).toHaveLength(1);expect(Number(credit[0].debit)).toBe(229.95);
     await expect(user(`update fin_gl_entries set description='Altération' where source_id='${id}' returning id`)).rejects.toThrow();
     expect(await h.asUser(h.ids.foreign,async tx=>tx`select id from fin_gl_entries where company_id=${h.ids.company}`)).toHaveLength(0);
   });
