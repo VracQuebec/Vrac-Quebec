@@ -216,7 +216,8 @@ const PrivateNoIndex = () => {
 const App = () => {
   const personal = window.location.pathname === "/portail/remblai";
   const previewCrm = window.location.pathname === "/admin/apercu-suivi-remblai";
-  if (personal || previewCrm) return <TooltipProvider><BrowserRouter><BrandPaletteScope /><Suspense fallback={<p className="p-6">Chargement…</p>}><RemblaiFollowup crm={previewCrm} /></Suspense></BrowserRouter></TooltipProvider>;
+  const previewCoordination = window.location.pathname === "/entrepreneur/coordination-remblai";
+  if (personal || previewCrm || previewCoordination) return <TooltipProvider><BrowserRouter><BrandPaletteScope /><Suspense fallback={<p className="p-6">Chargement…</p>}><RemblaiFollowup crm={previewCrm || previewCoordination} /></Suspense></BrowserRouter></TooltipProvider>;
   return (
   <AppErrorBoundary>
     {/* Métadonnées par défaut : chaque page peut les remplacer avec son propre <Helmet>. */}

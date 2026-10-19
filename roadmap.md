@@ -1,6 +1,8 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## EXEC-01 — suivi remblai sans compte (19 oct.)
+- [x] EXEC-02 local : matching explicable, trois modes explicites, réservations concurrentes, débit unique par voyage, transaction lien/message, exceptions; navigateur 360/768/1280, SQL ciblé et sources Deno vérifiés. Bilan : docs/audit/exec02-bilan.md.
+- [ ] EXEC-02 activation : environnement Cloud isolé autorisé, branchement rendu/suppression/désabonnement dans l’envoi existant, saisie des mesures sur voyages, proxy fiable, scheduler d’expiration; détails dans docs/audit/exec02-bilan.md. Aucun accès réel activé.
 - [x] EXEC-01C : schéma Cloud structurel inspecté; portail et CRM désactivés intégrés; SQL/photos/quota/hook préparés; 25 tests ciblés + navigateur local + types Deno/compilation vérifiés. Limites d’activation précises dans prepared/exec01b/activation-checklist.md.
 - [x] EXEC-01B : adaptateur serveur et SQL préparés; parcours HTTP/PostgreSQL local et capture courriel fictive vérifiés, même dossier et sécurité; 40 tests ciblés réussis.
 - [x] Parcours fictif isolé, conditions complètes, aperçu courriel et vue CRM TEST du même dossier.

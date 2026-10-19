@@ -46,3 +46,6 @@ Accès UI : `/portail/remblai?server=local#…` uniquement depuis le lien captur
 - Le courriel est capturé, **jamais envoyé réellement**. Pas de chemin prestataire réel activé. En cas d'échec de capture après émission SQL, un état de lien préparé peut rester sans message; l'outbox transactionnelle/idempotente du dispatcher existant doit être raccordée avant activation.
 
 Étape ultérieure minimale : autoriser un environnement Cloud isolé, appliquer ce SQL uniquement là, empaqueter l'entrée Deno (imports `src` inclus au paquet), connecter le hook à `submit-parcours`/`client-confirmation` et le portail à la fonction, puis vérifier auth/CRM et triggers complets avec capture. L'activation publique reste une autorisation distincte, après résolution des limites ci-dessus. Aucun envoi, publication ou migration partagée effectué dans ce lot.
+
+## Suite EXEC-02
+Voir `docs/audit/exec02-bilan.md` et `prepared/exec02/` : harnais répétable PostgreSQL/HTTP fictif, captures, trois modes, registre lié aux dossiers et 20 tests ciblés. Les sources Cloud restent désactivées; utiliser le nouveau hook transactionnel seulement après raccordement du rendu/suppression/désabonnement gérés. Les limitations EXEC-01B listées plus haut sont historiques; le bilan EXEC-02 distingue celles résolues localement et celles restant hébergées.

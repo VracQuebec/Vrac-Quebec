@@ -2,6 +2,16 @@
 // AFTER suppression/idempotency checks and BEFORE render/enqueue. Never deployed here.
 import { prepareSubmissionConfirmation } from './confirmation-hook';
 import type { Dependencies } from './endpoint';
+import {makeCoordinationEndpoint,type CoordinationDependencies} from './coordination-endpoint';
+// New atomic seam; use instead of prepareExistingClientConfirmation on activation.
+// Caller must perform existing suppression/unsubscribe checks first. SQL reads canonical contact.
+export async function enqueueExistingClientConfirmation(submissionId:string,operationId:string,deps:CoordinationDependencies){
+ if(!deps.enabled)return {state:'disabled' as const};
+ const handler=makeCoordinationEndpoint(deps);
+ const response=await handler(new Request(`${deps.origin}/coordination`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'mail',requestId:submissionId,operationId,confirmed:true})}));
+ if(!response.ok)throw Error('Confirmation non mise en file');
+ return {state:'queued' as const,...await response.json()};
+}
 export async function prepareExistingClientConfirmation(
  submission:{id:string;request_type:string;parcours_direction:string|null},deps:Dependencies,
 ) {
