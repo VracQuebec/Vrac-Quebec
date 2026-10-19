@@ -14,6 +14,7 @@ export async function createLocal(){
  for(const [id,name,email] of [[owner,'Camille Exemple','camille@test.invalid'],[unknown,'Alex Sans permission','alex@test.invalid']]){
   await db`insert into submissions(id,materials,property_type,quantity,tonnage,address,name,email,city,request_type,parcours_direction,exec01_contact_verified_at,exec01_owner_confirmed_at) values(${id},ARRAY['Terre'],'terrain','100','inconnu','Adresse fictive',${name},${email},'Québec','remblai','reception',now(),now())`;
   await db`insert into submission_fill_profile(submission_id,reception_conditions) values(${id},${db.json({...unknownConditions(),total:100,remaining:80,unit:'m3',materials:[{name:'Terre',stance:'accepte'}]})})`;
+  await db`update submissions set exec04_network_enrolled_at=now() where id=${id}`;
  }
  await db`insert into entrepreneurs(id,name,company,email,city,user_id,exec04_network_facts) values(${entrepreneur},'Jules Exemple','Entrepreneur Fictif','jules@test.invalid','Québec',${partner},${db.json({trade:'excavation',activeAt:new Date().toISOString(),features:['carte','comparateur']})})`;
  await db`insert into mkt_service_categories(id,name,slug) values(${category},'Excavation','excavation')`;

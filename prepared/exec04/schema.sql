@@ -1,6 +1,8 @@
 -- PREPARED ONLY: extends existing network/marketplace records. No private CRM audience.
 ALTER TABLE entrepreneurs ADD COLUMN exec04_network_facts jsonb NOT NULL DEFAULT '{}';
 ALTER TABLE submissions ADD COLUMN exec04_region text;
+-- Explicit provenance only; existing dossiers are not enrolled automatically.
+ALTER TABLE submissions ADD COLUMN exec04_network_enrolled_at timestamptz;
 ALTER TABLE mkt_consents ADD COLUMN channel text NOT NULL DEFAULT 'email' CHECK(channel IN ('email','sms','app'));
 ALTER TABLE mkt_consents ADD COLUMN permission_state text NOT NULL DEFAULT 'granted' CHECK(permission_state IN ('granted','withdrawn','unknown'));
 ALTER TABLE mkt_consents ADD COLUMN expires_at timestamptz;
@@ -65,7 +67,7 @@ CREATE FUNCTION exec04_network() RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFI
  'materials',s.materials,'remaining',f.reception_conditions->'remaining','unit',f.reception_conditions->>'unit',
  'availability',s.availability_status,'confirmedAt',s.exec01_owner_confirmed_at,'trade',null,'activeAt',null,'features','[]'::jsonb) x
  FROM submissions s LEFT JOIN submission_fill_profile f ON f.submission_id=s.id
- WHERE s.request_type='remblai' AND s.parcours_direction='reception'
+ WHERE s.request_type='remblai' AND s.parcours_direction='reception' AND s.exec04_network_enrolled_at IS NOT NULL
  UNION ALL
  SELECT jsonb_build_object('id',e.id,'audience','entrepreneur','scope','network','name',coalesce(nullif(e.company,''),e.name),
  'sector',e.city,'materials','[]'::jsonb,'remaining',null,'unit',null,'availability',null,'confirmedAt',null,
@@ -75,7 +77,7 @@ CREATE FUNCTION exec04_network() RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFI
 $$;
 -- These facts are explicit network activity signals, never derived from private client records.
 CREATE FUNCTION exec04_contact(_type text,_id uuid) RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
- SELECT CASE _type WHEN 'owner' THEN (SELECT jsonb_build_object('email',s.email,'name',s.name,'verified',s.exec01_contact_verified_at IS NOT NULL) FROM submissions s WHERE s.id=_id AND s.request_type='remblai' AND s.parcours_direction='reception')
+ SELECT CASE _type WHEN 'owner' THEN (SELECT jsonb_build_object('email',s.email,'name',s.name,'verified',s.exec01_contact_verified_at IS NOT NULL) FROM submissions s WHERE s.id=_id AND s.request_type='remblai' AND s.parcours_direction='reception' AND s.exec04_network_enrolled_at IS NOT NULL)
  WHEN 'entrepreneur' THEN (SELECT jsonb_build_object('email',e.email,'name',coalesce(e.company,e.name),'verified',e.user_id IS NOT NULL) FROM entrepreneurs e WHERE e.id=_id AND e.is_network_visible) END;
 $$;
 CREATE FUNCTION exec04_permission(_email text,_purpose text,_at timestamptz DEFAULT now(),_partner uuid DEFAULT NULL,_request uuid DEFAULT NULL) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
@@ -100,8 +102,8 @@ CREATE FUNCTION exec04_available(_submission uuid,_category uuid) RETURNS jsonb 
 $$;
 CREATE FUNCTION exec04_message_current(p jsonb) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
  SELECT EXISTS(SELECT 1 FROM mkt_promo_sends m WHERE m.id=(p->'exec04_guard'->>'messageId')::uuid
- AND m.state='queued' AND m.email=lower(trim(p->>'to')) AND exec04_permission(m.email,m.purpose)
- AND (m.subject_type<>'owner' OR EXISTS(SELECT 1 FROM submissions s WHERE s.id=m.subject_id AND s.availability_status NOT IN ('owner_closed','suspended'))));
+ AND m.state IN ('queued','failed') AND m.email=lower(trim(p->>'to')) AND exec04_permission(m.email,m.purpose)
+ AND (m.subject_type<>'owner' OR EXISTS(SELECT 1 FROM submissions s WHERE s.id=m.subject_id AND s.exec04_network_enrolled_at IS NOT NULL AND s.availability_status NOT IN ('owner_closed','suspended'))));
 $$;
 REVOKE ALL ON FUNCTION exec04_message_current(jsonb) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION exec04_message_current(jsonb) TO service_role;

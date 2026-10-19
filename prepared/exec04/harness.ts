@@ -3,6 +3,7 @@ import {makeCommunicationEndpoint} from './endpoint';
 import {makeEndpoint} from '../exec01b/endpoint';
 import {makeCoordinationEndpoint} from '../exec01b/coordination-endpoint';
 import {writeFile,mkdir} from 'node:fs/promises';
+if(process.env.EXEC01B_LOCAL_TEST!=='1')throw Error('Explicit isolated test mode required');
 const {name,db,rpc,ids}=await createLocal();
 const sessions=new Map<string,{role:'admin'|'partner';actorId:string}>();
 const actor=async(r:Request)=>sessions.get((r.headers.get('cookie')??'').match(/exec04_session=([^;]+)/)?.[1]??'')??null;
@@ -14,6 +15,8 @@ const portal=makeEndpoint({enabled:true,localHarness:true,portalOrigin:'http://l
 const coordinator=makeCoordinationEndpoint({enabled:true,local:true,origin:'http://localhost:8080',authenticate:async r=>{const a=await actor(r);return a?.role==='admin'?a:null;},rpc:async p=>(await db`select exec02_dispatch(${db.json(p as any)}) r`)[0].r});
 Bun.serve({hostname:'127.0.0.1',port:55440,fetch:async r=>{
  const u=new URL(r.url);
+ if(!['127.0.0.1','localhost'].includes(u.hostname))return new Response('Loopback only',{status:403});
+ if(u.pathname==='/harness/login'&&r.headers.get('origin')!=='http://localhost:8080')return new Response('Test origin required',{status:403});
  if(r.headers.get('origin')&&r.headers.get('origin')!=='http://localhost:8080')return new Response('Origin refused',{status:403,headers});
  if(r.method==='OPTIONS')return new Response('',{headers});
  if(u.pathname==='/harness/login'&&r.method==='POST'){const p=await r.json();if(!['admin','partner','foreign'].includes(p.role))return new Response('Fictional identity required',{status:400,headers});const key=crypto.randomUUID();const a=p.role==='partner'?{role:'partner' as const,actorId:ids.partner}:p.role==='foreign'?{role:'partner' as const,actorId:ids.foreignUser}:{role:'admin' as const,actorId:ids.admin};sessions.set(key,a);return Response.json({role:a.role},{headers:{...headers,'Set-Cookie':`exec04_session=${key}; HttpOnly; SameSite=Lax; Path=/`}});}
