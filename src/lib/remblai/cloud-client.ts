@@ -1,11 +1,25 @@
 import { REMBLAI_CLOUD_ENABLED, REMBLAI_FUNCTION } from './activation';
 import type { RequestRecord, Action } from './service';
 import { takeFragment, type PortalSession } from './isolated-client';
+// "denied": link/code refused or identity not yet verified; "retry": network, quota or server failure.
+export type PortalFailure = 'denied' | 'retry';
+export class PortalCallError extends Error { constructor(public failure: PortalFailure, message: string) { super(message); } }
+export function classifyPortalStatus(status: number | null): PortalFailure {
+ return status === 400 || status === 403 ? 'denied' : 'retry';
+}
 export async function cloudPortalCall<T>(input: Record<string, unknown>): Promise<T> {
  if (!REMBLAI_CLOUD_ENABLED) throw Error('Le suivi personnel n’est pas activé.');
  const { supabase } = await import('@/integrations/supabase/client');
  const { data, error } = await supabase.functions.invoke(REMBLAI_FUNCTION, { body: input });
- if (error || data?.error) throw Error('Suivi indisponible. Aucune donnée privée affichée.');
+ if (error || data?.error) {
+  const ctx = (error as { context?: unknown } | null)?.context;
+  const status = ctx instanceof Response ? ctx.status : null;
+  const failure = classifyPortalStatus(status);
+  // Never include the request body, token or code in the message.
+  throw new PortalCallError(failure, failure === 'denied'
+   ? 'Lien invalide, expiré ou révoqué, ou vérification requise. Aucune donnée privée affichée.'
+   : 'Connexion au suivi impossible pour le moment. Vérifiez votre réseau puis réessayez.');
+ }
  return data as T;
 }
 export const cloudPortalService = {
