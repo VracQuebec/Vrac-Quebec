@@ -1,5 +1,7 @@
 # Vrac Québec Simple — bilan de préparation à l’activation
 
+> **Bilan historique de 22:57 UTC, supersédé pour l’état courant** par `VALIDATION-COMPLETE-ET-AUTORISATIONS.md` : nouveaux défauts corrigés, composition à cinq étapes/sept gardes, 196 tests Vitest + 3 Deno + 10 contrôles. Validation hébergée et interface unknown restent bloquées. Ne pas utiliser les anciennes empreintes finales et l’ordre à quatre étapes ci-dessous pour activer le paquet actuel.
+
 Date : 22 octobre 2026, essais locaux terminés à 22:55 UTC. Aucun déploiement, publication, migration hébergée, écriture de production, changement de droits, courrier réel ou ressource payante.
 
 ## Verdict
