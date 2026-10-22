@@ -112,4 +112,11 @@ describe.skipIf(!enabled)('durable SQL + shared prepared handler', () => {
     const [r]=await db`select has_function_privilege('anon','guard_claim_durable(text,text,text,jsonb,integer,integer)','EXECUTE') a,has_function_privilege('authenticated','guard_claim_durable(text,text,text,jsonb,integer,integer)','EXECUTE') b,has_function_privilege('service_role','guard_claim_durable(text,text,text,jsonb,integer,integer)','EXECUTE') s`;
     expect(r).toEqual({a:false,b:false,s:true});
   });
+  it('accepted mail cannot be overwritten by a later failed attempt',async()=>{
+    const [r]=await db`insert into public_request_guard(scope,identity,fingerprint,payload) values('mail','test@test.invalid','mail-state','{"state":"done","result":{"submission_id":"TEST"}}') returning id`;
+    await db`select guard_email_status(${r.id},'queued')`;
+    await db`select guard_email_status(${r.id},'failed')`;
+    const [after]=await db`select payload from public_request_guard where id=${r.id}`;
+    expect(after.payload.email_status).toBe('queued');expect(after.payload.state).toBe('done');
+  });
 });
