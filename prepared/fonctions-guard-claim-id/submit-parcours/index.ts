@@ -80,12 +80,12 @@ async function sendEmail(payload: Record<string, unknown>): Promise<MailState> {
     }, 15_000);
     const status = deliveryResult(res.ok, await res.json().catch(() => null));
     if (status === 'failed') {
-      logEventAsync({ source: 'submit_parcours', event: 'email.failed', level: 'warn', refId: String(payload.submissionId ?? ''), context: { template: payload.templateName, http: res.status } });
+      logEventAsync({ source: 'submission', event: 'email.failed', level: 'warn', refId: String(payload.submissionId ?? ''), context: { template: payload.templateName, http: res.status } });
     }
     return status;
   } catch (e) {
     logEventAsync({
-      source: 'submit_parcours', event: 'email.unknown', level: 'warn',
+      source: 'submission', event: 'email.unknown', level: 'warn',
     });
     return 'unknown';
   }
@@ -137,8 +137,8 @@ Deno.serve(async (req) => {
     const accessHeavyTruck = clean(body?.access_heavy_truck, 120);
     const accessDetails = strArray(body?.access_details, 20, 120)
       .map((v) => inList(v, ACCESS_KEYS))
-      .filter((v): v is string => Boolean(v));
-    const photoEntries = Array.isArray(body?.photos)
+      .filter((v): v is (typeof ACCESS_KEYS)[number] => v !== null);
+    const photoEntries: {url:string;category:string}[] = Array.isArray(body?.photos)
       ? body.photos
           .filter((p: unknown) => p && typeof (p as { url?: string }).url === 'string')
           .slice(0, 20)
@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
     } catch (e) {
       // L'adresse reste enregistrée telle que saisie : la demande n'est jamais perdue.
       logEventAsync({
-        source: 'submit_parcours', event: 'geocode.failed', level: 'warn',
+        source: 'submission', event: 'geocode.failed', level: 'warn',
         message: e instanceof Error ? e.message : String(e),
       });
     }
@@ -238,7 +238,7 @@ Deno.serve(async (req) => {
         geocoding_provider: 'google',
       }).eq('id', lead.id);
     } catch (e) {
-      logEventAsync({ source: 'submit_parcours', event: 'geocode.apply_failed', level: 'warn', refId: String(lead.id), message: e instanceof Error ? e.message : String(e) });
+      logEventAsync({ source: 'submission', event: 'geocode.apply_failed', level: 'warn', refId: String(lead.id), message: e instanceof Error ? e.message : String(e) });
     }
 
       return { ref: { submission_id: String(lead.id) }, data: { geo } };
@@ -247,14 +247,14 @@ Deno.serve(async (req) => {
     if (outcome.kind === 'in_progress') {
       // Une demande identique est en cours d'enregistrement (autre onglet,
       // double clic, autre instance) : jamais de faux succès ni de référence.
-      logEventAsync({ source: 'submit_parcours', event: 'submission.in_progress', level: 'warn', context: { variant } });
+      logEventAsync({ source: 'submission', event: 'submission.in_progress', level: 'warn', context: { variant } });
       return json({ ok: false, retry: true, message: "Votre demande est en cours d'enregistrement. Patientez quelques secondes puis réessayez." });
     }
     if (outcome.kind === 'duplicate') {
       // Référence EXACTE mémorisée lors de la création initiale.
       // Aucun nouvel enregistrement. Courriel seulement sur demande explicite
       // de nouvelle tentative (écran d'échec) : rejeu idempotent du même dossier.
-      logEventAsync({ source: 'submit_parcours', event: 'submission.duplicate', level: 'warn', refId: outcome.ref.submission_id, context: { variant } });
+      logEventAsync({ source: 'submission', event: 'submission.duplicate', level: 'warn', refId: outcome.ref.submission_id, context: { variant } });
       const email_status = body?.resend_confirmation === true
         ? await sendClientConfirmation(outcome.ref.submission_id)
         : outcome.claimId ? await readMailState(sb, outcome.claimId) : 'unknown';
@@ -262,12 +262,12 @@ Deno.serve(async (req) => {
       return json({ ok: true, duplicate: true, submission_id: outcome.ref.submission_id, ...(email_status ? { email_status } : {}) });
     }
     if (!outcome.remembered) {
-      logEventAsync({ source: 'submit_parcours', event: 'guard.complete_failed', level: 'critical', refId: outcome.ref.submission_id, context: { variant } });
+      logEventAsync({ source: 'submission', event: 'guard.complete_failed', level: 'critical', refId: outcome.ref.submission_id, context: { variant } });
     }
     const geo = outcome.data.geo;
     const lead = { id: outcome.ref.submission_id };
 
-    logEventAsync({ source: 'submit_parcours', event: 'lead.created', refId: String(lead?.id ?? ''), context: { variant } });
+    logEventAsync({ source: 'submission', event: 'lead.created', refId: String(lead?.id ?? ''), context: { variant } });
 
     // Confirmation client attendue : son vrai résultat est affiché au demandeur.
     // La notification interne reste en arrière-plan.
@@ -295,7 +295,7 @@ Deno.serve(async (req) => {
       return json({ ok: false, retry: false, message: e.message }, e.status);
     }
     const message = e instanceof Error ? e.message : String(e);
-    await logEvent({ source: 'submit_parcours', event: 'submit.failed', level: 'error', message });
+    await logEvent({ source: 'submission', event: 'submit.failed', level: 'error', message });
     // Message générique côté client : les détails restent dans les logs serveur.
     return json({ ok: false, retry: false, message: "Une erreur est survenue. Veuillez réessayer." }, 400);
   }

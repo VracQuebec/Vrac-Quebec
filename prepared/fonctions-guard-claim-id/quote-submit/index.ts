@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
       material: String(body?.material_id ?? body?.material_slug ?? ''),
       catalogId, variantId, granulometryId, customMaterial,
     });
-    const outcome = await runClaimedCreate(sb, {
+    const outcome = await runClaimedCreate<Record<string, unknown>>(sb, {
       scope: SCOPE, identity: email.toLowerCase(), fingerprint,
       honeypot: body?.website, formStartedAt: body?.form_started_at,
       freeText: [comments, name, company].filter(Boolean).join(' '), ip: clientIp(req),
@@ -536,11 +536,12 @@ Deno.serve(async (req) => {
     }
     return json(outcome.data);
   } catch (e) {
-    if (recorded) {
+    const savedReference = recorded as { request_number: unknown; quote_number: unknown; valid_until: unknown } | null;
+    if (savedReference) {
       // La demande est enregistrée : une erreur d'après-traitement ne doit
       // jamais la faire passer pour perdue (le visiteur renverrait).
       await logEvent({ source: 'quote_submit', event: 'post_record.failed', level: 'critical', message: e instanceof Error ? e.message : String(e) });
-      return json({ ok: true, ...recorded, email_status: clientMailState, email_sent: clientMailState === 'queued' ? true : clientMailState === 'unknown' ? null : false, notice: 'confirmation_status_uncertain', emailed_to: null });
+      return json({ ok: true, ...savedReference, ...mailResponse(clientMailState), notice: 'confirmation_status_uncertain', emailed_to: null });
     }
     // Le helper conserve toute insertion incertaine en pending.
     if (e instanceof GuardError) {
