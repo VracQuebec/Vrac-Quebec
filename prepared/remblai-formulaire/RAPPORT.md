@@ -1,5 +1,26 @@
 # Cohérence du formulaire personnel — préparation uniquement
 
+## Complément final — session du 22 octobre, 22:38 UTC
+
+Lecture seule réelle, 22:39 UTC :
+- `public.exec01_dispatch(jsonb)` : empreinte `2da0b80649cfacf5db57fe559adab3c2`, SECURITY DEFINER, search_path public/extensions.
+- `public.exec01_projection(uuid,boolean)` : empreinte `e4cec3f904e15ec6ef264a22f71298c1`, SECURITY DEFINER, search_path public.
+- Les deux fonctions : propriétaire postgres, exécution seulement postgres/service_role. Les contrats dispatch_mail, photo_manage, quota et has_role existent ; leurs droits ont été lus, pas modifiés.
+- La projection réelle n'a pas `publicForm`. Le dispatcher réel verrouille le dossier exact, contrôle le lien/secret/contact, identité, version, confirmation et rejeu. Les requêtes portaient uniquement sur le catalogue des fonctions, aucune demande réelle consultée.
+- **La règle réelle conserve deux créations à maintenant + 30 jours.** `0232_lien_sans_expiration_NON_APPLIQUEE.sql` reste non appliqué. Son contrôle de deux occurrences n'est pas un verrou d'empreinte complète ; composition et inverse exacts restent obligatoires. Les liens déjà délivrés ont une échéance stockée : supprimer la durée pour les nouveaux liens ne suffit pas à prolonger les anciens. Toute adaptation historique exige une stratégie ciblée validée et une autorisation ; aucune effectuée ici.
+
+Corrections supplémentaires uniquement préparées : JSON null dans les anciennes métadonnées ne masque plus les références photos héritées ; formulaire incomplet/null refusé sans vider les valeurs ; barrière des fichiers privés en suppression conservée dans le nouveau chemin d'édition. Ajout du contrôle préparé `REFERENCE-ET-ARRET-NON-APPLIQUE.sql` épinglant les deux empreintes et les droits observés, non exécuté en hébergement.
+
+Dernière suite locale à 22:40 UTC : **71 réussis, 0 échec, 24 ignorés**. `remblai-original-form.test.ts` : 32 cas dont 17 PostgreSQL jetables. Nouveaux cas : photos héritées JSON null conservées après modification, refus photos en suppression, refus payload incomplet/null sans mutation, réponse perdue après commit puis reprise sans événement doublé, clôture explicitement confirmée, refus autre client et consultation conservée après clôture. L'inverse des deux fonctions restauré exactement dans la base jetable ; cela ne prouve pas un inverse hébergé prêt.
+
+La clôture existante change `availability_status` en `owner_closed` et ajoute l'événement historique, **pas le statut commercial `status`**. Le portail possède déjà sa confirmation ; aucune nouvelle règle de statut ni suppression n'a été inventée. La nouvelle branche reste après le contrôle de dossier fermé, confirmé par le test local. Aucun accès interclient en consultation, modification ou clôture n'est accordé par les tests exécutés.
+
+Liens et codes : le code de vérification n'est pas placé dans l'URL ; le lien transmis par courriel porte un secret dans le fragment, retiré dès l'ouverture et gardé en mémoire. Ce fragment n'est pas transmis dans la requête HTTP de navigation, mais demeure un secret de possession dans le courriel ; ne pas le déclarer absent de toute URL ni l'inclure dans une capture ou un journal. Lecture privée et écriture nécessitent les contrôles serveur existants. Aucun envoi réel testé ; réponse effective du service de courrier et appareil réel restent à vérifier après autorisation.
+
+Fichiers de cette session : `formulaire-NON-APPLIQUE.sql`, `REFERENCE-ET-ARRET-NON-APPLIQUE.sql` (nouveau), `src/test/remblai-original-form.test.ts`, ce rapport, `ACTIVATION-ET-VALIDATION-ISOLEE.md`, `roadmap.md` ; préférence durable du lien mise à jour. Aucune interface publique supplémentaire modifiée.
+
+Coût engagé : aucun. Environnement complet distinct indisponible/non prouvé ; aucune nouvelle ressource créée. Tests hébergés, courrier, vraie Storage et captures sur appareils non exécutés pendant cette session. Les vérifications navigateur à trois tailles restent celles de la session 22:26. **Activation BLOQUÉE** : paquet Deno autonome/typecheck, composition SQL 0231/0232/formulaire avec empreintes/inverse exacts, stratégie des anciens liens et validation distincte toujours manquants.
+
 ## Complément de préparation — 22 octobre, 22:34 UTC
 Le manifeste exact et le protocole non exécuté sont dans `prepared/remblai-formulaire/ACTIVATION-ET-VALIDATION-ISOLEE.md`. Les deux fonctions restent `public.exec01_projection(uuid,boolean)` et `public.exec01_dispatch(jsonb)`. Métadonnées actuelles : outils et client liés à Live ; brouillon prêt/en retard recensé, mais aucune preuve de base/identité/stockage distincts accessibles. Santé du serveur confirmée en lecture seule, isolation non confirmée. Aucune ressource créée ni coût engagé ; aucun essai métier hébergé.
 

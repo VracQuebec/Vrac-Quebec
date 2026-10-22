@@ -16,6 +16,8 @@ Aucun brouillon créé, rafraîchi, accepté ou activé. Aucun export ni ressour
 
 ## Les deux fonctions de données
 
+Complément de lecture réelle du 22 octobre à 22:39 UTC : dispatcher `2da0b80649cfacf5db57fe559adab3c2`, projection `e4cec3f904e15ec6ef264a22f71298c1` ; exécution postgres/service_role uniquement, SECURITY DEFINER et search_path borné. Référence consultée sans aucune donnée de demande. Contrôle épinglé préparé : `REFERENCE-ET-ARRET-NON-APPLIQUE.sql`. Le dispatcher contient toujours deux durées de 30 jours ; la projection n'a pas encore publicForm.
+
 1. `public.exec01_projection(uuid,boolean)` : projection des réponses originales réellement stockées, ajout de `publicForm`, références photos canoniques et avertissement pour les précisions historiques irrécupérables. Pas de notes internes, jeton ou état de code dans la projection.
 2. `public.exec01_dispatch(jsonb)` : autorisation du lien/dossier exact et de l’identité, projection lors de l’autorisation des photos, modification de la ligne verrouillée `submissions.id`, contrôle version/confirmation/rejeu. L’identifiant et le courriel propriétaire ne changent pas ; aucune nouvelle demande créée par l’édition.
 
@@ -78,6 +80,7 @@ Toute fuite interclient, fausse confirmation, mutation protégée, perte de desc
 ## Plan d’activation conditionnel et retour arrière
 
 1. **Préparation seulement** : achever le paquet autonome et vérifier les types Deno ; obtenir références exactes des deux fonctions, empreintes avant/après et inverse complet. Arrêt si référence inconnue ou permission plus large.
+   Composer localement les corrections de renouvellement `prepared/exec01-correctif-lien/0231_renouvellement_premiere_verification.sql`, de durée `0232_lien_sans_expiration_NON_APPLIQUEE.sql` et de formulaire `prepared/remblai-formulaire/formulaire-NON-APPLIQUE.sql`. Épingler chaque état intermédiaire et préparer l'inverse de l'état immédiatement antérieur, sans annuler un correctif durable déjà installé. Les liens existants nécessitent une décision/autorisation distincte pour leur échéance stockée ; ne pas effectuer de mise à jour massive par défaut. Le prototype 0232 et son inverse par remplacement ne constituent pas encore une migration prête-production.
 2. **Validation distincte autorisée** : vérifier les contrats existants, les types/colonnes requis et le stockage ; exécuter le protocole ci-dessus. Si une initialisation exige SQL/permissions, demander autorisation avant. Aucun passage à Live sans résultats enregistrés.
 3. **Point de contrôle humain** : confirmer sauvegarde antérieure et stratégie de retour ciblé ; l’inventaire n’est pas accessible aux outils et les fichiers de stockage ne sont pas couverts par la sauvegarde de base. Aucune sauvegarde/export/restauration effectué ici.
 4. **Après autorisation production séparée** : appliquer uniquement le paquet SQL épinglé des deux fonctions. Vérifier leurs définitions et droits, sans créer de dossier réel. Aucun ajout de table/index/colonne prévu. Si le contrôle échoue, arrêter avant déploiement.
@@ -88,6 +91,8 @@ Toute fuite interclient, fausse confirmation, mutation protégée, perte de desc
 Retour arrière ciblé : remettre le paquet précédent exact et, si nécessaire après autorisation, réexécuter uniquement les deux définitions originales épinglées ; comparer définition, signature et droits. Ne pas remettre un ancien `exec01_dispatch` qui annulerait un correctif durable installé entre-temps. Pas de restauration complète, suppression de colonne, RLS, permission ou demande. L’inverse complet prêt-production reste un prérequis non fourni, et non un fichier testé en hébergement.
 
 ## Preuves disponibles et limites
+
+Complément 22:38 : **71 tests locaux réussis, zéro échec, 24 ignorés**, réexécutés à 22:40 UTC dans PostgreSQL jetable ; aucun serveur hébergé testé. Photos héritées JSON null, payload incomplet/null, fichiers en suppression, reprise après commit perdu et clôture historique couverts. Le contrôle exact de référence nouveau n'a pas été exécuté sur Live. La clôture est le changement existant de disponibilité `owner_closed`, pas une modification du statut commercial. Les tests n'autorisent aucun nettoyage des demandes réelles.
 
 Session précédente : 66 tests locaux réussis, 0 échec final, 24 ignorés ; trois tailles d’écran fictives vérifiées. Les journaux locaux ont été relus ici, **aucun de ces tests n’a été réexécuté dans cette session**. Aucun test hébergé ni réel effectué. Pas de nouvelle simulation créée pour remplacer la validation hébergée manquante.
 
