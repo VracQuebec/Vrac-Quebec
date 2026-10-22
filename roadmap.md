@@ -1,5 +1,11 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## Correctif lien personnel — 22 octobre 2026
+- [ ] Préparer cinq erreurs / attente 15 minutes et préserver renouvellement, révocation et code récent du même lien.
+- [ ] Tester SQL local, capture courrier et retour arrière exact avec garde d’empreinte.
+- [ ] Documenter preuves, protocole Outlook/iPhone, sauvegarde manuelle et autorisations requises.
+- Production strictement en lecture seule; aucun déploiement, publication, envoi ou sauvegarde.
+
 ## Finalisation ciblée EXEC-01
 - [x] 19 octobre : sources de transport atomique codes/renouvellement et collecte ciblée complétées; 51 tests ciblés sur PostgreSQL jetable réussis. Exclusion précoce vérifiée au navigateur de l’aperçu (zéro requête externe); pas de validation hébergée.
 - [ ] Installation autorisée mais conditionnée à la preuve datée de sauvegarde (inventaire inaccessible aux outils); activation seulement après parcours hébergé et page publiée utilisable sans TEST.
