@@ -31,6 +31,8 @@ Conservation déjà préparée et revalidée : anciennes descriptions sans marqu
 ## 3. Définitions et droits réels vérifiés en lecture seule
 Références récupérées au catalogue à 22:45–22:47 UTC ; fidélité UTF-8/MD5 contrôlée. Ce ne sont pas des sauvegardes de base et elles ne contiennent pas de demandes.
 
+Dernier contrôle en lecture seule à 22:57 UTC : les trois empreintes originales et ACL de production restent identiques ; aucune définition préparée n’a été appliquée.
+
 | Fonction | Empreinte originale réelle | Empreinte préparée finale |
 |---|---|---|
 | `public.exec01_dispatch(jsonb)` | `2da0b80649cfacf5db57fe559adab3c2` | `0e22563a8ea2559e52cd7717d02921f9` |
