@@ -3,6 +3,7 @@
   "generated_from_reviewed_sources": true,
   "sha256": {
     "delivery-mode.ts": "22a9a58a93879b6f0a9865e2901cc89388514e1b43101a0a112b4d9498a532fc",
+    "endpoint.test.ts": "68283ba513964f958f521c8d50a5f3745a0a416633d9bbb059d1fc5f07c2b542",
     "endpoint.ts": "2465724386575cef97a8fc12700eea866c48303abdd709036af5de4c93fe39b7",
     "index.ts": "b04bfe730e50dd2591f21206e4db4c040a5b45bf3931628e5ccaf369aa0f7075",
     "lib/cloud-contract.ts": "accbac4ab4cd920a08c6dc54d175091dba2e9fc170f7f7a29a1bc9cbbb93aada",
