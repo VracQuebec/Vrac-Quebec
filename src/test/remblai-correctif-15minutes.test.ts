@@ -188,4 +188,61 @@ describe.skipIf(!enabled)('EXEC01 five errors / temporary lock — isolated SQL'
     const unchangedTail = " IF s.exec01_contact_verified_at IS NULL OR s.exec01_verified_contact_hash IS DISTINCT FROM l.contact_hash THEN";
     expect(corrected.slice(corrected.indexOf(unchangedTail))).toBe(baseline.slice(baseline.indexOf(unchangedTail)));
   });
+});describe.skipIf(!enabled)('EXEC01 historical counters — never reset when ambiguous', () => {
+  // Code expiry = request +10 min with code present; lock deadline = fifth failure +15 min (request +15..+25) with code consumed.
+  type State = { failures: number; hash: boolean; req: string | null; exp: string | null };
+  async function seed(s: State) {
+    const f = await fixture();
+    await db`update submission_portal_links set created_at=now()-interval '3 days',failures=${s.failures},
+      code_hash=${s.hash ? 'ancien-code-fictif' : null},
+      code_requested_at=${s.req === null ? null : db`now()+${s.req}::interval`},
+      code_expires_at=${s.exp === null ? null : db`now()+${s.exp}::interval`} where id=${f.linkId}`;
+    return f;
+  }
+  const snapshot = async (id: string) => (await db`select failures,code_hash,code_expires_at,code_requested_at,verified_at,revoked_at,expires_at from submission_portal_links where id=${id}`)[0];
+  const ambiguous: [string, State][] = [
+    ['ancienne expiration de code passée (code encore présent)', { failures: 5, hash: true, req: '-2 hours', exp: '-110 minutes' }],
+    ['ancien compteur 6 avec code présent', { failures: 6, hash: true, req: '-2 hours', exp: '-110 minutes' }],
+    ['compteur 6 code consommé, dates cohérentes', { failures: 6, hash: false, req: '-2 hours', exp: '-100 minutes' }],
+    ['échéance absente', { failures: 5, hash: false, req: '-2 hours', exp: null }],
+    ['date de demande absente', { failures: 5, hash: false, req: null, exp: '-1 hour' }],
+    ['échéance = expiration de code (+10 min), code effacé', { failures: 5, hash: false, req: '-2 hours', exp: '-110 minutes' }],
+    ['échéance invalide trop tardive (+2 h)', { failures: 5, hash: false, req: '-3 hours', exp: '-1 hour' }],
+    ['échéance avant la demande', { failures: 5, hash: false, req: '-1 hour', exp: '-2 hours' }],
+    ['échéance cohérente encore future', { failures: 5, hash: false, req: '-5 minutes', exp: '+10 minutes' }],
+  ];
+  it.each(ambiguous)('%s : refus et aucune donnée modifiée', async (_label, state) => {
+    const f = await seed(state); const before = await snapshot(f.linkId); const mails = captures.length;
+    for (const kind of ['code', 'verify', 'renew', 'read']) expect((await call({ ...f, kind, ...(kind === 'verify' ? { code: '123456' } : {}) })).status).toBe(403);
+    expect(await snapshot(f.linkId)).toEqual(before);
+    expect(captures.length).toBe(mails);
+    expect((await db`select count(*)::int n from submission_portal_links where submission_id=${f.requestId}`)[0].n).toBe(1);
+  });
+  it('échéance cohérente écoulée (forme écrite par le cinquième échec) : seul cas réinitialisé', async () => {
+    const f = await seed({ failures: 5, hash: false, req: '-40 minutes', exp: '-20 minutes' });
+    expect((await call({ ...f, kind: 'code' })).status).toBe(200);
+    const row = await snapshot(f.linkId); expect(row.failures).toBe(0); expect(row.code_hash).not.toBeNull();
+  });
+  it('révoqué avec échéance cohérente écoulée : refus et état intact', async () => {
+    const f = await seed({ failures: 5, hash: false, req: '-40 minutes', exp: '-20 minutes' });
+    await db`update submission_portal_links set revoked_at=now()-interval '1 minute' where id=${f.linkId}`;
+    const before = await snapshot(f.linkId);
+    for (const kind of ['code', 'renew', 'verify']) expect((await call({ ...f, kind, code: '123456' })).status).toBe(403);
+    expect(await snapshot(f.linkId)).toEqual(before);
+  });
+  it('demande indépendante : un compteur historique bloqué ne touche pas un autre dossier', async () => {
+    const locked = await seed({ failures: 5, hash: true, req: '-2 hours', exp: '-110 minutes' }); const before = await snapshot(locked.linkId);
+    const other = await fixture(), c = await code(other);
+    expect((await call({ ...other, kind: 'verify', code: c })).status).toBe(200);
+    expect((await call({ ...other, kind: 'read' })).body.id).toBe(other.requestId);
+    expect(await snapshot(locked.linkId)).toEqual(before);
+  });
+  it('nouveau lien : 5 erreurs, sixième essai refusé sans prolonger, fin du délai puis nouveau code', async () => {
+    const f = await fixture(), correct = await code(f); await errors(f, 5, correct);
+    const locked = await snapshot(f.linkId);
+    expect((await call({ ...f, kind: 'verify', code: correct })).status).toBe(403);
+    expect(await snapshot(f.linkId)).toEqual(locked);
+    await elapse(f.linkId);
+    const fresh = await code(f); expect((await call({ ...f, kind: 'verify', code: fresh })).status).toBe(200);
+  });
 });
