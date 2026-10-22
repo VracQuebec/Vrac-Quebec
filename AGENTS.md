@@ -32,5 +32,6 @@
 - Access request numbering (transport_requests.request_number): single-row counter transport_request_number_counter bumped by trigger zz_tr_assign_number, named to run after validation triggers — rejected or failed inserts consume no number (transport_requests_number_seq is deprecated).
 - Personal remblai edits reuse ParcoursForm with no browser draft persistence; original-form payload is allowlisted and separate from reception conditions, and unavailable server projections never simulate saved values.
 - Prepared portal responses normalize first saves and idempotent replays through one rendering path; unmodified or unmarked historical descriptions stay byte-for-byte intact, and private photo references must belong to the exact dossier even when previously listed.
+- Prepared portal release artifacts stay under prepared/remblai-formulaire; the loopback-only generator pins each SQL transition and rights, and non-local mail requires atomic dispatch before mutation to prevent lost-link renewals.
 - Parcours prioritaires : les destinations « Je cherche une dompe » / « Je veux du remblai » viennent de src/lib/navigation/priority-paths.ts ; pied de page public commun PublicContactFooter (numéro via src/lib/public-phone.ts) — une seule source pour éviter les entrées divergentes.
 

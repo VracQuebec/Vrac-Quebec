@@ -1,0 +1,16 @@
+{
+  "inactive": true,
+  "generated_from_reviewed_sources": true,
+  "sha256": {
+    "delivery-mode.ts": "22a9a58a93879b6f0a9865e2901cc89388514e1b43101a0a112b4d9498a532fc",
+    "endpoint.ts": "2465724386575cef97a8fc12700eea866c48303abdd709036af5de4c93fe39b7",
+    "index.ts": "b04bfe730e50dd2591f21206e4db4c040a5b45bf3931628e5ccaf369aa0f7075",
+    "lib/cloud-contract.ts": "accbac4ab4cd920a08c6dc54d175091dba2e9fc170f7f7a29a1bc9cbbb93aada",
+    "lib/conditions.ts": "72e283bc7998e5ada196e1e7e0b04f5b4237cae1e0e5224d5a9c313d6d5d28d5",
+    "lib/public-form.ts": "c282592d6b3b823935730ba9123e019caa8fe53cbe5223794ea0d72abb6c57d3",
+    "lib/service.ts": "192c9260e7539a655ea473a632df2023ee9b6b11d1e33dab998538c25f9a1a07",
+    "original-form-photos.ts": "db514dc9968a7077813c5808b9a438fa572d64841520692c5f7957b48964c5e6",
+    "photo-cleanup.ts": "562e802d74a2378b254504a1ea2638db01ca9402b85bc62762e95ad3c351d79a",
+    "photos.ts": "893e6b5480ec91e0c76b7d816c2d6cff71784fb361247ad404427b4269841ee0"
+  }
+}

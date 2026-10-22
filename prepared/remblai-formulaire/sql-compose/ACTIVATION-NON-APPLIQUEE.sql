@@ -1,0 +1,240 @@
+-- PRÉPARATION UNIQUEMENT. NON APPLIQUÉ EN PRODUCTION. Autorisation distincte requise.
+-- Aucun GRANT, RLS, changement de table/index/colonne ni modification des dossiers existants.
+BEGIN;
+-- 01-renouvellement
+DO $guard$ BEGIN
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_dispatch(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='2da0b80649cfacf5db57fe559adab3c2' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_projection(uuid,boolean)'::regprocedure AND md5(pg_get_functiondef(p.oid))='e4cec3f904e15ec6ef264a22f71298c1' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_enqueue_confirmation(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='7262c4525163637476d42b57c8b63c82' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+END $guard$;
+-- PRÉPARÉ, NON APPLIQUÉ. CORRECTIF ciblé public.exec01_dispatch(jsonb).
+-- Trois blocs seulement : attente des codes, condition de renouvellement, compteur d'erreurs.
+-- Aucun changement de table, permission, quota IP, projection ou action sensible.
+-- code_expires_at est la date du code tant qu'il existe; après cinq erreurs,
+-- code_hash est effacé et code_expires_at devient la fin du délai de 15 minutes.
+-- Les anciens blocages sans date restent refusés (intervention ciblée à autoriser).
+DO $patch$
+DECLARE
+ d text := pg_get_functiondef('public.exec01_dispatch(jsonb)'::regprocedure);
+BEGIN
+ IF md5(d)<>'2da0b80649cfacf5db57fe559adab3c2' THEN RAISE EXCEPTION 'BLOQUÉ : empreinte/signature inattendue'; END IF;
+ IF (length(d)-length(replace(d,$old0$ IF kind='renew' THEN$old0$,'')))/length($old0$ IF kind='renew' THEN$old0$)<>1 THEN RAISE EXCEPTION 'BLOQUÉ : texte inattendu (0)'; END IF;
+ d:=replace(d,$old0$ IF kind='renew' THEN$old0$,$new0$ -- After five incorrect codes, the consumed code becomes a 15-minute lock deadline.
+ -- Lock deadline (code_hash NULL) is distinct from code expiry (code_hash present).
+ -- Only code/verify/renew are gated; verified contacts retain read access.
+ IF kind IN ('code','verify','renew') AND l.failures>=5 THEN
+  -- Trust a lock deadline only in the exact shape written by the fifth failure:
+  -- failures=5, consumed code, deadline between code request +15 and +25 minutes.
+  -- A plain code expiry (request +10 min) or any incomplete or historical state stays locked.
+  IF l.failures<>5 OR l.code_hash IS NOT NULL OR l.code_expires_at IS NULL OR l.code_requested_at IS NULL
+     OR l.code_expires_at<l.code_requested_at+interval '15 minutes'
+     OR l.code_expires_at>l.code_requested_at+interval '25 minutes'
+     OR l.code_expires_at>now() THEN RETURN jsonb_build_object('denied',true); END IF;
+  UPDATE public.submission_portal_links SET failures=0,code_hash=NULL,code_expires_at=NULL WHERE id=l.id;
+  l.failures:=0; l.code_hash:=NULL; l.code_expires_at:=NULL;
+ END IF;
+ IF kind='renew' THEN$new0$);
+ IF (length(d)-length(replace(d,$old1$  IF s.exec01_contact_verified_at IS NULL OR s.exec01_verified_contact_hash IS DISTINCT FROM l.contact_hash OR l.verified_at IS NULL OR l.failures>=5 OR l.code_requested_at>now()-interval '60 seconds' THEN RETURN jsonb_build_object('denied',true); END IF;$old1$,'')))/length($old1$  IF s.exec01_contact_verified_at IS NULL OR s.exec01_verified_contact_hash IS DISTINCT FROM l.contact_hash OR l.verified_at IS NULL OR l.failures>=5 OR l.code_requested_at>now()-interval '60 seconds' THEN RETURN jsonb_build_object('denied',true); END IF;$old1$)<>1 THEN RAISE EXCEPTION 'BLOQUÉ : texte inattendu (1)'; END IF;
+ d:=replace(d,$old1$  IF s.exec01_contact_verified_at IS NULL OR s.exec01_verified_contact_hash IS DISTINCT FROM l.contact_hash OR l.verified_at IS NULL OR l.failures>=5 OR l.code_requested_at>now()-interval '60 seconds' THEN RETURN jsonb_build_object('denied',true); END IF;$old1$,$new1$  IF l.code_requested_at>now()-interval '60 seconds'
+   OR EXISTS(SELECT 1 FROM public.submission_portal_links x WHERE x.submission_id=s.id AND x.created_at>now()-interval '60 seconds')
+   OR (SELECT count(*) FROM public.submission_portal_links x WHERE x.submission_id=s.id AND x.created_at>now()-interval '24 hours')>=5
+  THEN RETURN jsonb_build_object('denied',true); END IF;$new1$);
+ IF (length(d)-length(replace(d,$old2$   UPDATE public.submission_portal_links SET failures=failures+1 WHERE id=l.id;$old2$,'')))/length($old2$   UPDATE public.submission_portal_links SET failures=failures+1 WHERE id=l.id;$old2$)<>1 THEN RAISE EXCEPTION 'BLOQUÉ : texte inattendu (2)'; END IF;
+ d:=replace(d,$old2$   UPDATE public.submission_portal_links SET failures=failures+1 WHERE id=l.id;$old2$,$new2$   UPDATE public.submission_portal_links SET failures=least(failures+1,5),
+    code_hash=CASE WHEN failures>=4 THEN NULL ELSE code_hash END,
+    code_expires_at=CASE WHEN failures>=4 THEN now()+interval '15 minutes' ELSE code_expires_at END,
+    verified_at=NULL WHERE id=l.id;$new2$);
+ IF md5(d)<>'e9d8b2ad33d864aa7a3ba881e78b82cc' THEN RAISE EXCEPTION 'BLOQUÉ : résultat inattendu'; END IF;
+ EXECUTE d;
+END $patch$;
+
+DO $guard$ BEGIN
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_dispatch(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='e9d8b2ad33d864aa7a3ba881e78b82cc' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_projection(uuid,boolean)'::regprocedure AND md5(pg_get_functiondef(p.oid))='e4cec3f904e15ec6ef264a22f71298c1' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_enqueue_confirmation(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='7262c4525163637476d42b57c8b63c82' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+END $guard$;
+
+-- 02-duree
+DO $guard$ BEGIN
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_dispatch(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='e9d8b2ad33d864aa7a3ba881e78b82cc' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_projection(uuid,boolean)'::regprocedure AND md5(pg_get_functiondef(p.oid))='e4cec3f904e15ec6ef264a22f71298c1' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_enqueue_confirmation(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='7262c4525163637476d42b57c8b63c82' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+END $guard$;
+-- PRÉPARÉE UNIQUEMENT — NON APPLIQUÉE. Autorisation explicite requise.
+-- Objet : le lien personnel n'expire plus après 30 jours. Seule la date du
+-- lien change; le code (10 min), le délai de 15 min, la révocation et le
+-- renouvellement restent inchangés. Une demande fermée reste consultable
+-- (lecture) mais les actions restent refusées (availability_status='owner_closed').
+-- Prérequis : 0231 appliquée OU règle de production d'origine. Garde d'arrêt :
+-- la règle doit contenir exactement deux occurrences de l'ancienne durée.
+DO $$
+DECLARE def text; n int;
+BEGIN
+ SELECT pg_get_functiondef('public.exec01_dispatch(jsonb)'::regprocedure) INTO def;
+ n := (length(def) - length(replace(def, 'now()+interval ''30 days''', ''))) / length('now()+interval ''30 days''');
+ IF n <> 2 THEN RAISE EXCEPTION '0232 arrêt : % occurrence(s) au lieu de 2, règle inattendue', n; END IF;
+ EXECUTE replace(def, 'now()+interval ''30 days''', '''infinity''::timestamptz');
+END $$;
+-- Étape SÉPARÉE (modification de données, autorisation distincte) : prolonger
+-- uniquement les liens actifs, jamais les liens révoqués ou déjà remplacés.
+-- UPDATE public.submission_portal_links SET expires_at='infinity'
+--  WHERE revoked_at IS NULL AND expires_at > now();
+-- Retour arrière : réexécuter le même bloc en inversant les deux chaînes
+-- ('infinity'::timestamptz -> now()+interval '30 days'), garde n = 2.
+
+DO $guard$ BEGIN
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_dispatch(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='c3ac1bd209b807dcee431cb5245fd801' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_projection(uuid,boolean)'::regprocedure AND md5(pg_get_functiondef(p.oid))='e4cec3f904e15ec6ef264a22f71298c1' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_enqueue_confirmation(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='7262c4525163637476d42b57c8b63c82' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+END $guard$;
+
+-- 03-formulaire
+DO $guard$ BEGIN
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_dispatch(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='c3ac1bd209b807dcee431cb5245fd801' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_projection(uuid,boolean)'::regprocedure AND md5(pg_get_functiondef(p.oid))='e4cec3f904e15ec6ef264a22f71298c1' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_enqueue_confirmation(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='7262c4525163637476d42b57c8b63c82' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+END $guard$;
+-- PREPARED ONLY: run on disposable LOCAL fixture after EXEC01 schema.
+-- No new columns, tables, indexes, grants or RLS changes. No backfill.
+-- This transforms the installed projection/dispatcher, preserving unrelated link logic.
+-- STOP on unrecognized function text; deployment fingerprint must be pinned after authorized review.
+DO $patch$
+DECLARE projection text; dispatcher text;
+BEGIN
+ projection:=pg_get_functiondef('public.exec01_projection(uuid,boolean)'::regprocedure);
+ dispatcher:=pg_get_functiondef('public.exec01_dispatch(jsonb)'::regprocedure);
+ IF position('''publicForm''' in projection)>0 OR position('a=''modifier'' AND p ? ''publicForm''' in dispatcher)>0
+ OR position('''conditions'',p.reception_conditions,' in projection)=0
+ OR position('IF a=''modifier'' THEN' in dispatcher)=0
+ OR position('''conditions'',(SELECT reception_conditions FROM submission_fill_profile WHERE submission_id=s.id)' in dispatcher)=0
+ THEN RAISE EXCEPTION 'unexpected_reference_STOP'; END IF;
+ projection:=replace(projection,'''conditions'',p.reception_conditions,',$insert$
+ 'conditions',p.reception_conditions,
+ 'publicForm',jsonb_build_object(
+ 'address',s.address,'postalCode',coalesce(to_jsonb(s)->>'postal_code',''),'lat',to_jsonb(s)->'latitude','lng',to_jsonb(s)->'longitude',
+ 'quantityValue',coalesce(s.quantity_value::text,''),'quantityUnit',coalesce(s.quantity_unit,'inconnu'),'quantityUnknown',s.quantity_value IS NULL OR s.quantity_unit='inconnu',
+ 'projectUsage',CASE WHEN s.property_type='Remplissage / remblai' THEN '' ELSE s.property_type END,
+ 'materials',to_jsonb(s.materials),'otherMaterial',coalesce(to_jsonb(s)->>'other_material',''),
+ 'materialDescription','','refusedMaterials','[]'::jsonb,'soilCharacterized','','soilCharacterizedDetails','',
+ 'truckType',coalesce(to_jsonb(s)->>'truck_type_key',''),'desiredDate',coalesce(to_jsonb(s)->>'desired_date',''),'timeframe',coalesce(to_jsonb(s)->>'delivery_timeframe',''),
+ 'accessHeavyTruck',coalesce(to_jsonb(s)->>'access_heavy_truck',''),
+ 'accessDetails',coalesce(nullif(to_jsonb(s)->'access_criteria','null'::jsonb),nullif(s.access_details->'criteres','null'::jsonb),'[]'::jsonb),
+ 'photos',coalesce(nullif(to_jsonb(s)->'photos_meta','null'::jsonb),nullif(s.access_details->'photos','null'::jsonb),
+ (SELECT jsonb_agg(jsonb_build_object('url',x,'category','autre')) FROM jsonb_array_elements_text(coalesce(nullif(to_jsonb(s)->'photos','null'::jsonb),'[]'::jsonb)) x),'[]'::jsonb),
+ 'name',s.name,'phone',coalesce(to_jsonb(s)->>'phone',''),'email',s.email,
+ 'unavailableFields',CASE WHEN coalesce(to_jsonb(s)->>'description','')<>'' AND position('Notes du demandeur : ' in to_jsonb(s)->>'description')=0 THEN '["notes"]'::jsonb ELSE '[]'::jsonb END,
+ 'notes',CASE WHEN position('Notes du demandeur : ' in coalesce(to_jsonb(s)->>'description',''))>0
+ THEN substring(to_jsonb(s)->>'description' from position('Notes du demandeur : ' in to_jsonb(s)->>'description')+length('Notes du demandeur : ')) ELSE '' END),
+ $insert$);
+ EXECUTE projection;
+ -- Fail closed on absent/null versions: SQL <> NULL must never bypass the check.
+ dispatcher:=replace(dispatcher,' SELECT * INTO l FROM public.submission_portal_links WHERE id=', $checks$
+ IF kind IN ('act','photo_authorize') AND (
+  jsonb_typeof(p->'version') IS DISTINCT FROM 'number'
+  OR coalesce(p->>'version','') !~ '^[1-9][0-9]*$'
+  OR coalesce(p->>'operationId','') !~ '^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$'
+  OR coalesce(p->>'inputHash','')=''
+ ) THEN RETURN jsonb_build_object('denied',true); END IF;
+ SELECT * INTO l FROM public.submission_portal_links WHERE id=$checks$);
+ -- A verified dossier does not verify a newly issued or renewed link.
+ dispatcher:=replace(dispatcher, 'IF kind=''read'' THEN RETURN public.exec01_projection(s.id); END IF;',
+ 'IF kind=''read'' THEN IF l.verified_at IS NULL THEN RETURN jsonb_build_object(''denied'',true); END IF; RETURN public.exec01_projection(s.id); END IF;');
+ dispatcher:=replace(dispatcher,'IF kind=''photo_authorize'' THEN',
+ 'IF kind=''photo_authorize'' THEN IF l.verified_at IS NULL OR l.verified_at<now()-interval ''10 minutes'' THEN RETURN jsonb_build_object(''denied'',true); END IF;');
+ dispatcher:=replace(dispatcher,'''conditions'',(SELECT reception_conditions FROM submission_fill_profile WHERE submission_id=s.id)',
+ '''publicForm'',public.exec01_projection(s.id)->''publicForm'',''conditions'',(SELECT reception_conditions FROM submission_fill_profile WHERE submission_id=s.id)');
+ dispatcher:=replace(dispatcher,'IF a=''modifier'' THEN',$edit$
+ IF a='modifier' AND p ? 'publicForm' THEN
+  c:=p->'publicForm';
+  -- A partial or null projection must never overwrite existing values with emptiness.
+  IF jsonb_typeof(c) IS DISTINCT FROM 'object'
+   OR NOT (c ?& ARRAY['address','postalCode','name','phone','email','quantityValue','quantityUnit','quantityUnknown','projectUsage','materials','otherMaterial','accessHeavyTruck','accessDetails','photos','notes'])
+   OR EXISTS(SELECT 1 FROM jsonb_each(c) field WHERE field.value='null'::jsonb)
+   THEN RETURN jsonb_build_object('denied',true); END IF;
+  -- Endpoint applies strict Zod allowlist. RPC independently protects the identity email.
+  IF c->>'email' IS DISTINCT FROM s.email OR length(trim(c->>'address'))<5
+   OR length(trim(c->>'name'))<2 OR jsonb_array_length(c->'materials')<1
+   OR length(regexp_replace(c->>'phone','[^0-9]','','g'))<10 THEN RETURN jsonb_build_object('denied',true); END IF;
+  -- Never interpret an unmarked historical description as recoverable owner notes.
+  IF coalesce(s.description,'')<>'' AND position('Notes du demandeur : ' in s.description)=0
+   AND c->>'notes' IS DISTINCT FROM '' THEN RETURN jsonb_build_object('denied',true); END IF;
+  -- Retain the existing private-file deletion barrier in the original-form branch too.
+  IF to_regclass('public.exec01_photo_files') IS NOT NULL THEN
+   IF EXISTS(SELECT 1 FROM jsonb_array_elements(c->'photos') photo JOIN public.exec01_photo_files f
+    ON 'private:'||f.path=photo->>'url' WHERE f.state IN ('deleting','removed'))
+   THEN RETURN jsonb_build_object('denied',true); END IF;
+  END IF;
+  UPDATE public.submissions SET address=c->>'address',postal_code=c->>'postalCode',
+   name=c->>'name',phone=c->>'phone',
+   quantity_value=CASE WHEN (c->>'quantityUnknown')::boolean OR c->>'quantityValue'='' THEN NULL ELSE replace(c->>'quantityValue',',','.')::numeric END,
+   quantity_unit=CASE WHEN (c->>'quantityUnknown')::boolean THEN 'inconnu' ELSE c->>'quantityUnit' END,
+   quantity=CASE WHEN (c->>'quantityUnknown')::boolean OR c->>'quantityValue'='' THEN 'Je ne sais pas' ELSE (c->>'quantityValue')||' '||(CASE c->>'quantityUnit' WHEN 'voyages' THEN 'voyages de camion' WHEN 'verges3' THEN 'verges³' WHEN 'm3' THEN 'm³' ELSE c->>'quantityUnit' END) END,
+   property_type=CASE WHEN c->>'projectUsage'='' THEN 'Remplissage / remblai' ELSE c->>'projectUsage' END,
+   materials=ARRAY(SELECT jsonb_array_elements_text(c->'materials')),other_material=nullif(c->>'otherMaterial',''),
+   access_heavy_truck=nullif(c->>'accessHeavyTruck',''),access_criteria=ARRAY(SELECT jsonb_array_elements_text(c->'accessDetails')),
+   access_details=coalesce(s.access_details,'{}'::jsonb)||jsonb_build_object('criteres',c->'accessDetails','photos',c->'photos'),
+   photos_meta=c->'photos',photos=ARRAY(SELECT x->>'url' FROM jsonb_array_elements(c->'photos') x),
+   -- Preserve the unparsed description prefix (including older intake summaries).
+   description=CASE WHEN c->>'notes' IS NOT DISTINCT FROM (public.exec01_projection(s.id)->'publicForm'->>'notes') THEN s.description
+    WHEN position('Notes du demandeur : ' in coalesce(s.description,''))>0
+    THEN left(s.description,position('Notes du demandeur : ' in s.description)-1)||'Notes du demandeur : '||(c->>'notes')
+    ELSE coalesce(s.description,'')||E'\n'||'Notes du demandeur : '||(c->>'notes') END,
+   latitude=CASE WHEN c->>'address'=s.address THEN s.latitude ELSE NULL END,
+   longitude=CASE WHEN c->>'address'=s.address THEN s.longitude ELSE NULL END,
+   formatted_address=CASE WHEN c->>'address'=s.address THEN s.formatted_address ELSE NULL END,
+   city=CASE WHEN c->>'address'=s.address THEN s.city ELSE NULL END,
+   geocoding_status=CASE WHEN c->>'address'=s.address THEN s.geocoding_status ELSE 'pending' END,
+   exec01_owner_confirmed_at=NULL,availability_status='unavailable',revalidation_requested_at=now(),availability_source='owner_portal'
+  WHERE id=s.id;
+ ELSIF a='modifier' THEN
+ $edit$);
+ EXECUTE dispatcher;
+END $patch$;
+DO $guard$ BEGIN
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_dispatch(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='0e22563a8ea2559e52cd7717d02921f9' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_projection(uuid,boolean)'::regprocedure AND md5(pg_get_functiondef(p.oid))='effd16af586b2222d7a16c1ce2fcc8fe' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_enqueue_confirmation(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='7262c4525163637476d42b57c8b63c82' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+END $guard$;
+
+-- 04-confirmation-initiale
+DO $guard$ BEGIN
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_dispatch(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='0e22563a8ea2559e52cd7717d02921f9' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_projection(uuid,boolean)'::regprocedure AND md5(pg_get_functiondef(p.oid))='effd16af586b2222d7a16c1ce2fcc8fe' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_enqueue_confirmation(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='7262c4525163637476d42b57c8b63c82' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+END $guard$;
+CREATE OR REPLACE FUNCTION public.exec01_enqueue_confirmation(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions'
+AS $function$
+DECLARE s public.submissions; q bigint;
+BEGIN
+ SELECT * INTO s FROM public.submissions WHERE id=(p->>'requestId')::uuid FOR UPDATE;
+ IF s.id IS NULL OR s.request_type<>'remblai' OR s.parcours_direction IS DISTINCT FROM 'reception'
+ OR coalesce(s.deliver_or_remove,'') ILIKE '%sortir%' OR s.email IS NULL
+ OR encode(digest(lower(trim(s.email)),'sha256'),'hex') IS DISTINCT FROM p->>'contactHash'
+ OR s.email !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'
+ OR lower(trim(s.email)) ~ '@([^@]+\.)?(invalid|test|example|localhost)$|@example\.(com|org|net)$'
+ THEN RETURN jsonb_build_object('denied',true); END IF;
+ IF EXISTS(SELECT 1 FROM suppressed_emails WHERE email=lower(trim(s.email)))
+ OR EXISTS(SELECT 1 FROM email_unsubscribe_tokens WHERE email=lower(trim(s.email)) AND used_at IS NOT NULL)
+ THEN RETURN jsonb_build_object('denied',true); END IF;
+ IF EXISTS(SELECT 1 FROM submission_portal_confirmations WHERE submission_id=s.id)
+ THEN RETURN jsonb_build_object('ok',true,'replay',true); END IF;
+ INSERT INTO submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at)
+ VALUES((p->>'linkId')::uuid,s.id,p->>'secretHash',p->>'contactHash','infinity'::timestamptz);
+ q:=enqueue_email('transactional_emails',(p->'message')||jsonb_build_object(
+  'to',s.email,'purpose','transactional','label','client-confirmation','tracking',false,
+  'idempotency_key','client-confirm-'||s.id,'queued_at',now()));
+ IF q IS NULL THEN RAISE EXCEPTION 'confirmation_not_queued'; END IF;
+ INSERT INTO submission_portal_confirmations(submission_id,link_id,queue_id) VALUES(s.id,(p->>'linkId')::uuid,q);
+ RETURN jsonb_build_object('ok',true,'queued',true);
+END $function$
+;
+DO $guard$ BEGIN
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_dispatch(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='0e22563a8ea2559e52cd7717d02921f9' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_projection(uuid,boolean)'::regprocedure AND md5(pg_get_functiondef(p.oid))='effd16af586b2222d7a16c1ce2fcc8fe' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid='public.exec01_enqueue_confirmation(jsonb)'::regprocedure AND md5(pg_get_functiondef(p.oid))='6a85648de113e2c2c2b8aaf3c1bb9705' AND r.rolname='postgres' AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}' AND pg_get_function_result(p.oid)='jsonb' AND p.prosecdef=true AND to_jsonb(p.proconfig)='["search_path=public, extensions"]'::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;
+END $guard$;
+COMMIT;

@@ -1,5 +1,10 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## Vrac Québec Simple — préparation à l’activation, 22 octobre 22:44 UTC
+- [ ] Achever le paquet serveur autonome exclusivement dans prepared/ et épingler la composition SQL ainsi que ses inverses ciblés depuis les définitions réelles lues sans écriture.
+- [ ] Exécuter les cas obligatoires sur PostgreSQL jetable et distinguer résultats exécutés, simulations et essais hébergés non exécutés.
+- [ ] Livrer matrice hébergée, stratégie des anciens liens, sauvegarde/restauration non vérifiées, coûts et procédure conditionnelle ; aucune activation autorisée.
+
 ## Cohérence du formulaire personnel — 22 octobre, 22:15 UTC
 - [x] Complément 22:38 UTC : empreintes/droits réels lus sans demande ; durée réelle toujours 30 jours ; JSON null historiques, payload incomplet et barrière photos corrigés en préparation ; 71 tests locaux verts, 24 ignorés dont clôture/erreur post-commit. Contrôle exact de référence préparé, non appliqué ; activation et validation hébergée restent bloquées.
 - [x] Complément 22:34 UTC : outils/client liés à Live confirmés, brouillon présent sans preuve d’isolation ; manifeste exact et protocole/retour ciblé documentés dans prepared/remblai-formulaire/ACTIVATION-ET-VALIDATION-ISOLEE.md. Aucun nouvel essai métier ni ressource créée ; arrêt à la préparation.
