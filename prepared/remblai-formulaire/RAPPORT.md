@@ -20,7 +20,7 @@ L'assistant expérimental matériaux est désactivé par défaut. Description/re
 Le courriel propriétaire ne peut pas être changé dans ce parcours. Une récupération d'identité distincte est nécessaire.
 
 ## Tests et preuves
-- Tests automatisés ciblés : contrat strict, validation, projection des données réellement insérées, modification/relecture PostgreSQL jetable, identité récente, refus autre demande, autre courriel, révocation, mauvais secret, champs facultatifs et concurrence. Résultats exacts consignés dans le bilan final du chat.
+- Tests automatisés ciblés : **51 réussis, zéro échec, 24 ignorés**, dont 20 tests du nouveau fichier (11 tests de contrat et 9 tests PostgreSQL). Contrat strict, validation, projection des données réellement insérées, modification/relecture PostgreSQL jetable, identité récente, refus autre demande, autre courriel, révocation, mauvais secret, champs facultatifs et concurrence.
 - Les tests PostgreSQL utilisent uniquement un cluster `/tmp/remblai-form-*` sur loopback 55438, détruit après exécution. Aucune connexion hébergée.
 - Parcours navigateur fictif avec vérification par code TEST → modification de l'adresse, quantité/unité, matériau conditionnel, accès, nom et notes → confirmation → rechargement → relecture. Vérifié à 420×757, 768×1024 et 1280×1800, sans débordement ni erreur JavaScript. Captures `/tmp/browser/remblai-form/`.
 - Tests non exécutés : Cloud isolé complet, vrais appareils, courrier réel, géocodage après édition, stockage hébergé des nouvelles photos. Les suites SQL existantes nécessitant un autre cluster sont ignorées et ne sont pas comptées comme réussies.
