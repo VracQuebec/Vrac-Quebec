@@ -109,7 +109,7 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
     const next = action;
     await run(async () => {
       const id = operation.current ?? crypto.randomUUID(); operation.current = id;
-      let result; try { result = await service.act({ ...session, action: next, confirmed: true, operationId: id, version: row.version, conditions: next === "modifier" && draft ? draft : undefined }); } catch (e) { setAction(null); if (e instanceof PortalCallError && e.failure === "denied") { setVerified(false); throw new Error("Enregistrement refusé : votre vérification a expiré (10 minutes) ou le dossier a changé. Vos changements sont conservés; demandez un nouveau code puis réessayez."); } throw new Error("Enregistrement non effectué. Vos changements sont conservés; vérifiez votre réseau puis réessayez."); }
+      let result: PublicRequest; try { result = await service.act({ ...session, action: next, confirmed: true, operationId: id, version: row.version, conditions: next === "modifier" && draft ? draft : undefined }); } catch (e) { setAction(null); if (e instanceof PortalCallError && e.failure === "denied") { setVerified(false); throw new Error("Enregistrement refusé : votre vérification a expiré (10 minutes) ou le dossier a changé. Vos changements sont conservés; demandez un nouveau code puis réessayez."); } throw new Error("Enregistrement non effectué. Vos changements sont conservés; vérifiez votre réseau puis réessayez."); }
       setRow(result); setDraft(result.conditions); setEditing(false); setAction(null); operation.current = null;
       setMessage(hosted ? "Dossier mis à jour. Aucune livraison autorisée ni réservée." : "Dossier TEST mis à jour. Aucune livraison autorisée ni réservée.");
     });
