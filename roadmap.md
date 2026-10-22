@@ -1,6 +1,7 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## Cohérence du formulaire personnel — 22 octobre, 22:15 UTC
+- [ ] Complément 22:26 UTC : finaliser préservation des valeurs non modifiées, photos indisponibles, validations partagées et preuve locale des deux fonctions ; revoir téléphone/tablette/ordinateur sans production.
 - [x] Formulaire public réutilisé en édition ; projection/enregistrement préparés, 51 tests réussis, 24 ignorés ; parcours fictif vérifié téléphone/tablette/ordinateur ; rapport prepared/remblai-formulaire/RAPPORT.md.
 - [ ] Activation réelle bloquée par assemblage Deno, références SQL/inverse épinglés et validation Cloud/Storage isolée ; autorisation distincte requise. Aucune migration, publication, fonction ou donnée réelle modifiée.
 
