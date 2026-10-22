@@ -45,6 +45,7 @@ export function makeEndpoint(deps:Dependencies) {
   let json:unknown; try {json=JSON.parse(raw);} catch {return reply({error:'Requête invalide.'},400);}
   const parsed=bodySchema.safeParse(json); if(!parsed.success) return reply({error:'Requête invalide.'},400);
   const data=parsed.data;
+  if(data.kind==='act' && data.publicForm && data.conditions) return reply({error:'Choisissez un seul formulaire.'},400);
   try {
    if((data.kind==='issue'||data.kind==='crm'||data.kind==='cleanup') && !await deps.isAdmin(request)) return reply({error:'Accès refusé.'},403);
    if(data.kind==='cleanup') {
@@ -73,7 +74,11 @@ export function makeEndpoint(deps:Dependencies) {
    if(data.kind==='act' && data.action==='modifier' && data.publicForm) {
     const authorized=await deps.rpc({...p,kind:'photo_authorize'});
     if(authorized.denied) return reply({error:'Vérification récente requise.'},403);
-    if(authorized.replay) return reply(authorized.replay);
+    if(authorized.replay) {
+      const replay=authorized.replay as Record<string,unknown>;
+      if(replay.publicForm && deps.storage) {const f=replay.publicForm as {photos:{url:string;category:string}[]};replay.publicForm={...f,photos:await signOriginalPhotos(data.requestId,f.photos,deps.storage)};}
+      return reply(replay);
+    }
     const previous=authorized.publicForm as {photos?:{url:string;category:string}[]} | undefined;
     if(!previous) return reply({error:'Formulaire original indisponible.'},503);
     const photos=data.publicForm.photos.map(p=>{if(typeof p.url!=='string'||typeof p.category!=='string')throw Error('Photo invalide');return {url:p.url,category:p.category};});
