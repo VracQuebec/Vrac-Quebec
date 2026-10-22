@@ -17,7 +17,7 @@ import { previewRepository, previewService, PREVIEW_EVENT, FICTIONAL_ID, startPr
 import type { Action, RequestRecord } from "@/lib/remblai/service";
 import { isLocalServerMode, takeFragment, isolatedService, readIsolatedCrm } from "@/lib/remblai/isolated-client";
 import { REMBLAI_CLOUD_ENABLED, RECEPTION_CLOUD_ENABLED } from "@/lib/remblai/activation";
-import { cloudPortalService, cloudPortalCall } from "@/lib/remblai/cloud-client";
+import { cloudPortalService, cloudPortalCall, PortalCallError } from "@/lib/remblai/cloud-client";
 type PublicRequest = Omit<RequestRecord, "history">;
 const availabilityLabels = { a_confirmer: "À confirmer", available: "Besoin confirmé", suspended: "En pause", owner_closed: "Fermée" };
 const actions: { key: Action; label: string; icon: typeof Check }[] = [{ key: "modifier", label: "Modifier", icon: Edit3 }, { key: "confirmer", label: "Confirmer le besoin", icon: Check }, { key: "pause", label: "Mettre en pause", icon: Pause }, { key: "reprendre", label: "Reprendre", icon: Play }, { key: "fermer", label: "Fermer la demande", icon: X }];
@@ -45,6 +45,8 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
   const [testCode, setTestCode] = useState("");
   const [verified, setVerified] = useState(false);
   const [busy, setBusy] = useState(false);
+  // verify: first opening of a valid link needs a code; invalid: link refused; retry: network/server.
+  const [stage, setStage] = useState<"ok" | "verify" | "invalid" | "retry">("ok");
   const [emailPreview, setEmailPreview] = useState(false);
   const lock = useRef(false);
   const operation = useRef<string | null>(null);
@@ -63,7 +65,14 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
         setRow(result); setDraft(result.conditions);
       }
       setError("");
-    } catch (e) { setRow(null); setError(e instanceof Error ? e.message : "Lecture impossible."); }
+      setStage("ok");
+    } catch (e) {
+      setRow(null);
+      if (hosted && !crm && e instanceof PortalCallError) {
+        if (e.failure === "denied") { setStage("verify"); setError(""); setMessage("Pour protéger votre demande, recevez un code à l’adresse courriel utilisée lors de votre demande, puis entrez-le ci-dessous."); }
+        else { setStage("retry"); setError(e.message); }
+      } else setError(e instanceof Error ? e.message : "Lecture impossible.");
+    }
     finally { setLoading(false); }
   }, [enabled, crm, scenario, local, hosted, service, params, coordinationOnly, crmRequestId]);
   useEffect(() => {
@@ -87,7 +96,7 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
   }
   async function requestCode() {
     if (!session) return;
-    await run(async () => { await service.requestCode(session.linkId, session.secret, session.requestId, async (_link: unknown, value: string) => { setTestCode(value); }); setMessage(hosted ? "Code préparé pour votre contact. Consultez votre courriel." : local ? "Courriel contenant le code capturé sur le serveur local. Aucun envoi réel." : "TEST : code préparé pour le contact fictif vérifié. Aucun courriel envoyé."); setVerified(false); });
+    await run(async () => { try { await service.requestCode(session.linkId, session.secret, session.requestId, async (_link: unknown, value: string) => { setTestCode(value); }); } catch (e) { if (e instanceof PortalCallError && e.failure === "denied") { setStage("invalid"); setMessage(""); throw new Error("Ce lien est invalide, expiré ou révoqué. Aucune donnée privée affichée. Demandez un nouveau lien ou contactez Vrac Québec au 819-592-3495."); } throw e; } setMessage(hosted ? "Code préparé pour votre contact. Consultez votre courriel." : local ? "Courriel contenant le code capturé sur le serveur local. Aucun envoi réel." : "TEST : code préparé pour le contact fictif vérifié. Aucun courriel envoyé."); setVerified(false); });
   }
   async function verify() {
     if (!session) return;
@@ -120,8 +129,8 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
         {!local && !hosted && <div className="mb-5 flex flex-wrap gap-3"><Button asChild variant="outline"><a href={crm ? "/portail/remblai?test=1" : "/admin/apercu-suivi-remblai?test=1"}><ClipboardList className="mr-2 h-4 w-4" />{crm ? "Voir le suivi personnel TEST" : "Voir le dossier CRM TEST"}</a></Button><Button variant="outline" onClick={() => setEmailPreview(v => !v)}><Mail className="mr-2 h-4 w-4" />Aperçu du courriel TEST</Button>{crm && <Button variant="outline" onClick={() => void run(async () => { await resetPreview(); await reload(); })}>Réinitialiser le dossier fictif</Button>}</div>}
         {emailPreview && <section aria-label="Courriel de confirmation TEST" className="mb-6 border-y border-border py-5"><h2 className="font-display text-lg font-semibold">Confirmation de votre demande — Vrac Québec</h2><p className="my-3">Bonjour Camille Exemple, nous avons bien reçu votre demande de remblai.</p><p className="mb-4 text-sm text-muted-foreground">{WAITING_MESSAGE}</p><Button asChild><a href="/portail/remblai?test=1">Suivre ou modifier ma demande</a></Button><p className="mt-3 text-xs text-muted-foreground">Aperçu TEST uniquement : aucun envoi ni consentement promotionnel.</p></section>}
         {loading && <p role="status">Chargement du dossier…</p>}
-        {error && <div role="alert" className="mb-4 border-l-2 border-destructive bg-destructive/10 p-4 text-sm text-destructive">{error}{!row && <Button variant="outline" className="mt-3 block" onClick={() => void run(async () => { if (!session) return; await service.renew(session.linkId, async (_link: unknown, _secret: string) => { setMessage("TEST : nouveau lien préparé pour le contact fictif vérifié. Ancien lien révoqué; aucun courriel envoyé."); }); if(local) setMessage("Nouveau lien capturé pour le contact vérifié. Aucun envoi réel."); })}>Demander un nouveau lien</Button>}</div>}
-        {(local || hosted) && session && !row && !crm && <section className="mb-5 border-y border-border py-5"><h2 className="mb-3 font-display font-semibold">Vérifier le contact avant de consulter le dossier</h2><Button variant="outline" disabled={busy} onClick={() => void requestCode()}>Recevoir un code</Button><div className="mt-3 flex flex-wrap gap-2"><Input className="max-w-48" aria-label="Code de vérification" inputMode="numeric" maxLength={6} value={code} onChange={e => setCode(e.target.value)} /><Button disabled={busy || code.length !== 6} onClick={() => void verify()}>Vérifier le code</Button></div></section>}
+        {error && <div role="alert" className="mb-4 border-l-2 border-destructive bg-destructive/10 p-4 text-sm text-destructive">{error}{!row && stage === "retry" && <Button variant="outline" className="mt-3 block" onClick={() => { setLoading(true); void reload(); }}>Réessayer</Button>}{!row && (!hosted || stage === "invalid") && <Button variant="outline" className="mt-3 block" onClick={() => void run(async () => { if (!session) return; await service.renew(session.linkId, async (_link: unknown, _secret: string) => { setMessage("TEST : nouveau lien préparé pour le contact fictif vérifié. Ancien lien révoqué; aucun courriel envoyé."); }); if(local) setMessage("Nouveau lien capturé pour le contact vérifié. Aucun envoi réel."); })}>Demander un nouveau lien</Button>}</div>}
+        {(local || hosted) && session && !row && !crm && stage !== "invalid" && stage !== "retry" && <section className="mb-5 border-y border-border py-5"><h2 className="mb-3 font-display font-semibold">Vérifier votre identité pour afficher votre demande</h2><Button variant="outline" disabled={busy} onClick={() => void requestCode()}>Recevoir un code</Button><div className="mt-3 flex flex-wrap gap-2"><Input className="max-w-48" aria-label="Code de vérification" inputMode="numeric" maxLength={6} value={code} onChange={e => setCode(e.target.value)} /><Button disabled={busy || code.length !== 6} onClick={() => void verify()}>Vérifier le code</Button></div></section>}
         {message && <p role="status" className="mb-4 text-sm text-muted-foreground">{message}</p>}
         {row && <>
           <header className="mb-5"><div className="flex items-center justify-between gap-2"><p className="text-sm text-muted-foreground">{row.reference} · {row.city}</p><ContextHelp role="proprietaire" articleId="reception" companyId="guide-reception"/></div><h1 className="mt-1 font-display text-3xl font-bold">{crm ? "Dossier remblai — TEST" : "Ma demande de remblai"}</h1><p className="mt-2 text-sm text-muted-foreground">{row.name}</p></header>
