@@ -35,6 +35,6 @@ BEGIN
     code_hash=CASE WHEN failures>=4 THEN NULL ELSE code_hash END,
     code_expires_at=CASE WHEN failures>=4 THEN now()+interval '15 minutes' ELSE code_expires_at END,
     verified_at=NULL WHERE id=l.id;$new2$);
- IF md5(d)<>'447920fb7b5e8902f6cd2e9118c26ef5' THEN RAISE EXCEPTION 'BLOQUÉ : résultat inattendu'; END IF;
+ IF md5(d)<>'e9d8b2ad33d864aa7a3ba881e78b82cc' THEN RAISE EXCEPTION 'BLOQUÉ : résultat inattendu'; END IF;
  EXECUTE d;
 END $patch$;

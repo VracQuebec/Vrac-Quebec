@@ -37,7 +37,7 @@ try {
   await db.unsafe(forward);
   const corrected = await definition();
   await check('empreinte corrigée exacte', async () => {
-    assert.equal((await db`select md5(pg_get_functiondef('public.exec01_dispatch(jsonb)'::regprocedure)) h`)[0].h, '447920fb7b5e8902f6cd2e9118c26ef5');
+    assert.equal((await db`select md5(pg_get_functiondef('public.exec01_dispatch(jsonb)'::regprocedure)) h`)[0].h, 'e9d8b2ad33d864aa7a3ba881e78b82cc');
   });
   await db.unsafe(inverse);
   await check('inverse identique octet pour octet, métadonnées et autre fonction inchangées', async () => {

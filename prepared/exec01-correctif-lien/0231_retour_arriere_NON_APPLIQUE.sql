@@ -8,7 +8,7 @@ DO $patch$
 DECLARE
  d text := pg_get_functiondef('public.exec01_dispatch(jsonb)'::regprocedure);
 BEGIN
- IF md5(d)<>'447920fb7b5e8902f6cd2e9118c26ef5' THEN RAISE EXCEPTION 'BLOQUÉ : empreinte/signature inattendue'; END IF;
+ IF md5(d)<>'e9d8b2ad33d864aa7a3ba881e78b82cc' THEN RAISE EXCEPTION 'BLOQUÉ : empreinte/signature inattendue'; END IF;
  IF (length(d)-length(replace(d,$old0$ -- After five incorrect codes, the consumed code becomes a 15-minute lock deadline.
  -- Lock deadline (code_hash NULL) is distinct from code expiry (code_hash present).
  -- Only code/verify/renew are gated; verified contacts retain read access.
