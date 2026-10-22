@@ -26,6 +26,19 @@
 
 Toute divergence = arrêt et rapport, jamais d’adaptation sur place.
 
+## Complément opérationnel — préparation 21:28 UTC, sans envoi
+
+- Adresse prévue par le propriétaire : `Kassandrapaquette@hotmail.com`. Confirmer qu'elle est dédiée aux essais avant tout envoi autorisé. Un deuxième client fictif distinct reste nécessaire pour tester l'isolation ; ne pas inventer une seconde boîte réelle.
+- Noter les cibles exactes du site, de la base et des fonctions isolées et le paquet déployé. Refuser toute clé, file, tâche ou intégration joignant la production.
+- Créer uniquement après accord les dossiers TEST A1/A2 pour un même client et B1 pour le second. Consigner leurs identifiants exacts, jamais leurs secrets ou codes dans le rapport.
+- Pour chaque courriel, comparer son dossier attendu à celui affiché après le code à six chiffres. A1 doit ouvrir A1, jamais A2 ou B1. Altérer identifiant/secret et combiner le lien A1 avec l'identifiant B1 : refus sans donnée privée. Un lien valide peut être transféré, mais le code reçu à l'adresse du dossier reste nécessaire avant accès non vérifié.
+- Simuler l'échec du service d'envoi puis demander « Réessayer l'envoi du courriel » : même dossier, même lien, clé idempotente identique. Après acceptation, répéter et doubler le clic : aucun second message. L'acceptation du service n'est pas une preuve de livraison en boîte.
+- Renouveler uniquement vers l'adresse enregistrée : nouveau lien, anciens refusés. Vérifier cinq erreurs, sixième sans prolongation, quinze minutes réelles puis nouveau code, sans effet sur l'autre dossier.
+- Perte réseau : distinguer absence de réception serveur et réponse perdue après commit. Relire l'état TEST, puis réessayer sans seconde création ni faux succès.
+- Le scénario de retour arrière SQL concerne uniquement le renouvellement M3. Il restaure la définition, pas les liens ou états créés. Le retour des parcours conserve les ajouts M1/M2 et les index.
+- Nettoyage éventuel : autorisation distincte nommant chaque identifiant TEST. Relire le dossier, son marqueur TEST et les liens associés avant toute opération ; arrêter sur divergence. Privilégier l'archivage prévu pour les dossiers JSC ; aucune suppression générale ni recherche par courriel pour choisir les dossiers.
+- Le délai de réception de cinq minutes est un point d'observation du test, pas une garantie de service. Noter la durée effective, Outlook/iOS/Safari et les résultats ordinateur/mobile.
+
 ## Correspondance avec les essais locaux
 
 Scénarios 1–6 et 9 : couverts localement (`src/test/remblai-correctif-15minutes.test.ts`, `verification-preparation-locale.ts`), délai simulé en déplaçant les dates. Scénarios 7–8 : non couverts (aucun vrai courriel, aucun iPhone réel).

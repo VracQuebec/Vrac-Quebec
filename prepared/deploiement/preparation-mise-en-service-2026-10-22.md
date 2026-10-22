@@ -2,6 +2,7 @@
 
 Relevé du 22 octobre 2026, contrôles locaux terminés vers 21:20 UTC.
 **Verdict : BLOQUÉ. Aucune autorisation d'exécution.**
+Complément de 21:38 UTC : voir `bilan-finalisation-isolee-2026-10-22.md` pour les copies désormais assemblées, RPC durable distincte et retour additif. Ce relevé de 21:20 reste historique, pas le dernier état de préparation.
 
 ## 1. Sauvegarde
 
