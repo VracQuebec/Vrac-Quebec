@@ -410,6 +410,19 @@ body,
   --radius: .5rem;
 }
 .dark .entrepreneur-workspace { --primary: var(--brand); }
+/* Personal follow-up only: accessible brand CTA, restrained radii and readable muted copy. */
+.client-followup {
+  --primary: var(--brand);
+  --primary-foreground: var(--foreground);
+  --radius: .5rem;
+  --muted-foreground: 220 10% 38%;
+  letter-spacing: 0;
+}
+.dark .client-followup { --muted-foreground: 220 10% 70%; }
+.client-followup button { min-height: 2.75rem; }
+@media (prefers-reduced-motion: reduce) {
+  .client-followup * { animation: none !important; transition: none !important; }
+}
 .ent-header { padding-top: var(--ent-safe-top); padding-left: var(--ent-safe-left); padding-right: var(--ent-safe-right); }
 .ent-sidebar { padding-top: var(--ent-safe-top); padding-bottom: var(--ent-safe-bottom); }
 .ent-main { padding: 0 var(--ent-safe-right) calc(max(var(--ent-bottom-h), calc(3.5rem + var(--ent-safe-bottom))) + 1rem) var(--ent-safe-left); }
