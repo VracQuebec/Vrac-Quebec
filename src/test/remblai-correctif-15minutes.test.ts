@@ -5,6 +5,7 @@ import postgres from 'postgres';
 import { readFile } from 'node:fs/promises';
 import { makeEndpoint, type Message } from '../../prepared/exec01b/endpoint';
 import { digest } from '../lib/remblai/service';
+import { unknownConditions } from '../lib/remblai/conditions';
 const enabled = process.env.EXEC01B_LOCAL_TEST === '1';
 const name = `exec01lock_${crypto.randomUUID().replace(/-/g, '')}`;
 const root = postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable', { ssl: false });
@@ -106,7 +107,19 @@ describe.skipIf(!enabled)('EXEC01 five errors / temporary lock — isolated SQL'
     expect((await call({ ...action, confirmed: false })).status).toBe(400);
     await db`update submission_portal_links set verified_at=now()-interval '11 minutes' where id=${next.linkId}`;
     expect((await call(action)).status).toBe(403);
-    for (const sensitive of ['modifier', 'pause', 'fermer']) expect((await call({ ...action, ...f, action: sensitive })).status).toBe(403);
+    for (const sensitive of ['modifier', 'pause', 'fermer']) expect((await call({ ...action, ...f, action: sensitive, ...(sensitive === 'modifier' ? { conditions: unknownConditions() } : {}) })).status).toBe(403);
+  });
+  it('five later errors do not block a previously verified contact from reading', async () => {
+    const f = await fixture(), correct = await code(f); await call({ ...f, kind: 'verify', code: correct }); await allowRenew(f);
+    const fresh = await code(f); await errors(f, 5, fresh);
+    expect((await call({ ...f, kind: 'read' })).body.id).toBe(f.requestId);
+    expect((await call({ ...f, kind: 'act', action: 'pause', confirmed: true, version: 1, operationId: crypto.randomUUID() })).status).toBe(403);
+    expect((await call({ ...f, kind: 'renew' })).status).toBe(403);
+  });
+  it('historical failure counter without a lock deadline fails closed', async () => {
+    const f = await fixture(); await allowRenew(f);
+    await db`update submission_portal_links set failures=6,code_expires_at=NULL where id=${f.linkId}`;
+    for (const kind of ['code', 'renew']) expect((await call({ ...f, kind })).status).toBe(403);
   });
   it('revoked link stays refused even after cooldown', async () => {
     const f = await fixture(), correct = await code(f); await errors(f, 5, correct); await allowRenew(f);
