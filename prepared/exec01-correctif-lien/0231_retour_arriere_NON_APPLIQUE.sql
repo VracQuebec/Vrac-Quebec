@@ -10,24 +10,45 @@ DECLARE
 BEGIN
  IF md5(d)<>'447920fb7b5e8902f6cd2e9118c26ef5' THEN RAISE EXCEPTION 'BLOQUÉ : empreinte/signature inattendue'; END IF;
  IF (length(d)-length(replace(d,$old0$ -- After five incorrect codes, the consumed code becomes a 15-minute lock deadline.
+ -- Lock deadline (code_hash NULL) is distinct from code expiry (code_hash present).
  -- Only code/verify/renew are gated; verified contacts retain read access.
  IF kind IN ('code','verify','renew') AND l.failures>=5 THEN
-  IF l.code_expires_at IS NULL OR l.code_expires_at>now() THEN RETURN jsonb_build_object('denied',true); END IF;
+  -- Trust a lock deadline only in the exact shape written by the fifth failure:
+  -- failures=5, consumed code, deadline between code request +15 and +25 minutes.
+  -- A plain code expiry (request +10 min) or any incomplete or historical state stays locked.
+  IF l.failures<>5 OR l.code_hash IS NOT NULL OR l.code_expires_at IS NULL OR l.code_requested_at IS NULL
+     OR l.code_expires_at<l.code_requested_at+interval '15 minutes'
+     OR l.code_expires_at>l.code_requested_at+interval '25 minutes'
+     OR l.code_expires_at>now() THEN RETURN jsonb_build_object('denied',true); END IF;
   UPDATE public.submission_portal_links SET failures=0,code_hash=NULL,code_expires_at=NULL WHERE id=l.id;
   l.failures:=0; l.code_hash:=NULL; l.code_expires_at:=NULL;
  END IF;
  IF kind='renew' THEN$old0$,'')))/length($old0$ -- After five incorrect codes, the consumed code becomes a 15-minute lock deadline.
+ -- Lock deadline (code_hash NULL) is distinct from code expiry (code_hash present).
  -- Only code/verify/renew are gated; verified contacts retain read access.
  IF kind IN ('code','verify','renew') AND l.failures>=5 THEN
-  IF l.code_expires_at IS NULL OR l.code_expires_at>now() THEN RETURN jsonb_build_object('denied',true); END IF;
+  -- Trust a lock deadline only in the exact shape written by the fifth failure:
+  -- failures=5, consumed code, deadline between code request +15 and +25 minutes.
+  -- A plain code expiry (request +10 min) or any incomplete or historical state stays locked.
+  IF l.failures<>5 OR l.code_hash IS NOT NULL OR l.code_expires_at IS NULL OR l.code_requested_at IS NULL
+     OR l.code_expires_at<l.code_requested_at+interval '15 minutes'
+     OR l.code_expires_at>l.code_requested_at+interval '25 minutes'
+     OR l.code_expires_at>now() THEN RETURN jsonb_build_object('denied',true); END IF;
   UPDATE public.submission_portal_links SET failures=0,code_hash=NULL,code_expires_at=NULL WHERE id=l.id;
   l.failures:=0; l.code_hash:=NULL; l.code_expires_at:=NULL;
  END IF;
  IF kind='renew' THEN$old0$)<>1 THEN RAISE EXCEPTION 'BLOQUÉ : texte inattendu (0)'; END IF;
  d:=replace(d,$old0$ -- After five incorrect codes, the consumed code becomes a 15-minute lock deadline.
+ -- Lock deadline (code_hash NULL) is distinct from code expiry (code_hash present).
  -- Only code/verify/renew are gated; verified contacts retain read access.
  IF kind IN ('code','verify','renew') AND l.failures>=5 THEN
-  IF l.code_expires_at IS NULL OR l.code_expires_at>now() THEN RETURN jsonb_build_object('denied',true); END IF;
+  -- Trust a lock deadline only in the exact shape written by the fifth failure:
+  -- failures=5, consumed code, deadline between code request +15 and +25 minutes.
+  -- A plain code expiry (request +10 min) or any incomplete or historical state stays locked.
+  IF l.failures<>5 OR l.code_hash IS NOT NULL OR l.code_expires_at IS NULL OR l.code_requested_at IS NULL
+     OR l.code_expires_at<l.code_requested_at+interval '15 minutes'
+     OR l.code_expires_at>l.code_requested_at+interval '25 minutes'
+     OR l.code_expires_at>now() THEN RETURN jsonb_build_object('denied',true); END IF;
   UPDATE public.submission_portal_links SET failures=0,code_hash=NULL,code_expires_at=NULL WHERE id=l.id;
   l.failures:=0; l.code_hash:=NULL; l.code_expires_at:=NULL;
  END IF;
