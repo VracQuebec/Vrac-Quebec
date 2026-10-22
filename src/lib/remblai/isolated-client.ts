@@ -25,7 +25,7 @@ export const isolatedService={
  read:(linkId:string,secret:string,requestId:string)=>call<Omit<RequestRecord,'history'>>({kind:'read',linkId,secret,requestId}),
  requestCode:async(linkId:string,secret:string,requestId:string,_deliver:unknown)=>{await call({kind:'code',linkId,secret,requestId});},
  verifyCode:async(linkId:string,secret:string,requestId:string,code:string)=>{await call({kind:'verify',linkId,secret,requestId,code});},
- act:(input:{linkId:string;secret:string;requestId:string;action:Action;operationId:string;version:number;confirmed:boolean;conditions?:unknown})=>call<Omit<RequestRecord,'history'>>({kind:'act',...input}),
+ act:(input:{linkId:string;secret:string;requestId:string;action:Action;operationId:string;version:number;confirmed:boolean;conditions?:unknown;publicForm?:unknown})=>call<Omit<RequestRecord,'history'>>({kind:'act',...input}),
  renew:async(linkId:string,_deliver:unknown)=>{if(!session) throw Error('Lien requis.');await call({kind:'renew',...session,linkId});},
 };
 export async function readIsolatedCrm(requestId:string){return call<RequestRecord>({kind:'crm',requestId});}

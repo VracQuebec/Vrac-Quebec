@@ -1,11 +1,13 @@
 // Application service independent of its repository. The preview supplies fictional
 // memory only. A hosted implementation must supply transactions and protected storage.
 import { conditionsSchema, type ReceptionConditions } from "./conditions";
+import { publicEditPayload, emptyParcoursDraft, type ParcoursDraft, type PublicEdit } from './public-form';
 export type Action = "modifier" | "confirmer" | "pause" | "reprendre" | "fermer";
 export type RequestRecord = {
   id: string; reference: string; name: string; city: string; status: string;
   availability: "a_confirmer" | "available" | "suspended" | "owner_closed";
   lastConfirmed: string | null; version: number; conditions: ReceptionConditions;
+  publicForm?: ParcoursDraft;
   proposals: { id: string; label: string; status: string }[];
   deliveries: { id: string; label: string; status: string }[];
   operationalState?: string;
@@ -66,7 +68,7 @@ export class RemblaiService {
     });
     if (!ok) throw new PortalError("Code invalide, expiré ou vérification bloquée.");
   }
-  async act(input: { linkId: string; secret: string; requestId: string; action: Action; confirmed: boolean; operationId: string; version: number; conditions?: ReceptionConditions }) {
+  async act(input: { linkId: string; secret: string; requestId: string; action: Action; confirmed: boolean; operationId: string; version: number; conditions?: ReceptionConditions; publicForm?: PublicEdit }) {
     return this.repo.transaction(async () => {
       const link = await this.authorize(input.linkId, input.secret, input.requestId);
       if (!input.confirmed) throw new PortalError("Confirmation explicite requise.");
@@ -79,10 +81,19 @@ export class RemblaiService {
       if (!row || row.version !== input.version) throw new PortalError("Le dossier a changé. Relisez-le avant de confirmer.");
       if (row.availability === "owner_closed") throw new PortalError("Ce dossier est fermé. Une réouverture doit être validée.");
       if (input.action === "modifier") {
+        if (input.publicForm) {
+          if (!row.publicForm) throw new PortalError('Les renseignements originaux ne sont pas disponibles.');
+          const form = publicEditPayload({...emptyParcoursDraft, ...input.publicForm});
+          if (form.email !== row.publicForm.email) throw new PortalError('Le courriel propriétaire est protégé.');
+          row.publicForm = {...row.publicForm, ...form, lat: form.address === row.publicForm.address ? row.publicForm.lat : null, lng: form.address === row.publicForm.address ? row.publicForm.lng : null};
+          row.name = form.name;
+        } else {
         const parsed = conditionsSchema.parse(input.conditions);
         // Owners cannot declare an environmental or project validation themselves.
         if (parsed.environmental !== row.conditions.environmental || parsed.projectFit !== row.conditions.projectFit) throw new PortalError("La validation environnementale et du projet est réservée à l’équipe.");
-        row.conditions = parsed; row.availability = "a_confirmer"; row.lastConfirmed = null;
+        row.conditions = parsed;
+        }
+        row.availability = "a_confirmer"; row.lastConfirmed = null;
       } else if (input.action === "pause") row.availability = "suspended";
       else if (input.action === "reprendre") row.availability = "a_confirmer";
       else if (input.action === "fermer") row.availability = "owner_closed";

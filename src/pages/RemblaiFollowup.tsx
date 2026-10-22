@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import ReceptionConditionsForm from "@/components/remblai/ReceptionConditionsForm";
+import ParcoursForm from '@/components/parcours/ParcoursForm';
+import { publicEditPayload, PUBLIC_RECEPTION_STEPS, publicStepError, type ParcoursDraft } from '@/lib/remblai/public-form';
 import ReceptionPhoto from "@/components/remblai/ReceptionPhoto";
 import ReceptionCoordinationPanel from "@/components/remblai/ReceptionCoordinationPanel";
 import ContextHelp from "@/components/help/ContextHelp";
@@ -40,6 +42,7 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
   const [message, setMessage] = useState("");
   const [draft, setDraft] = useState<ReceptionConditions | null>(null);
   const [editing, setEditing] = useState(false);
+  const [formDraft, setFormDraft] = useState<ParcoursDraft | null>(null);
   const [action, setAction] = useState<Action | null>(null);
   const [code, setCode] = useState("");
   const [testCode, setTestCode] = useState("");
@@ -109,19 +112,25 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
     const next = action;
     await run(async () => {
       const id = operation.current ?? crypto.randomUUID(); operation.current = id;
-      let result: PublicRequest; try { result = await service.act({ ...session, action: next, confirmed: true, operationId: id, version: row.version, conditions: next === "modifier" && draft ? draft : undefined }); } catch (e) { setAction(null); if (e instanceof PortalCallError && e.failure === "denied") { setVerified(false); throw new Error("Enregistrement refusé : votre vérification a expiré (10 minutes) ou le dossier a changé. Vos changements sont conservés; demandez un nouveau code puis réessayez."); } throw new Error("Enregistrement non effectué. Vos changements sont conservés; vérifiez votre réseau puis réessayez."); }
+      let result: PublicRequest; try { result = await service.act({ ...session, action: next, confirmed: true, operationId: id, version: row.version, ...(next === 'modifier' && formDraft ? {publicForm: publicEditPayload(formDraft)} : {conditions: next === "modifier" && draft ? draft : undefined}) }); } catch (e) { setAction(null); if (e instanceof PortalCallError && e.failure === "denied") { setVerified(false); throw new Error("Enregistrement refusé : votre vérification a expiré (10 minutes) ou le dossier a changé. Vos changements sont conservés; demandez un nouveau code puis réessayez."); } throw new Error("Enregistrement non effectué. Vos changements sont conservés; vérifiez votre réseau puis réessayez."); }
       setRow(result); setDraft(result.conditions); setEditing(false); setAction(null); operation.current = null;
       setMessage(hosted ? "Dossier mis à jour. Aucune livraison autorisée ni réservée." : "Dossier TEST mis à jour. Aucune livraison autorisée ni réservée.");
     });
   }
   function choose(next: Action) {
-    if (next === "modifier") { setEditing(true); return; }
+    if (next === "modifier") { setFormDraft(row?.publicForm ?? null); setEditing(true); return; }
     operation.current = crypto.randomUUID(); setAction(next);
   }
   function save() {
     const parsed = conditionsSchema.safeParse(draft);
     if (!parsed.success) { setError(parsed.error.issues.map(i => i.message).join(" ")); return; }
     operation.current = crypto.randomUUID(); setAction("modifier");
+  }
+  function savePublic(value: ParcoursDraft) {
+    const issue = PUBLIC_RECEPTION_STEPS.map(step => publicStepError(step,value)).find(Boolean);
+    if (issue) { setError(issue); return; }
+    try { publicEditPayload(value); } catch { setError('Certains renseignements dépassent les limites autorisées.'); return; }
+    setFormDraft(value); operation.current = crypto.randomUUID(); setAction('modifier');
   }
   return <div className="min-h-screen bg-background text-foreground">
     <Helmet><title>Suivi de ma demande de remblai | Vrac Québec</title><meta name="robots" content="noindex, nofollow, noarchive" /><meta name="referrer" content="no-referrer" /></Helmet>
@@ -142,7 +151,7 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
             <section className="mb-5 border-y border-border py-5"><h2 className="mb-3 flex items-center gap-2 font-display font-semibold"><LockKeyhole className="h-4 w-4" />Vérification avant modification</h2>{verified ? <p className="text-sm">Identité vérifiée récemment.</p> : <><Button variant="outline" disabled={busy} onClick={() => void requestCode()}>{local || hosted ? "Recevoir un code" : "Recevoir un code TEST"}</Button>{testCode && <p className="mt-3 text-sm" data-testid="test-code">Code du contact fictif : <strong>{testCode}</strong></p>}<div className="mt-3 flex flex-wrap gap-2"><Input className="max-w-48" aria-label="Code de vérification" inputMode="numeric" maxLength={6} value={code} onChange={e => setCode(e.target.value)} /><Button disabled={busy || code.length !== 6} onClick={() => void verify()}>Vérifier le code</Button></div></>}</section>
             <div className="mb-6 flex flex-wrap gap-2">{actions.filter(a => row.availability === "suspended" ? ["modifier", "reprendre", "fermer"].includes(a.key) : a.key !== "reprendre").map(a => <Button variant={a.key === "fermer" ? "outline" : "secondary"} key={a.key} disabled={busy || !verified} onClick={() => choose(a.key)}><a.icon className="mr-2 h-4 w-4" />{a.label}</Button>)}</div>
           </>}
-          {editing && draft ? <section className="mb-6 border-y border-border py-6"><ReceptionConditionsForm value={draft} onChange={setDraft} /><div className="mt-6 flex flex-wrap gap-3"><Button disabled={busy} onClick={save}>Enregistrer les conditions</Button><Button variant="outline" onClick={() => { setEditing(false); setDraft(row.conditions); }}>Annuler</Button></div></section> : <section className="space-y-4 border-b border-border pb-6"><h2 className="font-display text-xl font-semibold">Conditions de réception</h2><dl className="grid gap-3 text-sm sm:grid-cols-2">{[
+          {editing && row.publicForm ? <section className="mb-6 py-6"><h2 className="mb-4 font-display text-3xl font-bold">Besoin de remplir un terrain ?</h2><ParcoursForm variant="reception" editor={{initial:formDraft ?? row.publicForm, onSave:savePublic, onCancel:()=>{setEditing(false);setFormDraft(null);}, busy}} /></section> : editing && draft ? <section className="mb-6 border-y border-border py-6"><p role="status" className="mb-4 text-sm text-muted-foreground">Les renseignements du formulaire original ne sont pas encore fournis par le service de suivi. Seules les conditions de réception ci-dessous peuvent être enregistrées.</p><ReceptionConditionsForm value={draft} onChange={setDraft} /><div className="mt-6 flex flex-wrap gap-3"><Button disabled={busy} onClick={save}>Enregistrer les conditions</Button><Button variant="outline" onClick={() => { setEditing(false); setDraft(row.conditions); }}>Annuler</Button></div></section> : <section className="space-y-4 border-b border-border pb-6"><h2 className="font-display text-xl font-semibold">Conditions de réception</h2><dl className="grid gap-3 text-sm sm:grid-cols-2">{[
             ["Quantité totale", quantityLabel(row.conditions.total, row.conditions.unit)], ["Minimum par livraison", quantityLabel(row.conditions.minimumDelivery, row.conditions.unit)], ["Minimum par journée", quantityLabel(row.conditions.minimumDay, row.conditions.unit)], ["Réception progressive", row.conditions.progressive], ["Taille maximale de roche", row.conditions.maxRockCm == null ? "Inconnue" : `${row.conditions.maxRockCm} cm`], ["Compositions mixtes", `${row.conditions.mixed} — ${row.conditions.mixedDetails ?? "Composition inconnue"}`], ["Accès", row.conditions.access ?? "Inconnu"], ["Horaires", row.conditions.hours ?? "Inconnus"], ["Présence nécessaire", row.conditions.presence], ["Consignes", row.conditions.instructions ?? "Inconnues"], ["Mode souhaité", row.conditions.mode], ["Période et créneaux", `${row.conditions.periodStart ?? "Inconnu"} → ${row.conditions.periodEnd ?? "Inconnu"}; ${row.conditions.slots ?? "Non renseignés"}`], ["Conditions explicites", row.conditions.explicitConditions ?? "Inconnues"], ["Admissibilité environnementale/documentaire", row.conditions.environmental], ["Adéquation au projet", row.conditions.projectFit], ["Communications promotionnelles", row.conditions.promotional ? "Consentement explicite" : "Aucun consentement"],
           ].map(([label, value]) => <div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 break-words">{value}</dd></div>)}</dl><h3 className="font-semibold">Préférences propriétaire — matériaux</h3><div className="flex flex-wrap gap-2">{row.conditions.materials.map(m => <Badge variant="outline" key={m.name}>{m.name} : {m.stance.replace(/_/g, " ")}</Badge>)}</div><h3 className="font-semibold">Véhicules</h3><div className="flex flex-wrap gap-2">{row.conditions.vehicles.map(v => <Badge variant="outline" key={v.name}>{v.name} : {v.stance.replace(/_/g, " ")}</Badge>)}</div><p className="text-sm text-muted-foreground">Enregistrer ces préférences ne réserve ni n’autorise une livraison. L’admissibilité environnementale et l’adéquation au projet doivent être validées séparément.</p>{row.conditions.photos.length > 0 && <div className="grid grid-cols-2 gap-3">{row.conditions.photos.map((p, i) => <ReceptionPhoto key={i} photo={p} />)}</div>}</section>}
           {row.operationalState && <p className="mt-5 text-sm text-muted-foreground">{row.operationalState}</p>}</>}
