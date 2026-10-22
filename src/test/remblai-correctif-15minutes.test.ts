@@ -50,6 +50,10 @@ async function errors(f: Link, n: number, correct: string) {
 async function allowRenew(f: Link) {
   await db`update submission_portal_links set created_at=now()-interval '2 minutes',code_requested_at=now()-interval '61 seconds' where submission_id=${f.requestId}`;
 }
+// Simulates the 15-minute wait: request time and lock deadline move back together (shape preserved).
+async function elapse(linkId: string) {
+  await db`update submission_portal_links set code_requested_at=code_requested_at-(code_expires_at-now())-interval '1 second',code_expires_at=now()-interval '1 second' where id=${linkId}`;
+}
 beforeAll(async () => {
   if (!enabled) return;
   const info = (await root`select current_setting('data_directory') d,inet_server_addr()::text host,inet_server_port() port`)[0];
@@ -79,7 +83,7 @@ describe.skipIf(!enabled)('EXEC01 five errors / temporary lock — isolated SQL'
     expect(row.seconds).toBeGreaterThan(899); expect(row.seconds).toBeLessThanOrEqual(900);
     await db`update submission_portal_links set code_expires_at=now()+interval '1 second' where id=${f.linkId}`;
     expect((await call({ ...f, kind: 'code' })).status).toBe(403);
-    await db`update submission_portal_links set code_expires_at=now()-interval '1 second' where id=${f.linkId}`;
+    await elapse(f.linkId);
     expect((await call({ ...f, kind: 'verify', code: correct })).status).toBe(403);
     const fresh = await code(f);
     expect((await call({ ...f, kind: 'verify', code: fresh })).status).toBe(200);
@@ -87,7 +91,7 @@ describe.skipIf(!enabled)('EXEC01 five errors / temporary lock — isolated SQL'
   });
   it('expired lock allows renewal, but no read or sensitive action before verification', async () => {
     const f = await fixture(), correct = await code(f); await errors(f, 5, correct); await allowRenew(f);
-    await db`update submission_portal_links set code_expires_at=now()-interval '1 second',expires_at=now()-interval '1 day' where id=${f.linkId}`;
+    await elapse(f.linkId); await db`update submission_portal_links set expires_at=now()-interval '1 day' where id=${f.linkId}`;
     expect((await call({ ...f, kind: 'renew' })).status).toBe(200);
     const next = capturedLink();
     expect((await call({ ...next, kind: 'read' })).status).toBe(403);
