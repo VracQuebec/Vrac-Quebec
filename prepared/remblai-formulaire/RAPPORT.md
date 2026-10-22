@@ -1,5 +1,10 @@
 # Cohérence du formulaire personnel — préparation uniquement
 
+## État courant — 22 octobre 2026, 22:56 UTC
+Le bilan courant est `BILAN-VRAC-QUEBEC-SIMPLE.md`. Paquet Deno autonome livré sous `serveur/`, composition exacte de trois fonctions et inverses sous `sql-compose/`. Les anciens paragraphes ci-dessous décrivent les limites des sessions précédentes, pas l’état courant. **PRÊT POUR LES TESTS ISOLÉS**, activation toujours interdite et validation hébergée non exécutée.
+
+Résultats courants : 85 tests locaux réussis (24 ignorés dans ce passage), puis 54 tests dans le second cluster, dont les 24 précédemment ignorés tous exécutés ; 139 tests Vitest distincts réussis, zéro échec final, zéro cas restant ignoré dans ces suites. Deux tests Deno réussis ; dix contrôles locaux supplémentaires. Comparaison des sept étapes et réouverture fictive revalidées aux trois tailles ; aucune validation hébergée ni vraie communication.
+
 ## Complément final — session du 22 octobre, 22:38 UTC
 
 Lecture seule réelle, 22:39 UTC :
