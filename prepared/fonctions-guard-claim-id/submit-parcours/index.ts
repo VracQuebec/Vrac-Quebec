@@ -11,7 +11,8 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { geocode } from '../../../supabase/functions/_shared/vqos/runtime.ts';
 import { clientIp, GuardError } from '../../../supabase/functions/_shared/public-guard.ts';
-import { classifyConfirmation, type ConfirmationStatus } from '../../../supabase/functions/submit-parcours/confirmation-status.ts';
+import { deliveryResult } from '../_shared/delivery-result.ts';
+import type { MailState } from '../_shared/mail-status.ts';
 import { parcoursFingerprint } from '../../../supabase/functions/submit-parcours/dedupe-flow.ts';
 import { runClaimedCreate, rejectedInsert } from '../_shared/claimed-create.ts';
 import { readMailState, rememberMailState } from '../_shared/mail-status.ts';
@@ -67,7 +68,7 @@ function db() {
   });
 }
 
-async function sendEmail(payload: Record<string, unknown>): Promise<ConfirmationStatus> {
+async function sendEmail(payload: Record<string, unknown>): Promise<MailState> {
   try {
     const res = await fetchWithTimeout(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
       method: 'POST',
@@ -77,17 +78,16 @@ async function sendEmail(payload: Record<string, unknown>): Promise<Confirmation
       },
       body: JSON.stringify(payload),
     }, 15_000);
-    const status = classifyConfirmation(res.ok, await res.json().catch(() => null));
+    const status = deliveryResult(res.ok, await res.json().catch(() => null));
     if (status === 'failed') {
       logEventAsync({ source: 'submit_parcours', event: 'email.failed', level: 'warn', refId: String(payload.submissionId ?? ''), context: { template: payload.templateName, http: res.status } });
     }
     return status;
   } catch (e) {
     logEventAsync({
-      source: 'submit_parcours', event: 'email.failed', level: 'warn',
-      message: e instanceof Error ? e.message : String(e),
+      source: 'submit_parcours', event: 'email.unknown', level: 'warn',
     });
-    return 'failed';
+    return 'unknown';
   }
 }
 

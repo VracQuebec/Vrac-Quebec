@@ -6,7 +6,8 @@ export async function readMailState(sb: any, claimId: string): Promise<MailState
   const v=data?.payload?.email_status;
   return ['queued','failed','not_sent'].includes(v) ? v : 'unknown';
 }
-export async function rememberMailState(sb: any, claimId: string, status: Exclude<MailState,'unknown'>) {
+export async function rememberMailState(sb: any, claimId: string, status: MailState) {
+  if (status === 'unknown') return; // A lost response never overwrites proven acceptance.
   const { error }=await sb.rpc('guard_email_status',{p_claim_id:claimId,p_status:status});
   if(error) console.warn(JSON.stringify({event:'guard.email_status_unavailable'}));
 }
