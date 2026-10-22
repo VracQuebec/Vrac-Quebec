@@ -1,5 +1,9 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## Courriel de confirmation — design en aperçu, 22 octobre 23:13 UTC
+- [ ] Refaire uniquement le rendu préparé existant, conserver variables/lien/enveloppe, sans fonction active ou envoi.
+- [ ] Valider long nom/valeurs absentes/liens et aperçu téléphone/tablette/ordinateur ; documenter désabonnement fournisseur non certifié.
+
 ## Vrac Québec Simple — validation complète demandée, 22 octobre 22:59 UTC
 - [x] Composition/inverses et remblai/vrac relus ; défauts photos/unknown/manuelle corrigés en préparation, sept références et cinq étapes, 196 Vitest + 3 Deno + 10 contrôles locaux ; droits relus sans écriture.
 - [x] Solde Pro 510,68 crédits et base 5 006 814 355 octets lus ; tailles/date sauvegardes non accessibles, cible conteneurs existante la moins coûteuse mais non fournie ici.
