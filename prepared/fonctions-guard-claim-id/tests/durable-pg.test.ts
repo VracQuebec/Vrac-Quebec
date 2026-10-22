@@ -13,9 +13,9 @@ const root = postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=dis
 const db = postgres(`postgresql://lovable@127.0.0.1:55439/${name}?sslmode=disable`);
 const guard = (fp: string) => ({ scope: 'isolated', identity: 'test@test.invalid', fingerprint: fp, ip: null });
 const rpcNames: Record<string, string> = {
-  guard_claim: 'select guard_claim($1,$2,$3,$4::jsonb,$5,$6) r',
-  guard_claim_durable: 'select guard_claim_durable($1,$2,$3,$4::jsonb,$5,$6) r',
-  guard_complete: 'select guard_complete($1::uuid,$2::jsonb) r',
+  guard_claim: 'select guard_claim($1,$2,$3,$4::text::jsonb,$5,$6) r',
+  guard_claim_durable: 'select guard_claim_durable($1,$2,$3,$4::text::jsonb,$5,$6) r',
+  guard_complete: 'select guard_complete($1::uuid,$2::text::jsonb) r',
   guard_release: 'select guard_release($1::uuid,$2) r',
 };
 const sb = {
