@@ -1,5 +1,9 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## Mise en service ciblée EXEC-01 — 22 octobre, 21:20 UTC
+- [x] Vérifier M1/M2, renouvellement et inverse, relever catalogue en lecture seule et préparer l'ordre conditionnel : prepared/deploiement/preparation-mise-en-service-2026-10-22.md ; 191 contrôles locaux réussis.
+- [ ] Mise en service BLOQUÉE : paquet submit-parcours par identifiant exact et retour opérationnel M1/M2 non finalisés ; durée maximale hébergée non prouvée ; timestamp UTC de sauvegarde à fournir et autorisation explicite requise. Aucun changement en production.
+
 ## Correctif lien personnel — 22 octobre 2026
 - [x] Complément 20:11 UTC : messages/protocole préparés, compteurs fictifs analysés, inverse exact revérifié : 54 tests + 10 contrôles locaux; production/interface/SQL préparé inchangés. Bilan : prepared/exec01-correctif-lien/BILAN-PREPARATION-2011-UTC.md.
 - [ ] Blocage avant déploiement : date historique de code passée peut être interprétée comme fin d’attente et remettre le compteur à zéro; garde/provenance à résoudre et retester sans réparation réelle automatique.
