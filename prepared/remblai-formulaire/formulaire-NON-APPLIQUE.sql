@@ -22,8 +22,8 @@ BEGIN
  'materialDescription','','refusedMaterials','[]'::jsonb,'soilCharacterized','','soilCharacterizedDetails','',
  'truckType',coalesce(to_jsonb(s)->>'truck_type_key',''),'desiredDate',coalesce(to_jsonb(s)->>'desired_date',''),'timeframe',coalesce(to_jsonb(s)->>'delivery_timeframe',''),
  'accessHeavyTruck',coalesce(to_jsonb(s)->>'access_heavy_truck',''),
- 'accessDetails',coalesce(nullif(to_jsonb(s)->'access_criteria','null'::jsonb),s.access_details->'criteres','[]'::jsonb),
- 'photos',coalesce(nullif(to_jsonb(s)->'photos_meta','null'::jsonb),s.access_details->'photos',
+ 'accessDetails',coalesce(nullif(to_jsonb(s)->'access_criteria','null'::jsonb),nullif(s.access_details->'criteres','null'::jsonb),'[]'::jsonb),
+ 'photos',coalesce(nullif(to_jsonb(s)->'photos_meta','null'::jsonb),nullif(s.access_details->'photos','null'::jsonb),
  (SELECT jsonb_agg(jsonb_build_object('url',x,'category','autre')) FROM jsonb_array_elements_text(coalesce(nullif(to_jsonb(s)->'photos','null'::jsonb),'[]'::jsonb)) x),'[]'::jsonb),
  'name',s.name,'phone',coalesce(to_jsonb(s)->>'phone',''),'email',s.email,
  'unavailableFields',CASE WHEN coalesce(to_jsonb(s)->>'description','')<>'' AND position('Notes du demandeur : ' in to_jsonb(s)->>'description')=0 THEN '["notes"]'::jsonb ELSE '[]'::jsonb END,
@@ -43,6 +43,12 @@ BEGIN
   -- Never interpret an unmarked historical description as recoverable owner notes.
   IF coalesce(s.description,'')<>'' AND position('Notes du demandeur : ' in s.description)=0
    AND c->>'notes' IS DISTINCT FROM '' THEN RETURN jsonb_build_object('denied',true); END IF;
+  -- Retain the existing private-file deletion barrier in the original-form branch too.
+  IF to_regclass('public.exec01_photo_files') IS NOT NULL THEN
+   IF EXISTS(SELECT 1 FROM jsonb_array_elements(c->'photos') photo JOIN public.exec01_photo_files f
+    ON 'private:'||f.path=photo->>'url' WHERE f.state IN ('deleting','removed'))
+   THEN RETURN jsonb_build_object('denied',true); END IF;
+  END IF;
   UPDATE public.submissions SET address=c->>'address',postal_code=c->>'postalCode',
    name=c->>'name',phone=c->>'phone',
    quantity_value=CASE WHEN (c->>'quantityUnknown')::boolean OR c->>'quantityValue'='' THEN NULL ELSE replace(c->>'quantityValue',',','.')::numeric END,
