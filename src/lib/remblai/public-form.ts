@@ -12,6 +12,7 @@ export interface ParcoursDraft {
   accessHeavyTruck: string; accessDetails: string[];
   photos: { url: string; category: PhotoCategoryKey; signedUrl?: string }[];
   name: string; phone: string; email: string; notes: string;
+  unavailableFields?: string[];
 }
 export const emptyParcoursDraft: ParcoursDraft = {
   address: '', postalCode: '', lat: null, lng: null, quantityValue: '', quantityUnit: 'voyages', quantityUnknown: false,
@@ -22,6 +23,7 @@ export const emptyParcoursDraft: ParcoursDraft = {
 export const PUBLIC_RECEPTION_STEPS = ['address', 'quantity', 'project', 'material', 'access', 'photos', 'contact'] as const;
 export function publicStepError(step: string, data: ParcoursDraft): string | null {
   if (step === 'address' && data.address.trim().length < 5) return "Inscrivez l'adresse du chantier (au moins 5 caractères) pour continuer.";
+  if (step === 'quantity' && !data.quantityUnknown && !/^\d*(?:[.,]\d+)?$/.test(data.quantityValue)) return 'Indiquez une quantité valide ou choisissez « Je ne sais pas ».';
   if (step === 'material' && data.materials.length === 0) return 'Choisissez au moins un matériau pour continuer.';
   if (step === 'contact') {
     const miss: string[] = [];

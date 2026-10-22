@@ -25,6 +25,12 @@ export interface Repository {
   putResult(id: string, request: RequestRecord): Promise<void>;
 }
 export class PortalError extends Error {}
+// A transport success alone never proves that the exact dossier was saved.
+export function assertSavedRequest(result: unknown, requestId: string, version: number): asserts result is Omit<RequestRecord, 'history'> {
+  if (!result || typeof result !== 'object') throw new PortalError('Enregistrement non confirmé.');
+  const row = result as Partial<RequestRecord>;
+  if (row.id !== requestId || !Number.isInteger(row.version) || typeof row.version !== 'number' || row.version <= version || !row.conditions || !Array.isArray(row.proposals) || !Array.isArray(row.deliveries)) throw new PortalError('Enregistrement non confirmé pour cette demande.');
+}
 export async function digest(value: string): Promise<string> {
   const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, "0")).join("");
@@ -85,6 +91,7 @@ export class RemblaiService {
           if (!row.publicForm) throw new PortalError('Les renseignements originaux ne sont pas disponibles.');
           const form = publicEditPayload({...emptyParcoursDraft, ...input.publicForm});
           if (form.email !== row.publicForm.email) throw new PortalError('Le courriel propriétaire est protégé.');
+          if (row.publicForm.unavailableFields?.includes('notes') && form.notes !== row.publicForm.notes) throw new PortalError('Les anciennes précisions sont protégées.');
           row.publicForm = {...row.publicForm, ...form, lat: form.address === row.publicForm.address ? row.publicForm.lat : null, lng: form.address === row.publicForm.address ? row.publicForm.lng : null};
           row.name = form.name;
         } else {

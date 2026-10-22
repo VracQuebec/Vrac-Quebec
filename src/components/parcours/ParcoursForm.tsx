@@ -39,7 +39,7 @@ import {
 import { buildHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff } from "@/lib/parcours/handoff";
 import { isFeatureEnabled } from "@/lib/flags";
 import { Button } from "@/components/ui/button";
-import { emptyParcoursDraft as emptyDraft, publicStepError, type ParcoursDraft as Draft } from "@/lib/remblai/public-form";
+import { emptyParcoursDraft as emptyDraft, PUBLIC_RECEPTION_STEPS, publicStepError, type ParcoursDraft as Draft } from "@/lib/remblai/public-form";
 import MaterialAssistantStep from "@/components/parcours/MaterialAssistantStep";
 import { assistantNotes, type EnvironmentAnswer } from "@/lib/parcours/assistant-materiaux";
 
@@ -50,7 +50,7 @@ type StepKey =
   | "access" | "photos" | "contact";
 
 const STEPS: Record<ParcoursVariant, StepKey[]> = {
-  reception: ["address", "quantity", "project", "material", "access", "photos", "contact"],
+  reception: [...PUBLIC_RECEPTION_STEPS],
   evacuation: ["material", "quantity", "address", "date", "truck", "access", "photos", "contact"],
 };
 
@@ -105,6 +105,7 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
     } catch { return false; }
   });
   const [uploading, setUploading] = useState(false);
+  const [unavailablePhotos, setUnavailablePhotos] = useState<string[]>([]);
   const [photoCategory, setPhotoCategory] = useState<PhotoCategoryKey>("materiau");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -460,6 +461,7 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
       case "project":
         return (
           <div className="grid gap-2 sm:grid-cols-2">
+            {editor && data.projectUsage && !PROJECT_USAGE_OPTIONS.includes(data.projectUsage) && <p className="text-sm text-muted-foreground sm:col-span-2">Réponse enregistrée : {data.projectUsage}. Elle sera conservée si vous ne choisissez pas une autre réponse.</p>}
             {PROJECT_USAGE_OPTIONS.map((p) => (
               <button key={p} type="button" onClick={() => set({ projectUsage: data.projectUsage === p ? "" : p })}
                 className={choiceCls(data.projectUsage === p)}>
@@ -600,7 +602,7 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
               <div className="grid grid-cols-3 gap-2">
                 {data.photos.map((p, i) => (
                   <div key={p.url} className="relative">
-                    <img src={p.signedUrl ?? p.url} alt={p.category} className="h-20 w-full rounded object-cover" />
+                    {unavailablePhotos.includes(p.url) || (p.url.startsWith('private:') && !p.signedUrl) ? <p role="status" className="flex h-20 items-center rounded bg-muted px-2 text-xs text-muted-foreground">Photo indisponible. Référence conservée.</p> : <img src={p.signedUrl ?? p.url} alt={p.category} onError={() => setUnavailablePhotos(previous => previous.includes(p.url) ? previous : [...previous, p.url])} className="h-20 w-full rounded object-cover" />}
                     <span className="absolute inset-x-0 bottom-0 truncate bg-foreground/70 px-1 py-0.5 text-[10px] text-background">
                       {p.category}
                     </span>
@@ -625,7 +627,7 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
               placeholder="Téléphone *" autoComplete="tel" className={inputCls} />
             <input readOnly={!!editor} aria-label="Courriel *" type="email" inputMode="email" value={data.email} onChange={(e) => set({ email: e.target.value })}
               placeholder="Courriel *" autoComplete="email" className={inputCls} />
-            <textarea value={data.notes} onChange={(e) => set({ notes: e.target.value })} rows={3}
+            <textarea readOnly={!!editor && data.unavailableFields?.includes('notes')} value={data.notes} onChange={(e) => set({ notes: e.target.value })} rows={3}
               placeholder="Précisions (optionnel)" className={`${inputCls} resize-none`} />
             <input ref={honeypot} type="text" name="website" tabIndex={-1} autoComplete="off"
               aria-hidden className="hidden" />
@@ -667,6 +669,7 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
 
       {error && editor && <p role="alert" className="mt-3 text-destructive">{error}</p>}
       {editor && step === "contact" && <p className="mt-3 text-sm text-muted-foreground">Le courriel associé à votre lien personnel ne peut pas être modifié ici.</p>}
+      {editor && step === "contact" && data.unavailableFields?.includes('notes') && <p role="status" className="mt-3 text-sm text-muted-foreground">Les anciennes précisions ne peuvent pas être distinguées de leur résumé avec certitude. Elles restent conservées intégralement, sans modification.</p>}
       {blockedReason() && (
         <p role="status" className="mt-4 font-body text-sm text-destructive">{blockedReason()}</p>
       )}
