@@ -13,7 +13,6 @@ import RequestOverview from "@/components/remblai/RequestOverview";
 import ReceptionCoordinationPanel from "@/components/remblai/ReceptionCoordinationPanel";
 import RequestDetails from "@/components/remblai/RequestDetails";
 import RequestActivity from "@/components/remblai/RequestActivity";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import RelatedServicesPanel from "@/components/marketplace/RelatedServicesPanel";
 import OwnerCommunicationPreferences from "@/components/marketing/OwnerCommunicationPreferences";
 import { conditionsSchema, WAITING_MESSAGE, type ReceptionConditions } from "@/lib/remblai/conditions";

@@ -11,7 +11,7 @@ export default function RequestOverview({ row, crm = false }: { row: Row; crm?: 
   const closed = row.availability === 'owner_closed';
   const materials = requestedMaterials(row);
   const steps = ['Demande reçue', ...(proposalAvailable(row) ? ['Proposition disponible'] : []), ...(row.availability === 'available' && row.lastConfirmed ? ['Besoin confirmé'] : []), ...(confirmedDelivery(row) ? ['Livraison confirmée'] : []), ...(paused ? ['Demande en pause'] : []), ...(closed ? ['Demande fermée'] : [])];
-  const waiting = paused ? 'Votre demande est en pause. Aucune nouvelle réception n’est autorisée par cette pause.' : closed ? 'Votre demande est fermée. Votre dossier est conservé; aucune nouvelle livraison n’est autorisée.' : confirmedDelivery(row) ? 'Une livraison est confirmée. Consultez les renseignements disponibles ci-dessous.' : proposalAvailable(row) ? 'Une proposition vous a été transmise. Elle ne constitue pas une réservation ni une confirmation de livraison.' : WAITING_MESSAGE;
+  const waiting = paused ? 'Votre demande est en pause. La mettre en pause ne confirme ni ne réserve une livraison. Les renseignements déjà liés à votre dossier restent consultables ci-dessous.' : closed ? 'Votre demande est fermée. Votre dossier est conservé; aucune nouvelle livraison n’est autorisée.' : confirmedDelivery(row) ? 'Une livraison est confirmée. Consultez les renseignements disponibles ci-dessous.' : proposalAvailable(row) ? 'Une proposition vous a été transmise. Elle ne constitue pas une réservation ni une confirmation de livraison.' : WAITING_MESSAGE;
   return <>
     <header className="mb-6 space-y-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
