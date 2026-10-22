@@ -1,5 +1,10 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## Suivi client — refonte visuelle, 22 octobre 23:23 UTC
+- [x] États/données/actions analysés; présentation personnelle refaite, protections et handlers conservés.
+- [x] 33 combinaisons fictives à 360/768/1280 px et parcours des actions réussis; 58 tests réussis, 22 SQL ignorés; compilation OK.
+- [x] Bilan et limites : docs/audit/suivi-client-refonte-2026-10-22.md; aucune publication, fonction serveur, migration ou donnée réelle.
+
 ## Courriel de confirmation — design en aperçu, 22 octobre 23:13 UTC
 - [x] Refaire le rendu préparé existant via prepared/exec01b/confirmation-email.ts ; sujet/contenu/logo/coordonnées, URL fournie et enveloppe inchangés, aucune fonction active ou envoi.
 - [x] 5 tests ciblés + 91 régressions locaux réussis (24 ignorés), 6 aperçus téléphone/tablette/ordinateur inspectés ; prepared/exec01b/CONFIRMATION-DESIGN-APERCU.md.
