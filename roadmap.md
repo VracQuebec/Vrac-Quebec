@@ -1,5 +1,10 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## Courriel de confirmation — design en aperçu, 22 octobre 23:13 UTC
+- [x] Refaire le rendu préparé existant via prepared/exec01b/confirmation-email.ts ; sujet/contenu/logo/coordonnées, URL fournie et enveloppe inchangés, aucune fonction active ou envoi.
+- [x] 5 tests ciblés + 91 régressions locaux réussis (24 ignorés), 6 aperçus téléphone/tablette/ordinateur inspectés ; prepared/exec01b/CONFIRMATION-DESIGN-APERCU.md.
+- [ ] Activation du design : attend autorisation distincte et vérification/raccordement du lien visible de désabonnement existant ; Outlook/Gmail/Apple Mail réels non testés, aucun envoi autorisé.
+
 ## Vrac Québec Simple — validation complète demandée, 22 octobre 22:59 UTC
 - [x] Composition/inverses et remblai/vrac relus ; défauts photos/unknown/manuelle corrigés en préparation, sept références et cinq étapes, 196 Vitest + 3 Deno + 10 contrôles locaux ; droits relus sans écriture.
 - [x] Solde Pro 510,68 crédits et base 5 006 814 355 octets lus ; tailles/date sauvegardes non accessibles, cible conteneurs existante la moins coûteuse mais non fournie ici.

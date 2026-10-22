@@ -34,5 +34,6 @@
 - Prepared portal responses normalize first saves and idempotent replays through one rendering path; unmodified or unmarked historical descriptions stay byte-for-byte intact, and private photo references must belong to the exact dossier even when previously listed.
 - Prepared portal release artifacts stay under prepared/remblai-formulaire; the loopback-only generator pins each SQL transition and rights, and non-local mail requires atomic dispatch before mutation to prevent lost-link renewals.
 - Prepared portal composition pins unchanged security dependencies with their own effective grants and restores only changed definitions; historical original-form replay photos remain deletion barriers.
+- Prepared owner confirmation styling lives in a pure renderer called by the existing confirmationMessage seam; preserve its supplied bearer URL and provider-owned unsubscribe envelope without sender changes.
 - Parcours prioritaires : les destinations « Je cherche une dompe » / « Je veux du remblai » viennent de src/lib/navigation/priority-paths.ts ; pied de page public commun PublicContactFooter (numéro via src/lib/public-phone.ts) — une seule source pour éviter les entrées divergentes.
 
