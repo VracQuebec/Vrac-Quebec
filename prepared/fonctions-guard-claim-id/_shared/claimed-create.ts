@@ -18,8 +18,8 @@ export const PENDING_SECONDS = 600;
 export type Ref = { submission_id: string } & Record<string, unknown>;
 
 export type Outcome<T> =
-  | { kind: 'created'; ref: Ref; data: T; remembered: boolean }
-  | { kind: 'duplicate'; ref: Ref }
+  | { kind: 'created'; ref: Ref; data: T; remembered: boolean; claimId?: string }
+  | { kind: 'duplicate'; ref: Ref; claimId?: string }
   | { kind: 'in_progress' };
 
 export interface ClaimedCreate<T> {
@@ -53,7 +53,7 @@ export async function runClaimedCreate<T>(sb: any, guard: GuardOptions, h: Claim
 
   if (claim.state === 'duplicate') {
     const r = claim.result as Ref | null;
-    if (r?.submission_id) return { kind: 'duplicate', ref: r };
+    if (r?.submission_id) return { kind: 'duplicate', ref: r, ...(claim.claimId ? { claimId: claim.claimId } : {}) };
     console.error(JSON.stringify({ event: 'guard.done_without_reference', scope: guard.scope }));
     return { kind: 'in_progress' };
   }
@@ -62,7 +62,7 @@ export async function runClaimedCreate<T>(sb: any, guard: GuardOptions, h: Claim
     if (orphan) {
       await completeClaim(sb, guard.scope, claim.staleClaimId, orphan);
       console.warn(JSON.stringify({ event: 'guard.orphan_recovered', scope: guard.scope }));
-      return { kind: 'duplicate', ref: orphan };
+      return { kind: 'duplicate', ref: orphan, claimId: claim.staleClaimId };
     }
     return { kind: 'in_progress' };
   }
@@ -78,7 +78,7 @@ export async function runClaimedCreate<T>(sb: any, guard: GuardOptions, h: Claim
     const existing = await h.findByClaim(claimId);
     if (existing) {
       await completeClaim(sb, guard.scope, claimId, existing);
-      return { kind: 'duplicate', ref: existing };
+      return { kind: 'duplicate', ref: existing, claimId };
     }
     if (e instanceof RejectedBeforeInsert) {
       await releaseClaim(sb, guard.scope, claimId, 'insert_rejected');
@@ -87,5 +87,5 @@ export async function runClaimedCreate<T>(sb: any, guard: GuardOptions, h: Claim
     throw e;
   }
   const remembered = await completeClaim(sb, guard.scope, claimId, created.ref);
-  return { kind: 'created', ref: created.ref, data: created.data, remembered };
+  return { kind: 'created', ref: created.ref, data: created.data, remembered, claimId };
 }

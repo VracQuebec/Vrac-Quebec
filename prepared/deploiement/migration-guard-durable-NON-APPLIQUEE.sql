@@ -36,5 +36,18 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.guard_claim_durable(text,text,text,jsonb,integer,integer) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.guard_claim_durable(text,text,text,jsonb,integer,integer) TO service_role;
+-- Statut d'acceptation distinct de l'état d'enregistrement ; ne change pas state.
+CREATE OR REPLACE FUNCTION public.guard_email_status(p_claim_id uuid,p_status text)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+ IF p_status NOT IN ('queued','failed','not_sent') OR p_status IS NULL THEN
+  RAISE EXCEPTION 'Statut invalide' USING ERRCODE='22023';
+ END IF;
+ UPDATE public.public_request_guard SET payload=payload||jsonb_build_object('email_status',p_status)
+ WHERE id=p_claim_id AND payload->>'email_status' IS DISTINCT FROM 'queued';
+ RETURN FOUND;
+END $$;
+REVOKE ALL ON FUNCTION public.guard_email_status(uuid,text) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.guard_email_status(uuid,text) TO service_role;
 -- Retour opérationnel : ancien paquet de code, conserver M1/M2 et cette RPC.
 -- Aucune suppression de fonction, index, réservation ou dossier dans ce lot.
