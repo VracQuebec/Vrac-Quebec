@@ -12,6 +12,7 @@
 - Règles par dossier : supabase/AGENTS.md (agenda, obligations, assurances) ; supabase/functions/AGENTS.md ; src/lib/{logbook,seo (dont SEO START),parcours,ops (voyages, OPS-02, CPN-01)}/AGENTS.md.
 - PWA : `push-sw.js` unique, enregistré au chargement, sans cache métier.
 - EXEC-01 uses submissions and shared domain handlers; SQL/adapters in prepared/exec01b run against empty loopback fixtures only, with hosted activation separately authorized.
+- EXEC-01 personal-link corrections and inverses pin the exact pg_get_functiondef signature, text and fingerprint; refuse drift instead of adapting, and discriminate consumed-code cooldowns through existing failure state to keep prepared changes schema-neutral.
 - EXEC-01C/02/02B keep CRM, sender and queue-worker adapters disabled in prepared sources. Reservations lock dossier/offer capacity and commit link/message atomically; immutable trip corrections debit only the delta. The existing queue rechecks reminder eligibility and suppression. Preferences never override regulatory rules; private photos require dossier authorization.
 - Personal follow-up entrypoints enforce privacy before trackers initialize and restart public SPA documents before personal navigation; this prevents previously loaded telemetry from observing bearer pages.
 - Help subdirectories have their own AGENTS.md; read them before changes to keep task guidance and isolated support separate from active services.
