@@ -72,14 +72,13 @@ try {
   await check('historique date future : refus et état intact', async () => {
     const r = await historical(5, 'future'); assert.equal(r.response.denied, true); assert.deepEqual(r.after, r.before);
   });
-  await check('historique date passée ambiguë : réinitialisation observée, risque confirmé', async () => {
-    const r = await historical(5, 'past'); assert.equal(r.response.ok, true); assert.equal(r.after.failures, 0);
-    assert.notDeepEqual(r.after, r.before);
+  await check('historique date passée ambiguë : refus et état intact (risque corrigé)', async () => {
+    const r = await historical(5, "past"); assert.equal(r.response.denied, true); assert.deepEqual(r.after, r.before);
   });
   await check('historique révoqué avec date passée : refus et état intact', async () => {
     const r = await historical(6, 'past', true); assert.equal(r.response.denied, true); assert.deepEqual(r.after, r.before);
   });
-  console.log(`${passed}/10 vérifications réussies, local uniquement. Le cas ambigu révèle un risque, pas une validation de déploiement.`);
+  console.log(`${passed}/10 vérifications réussies, local uniquement. Aucun compteur historique ambigu réinitialisé.`);
 } finally {
   await db.end();
   if (created) await root.unsafe(`DROP DATABASE ${name}`);

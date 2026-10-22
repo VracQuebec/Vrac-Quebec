@@ -81,7 +81,7 @@ describe.skipIf(!enabled)('EXEC01 five errors / temporary lock — isolated SQL'
     await errors(f, 1, correct);
     const row = (await db`select extract(epoch from (code_expires_at-now()))::float8 seconds from submission_portal_links where id=${f.linkId}`)[0];
     expect(row.seconds).toBeGreaterThan(899); expect(row.seconds).toBeLessThanOrEqual(900);
-    await db`update submission_portal_links set code_expires_at=now()+interval '1 second' where id=${f.linkId}`;
+    await db`update submission_portal_links set code_requested_at=code_requested_at-(code_expires_at-now())+interval '1 second',code_expires_at=now()+interval '1 second' where id=${f.linkId}`;
     expect((await call({ ...f, kind: 'code' })).status).toBe(403);
     await elapse(f.linkId);
     expect((await call({ ...f, kind: 'verify', code: correct })).status).toBe(403);
@@ -227,7 +227,7 @@ describe.skipIf(!enabled)('EXEC01 five errors / temporary lock — isolated SQL'
     const f = await seed({ failures: 5, hash: false, req: '-40 minutes', exp: '-20 minutes' });
     await db`update submission_portal_links set revoked_at=now()-interval '1 minute' where id=${f.linkId}`;
     const before = await snapshot(f.linkId);
-    for (const kind of ['code', 'renew', 'verify']) expect((await call({ ...f, kind, code: '123456' })).status).toBe(403);
+    for (const kind of ['code', 'renew', 'verify']) expect((await call({ ...f, kind, ...(kind === 'verify' ? { code: '123456' } : {}) })).status).toBe(403);
     expect(await snapshot(f.linkId)).toEqual(before);
   });
   it('demande indépendante : un compteur historique bloqué ne touche pas un autre dossier', async () => {
