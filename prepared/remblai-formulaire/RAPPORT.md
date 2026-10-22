@@ -1,5 +1,10 @@
 # Cohérence du formulaire personnel — préparation uniquement
 
+## Complément de préparation — 22 octobre, 22:34 UTC
+Le manifeste exact et le protocole non exécuté sont dans `prepared/remblai-formulaire/ACTIVATION-ET-VALIDATION-ISOLEE.md`. Les deux fonctions restent `public.exec01_projection(uuid,boolean)` et `public.exec01_dispatch(jsonb)`. Métadonnées actuelles : outils et client liés à Live ; brouillon prêt/en retard recensé, mais aucune preuve de base/identité/stockage distincts accessibles. Santé du serveur confirmée en lecture seule, isolation non confirmée. Aucune ressource créée ni coût engagé ; aucun essai métier hébergé.
+
+Le paquet autonome final et l’inverse SQL épinglé restent à préparer après référence exacte. L’entrée préparée capture-only désactivée ne doit pas remplacer aveuglément l’entrée active et son transport existant. Aucun test local réexécuté pendant ce complément ; les 66 réussites plus bas concernent la session précédente. **Arrêt à la préparation, activation BLOQUÉE** jusqu’à environnement complet distinct, validations et autorisations nécessaires.
+
 ## Différences identifiées
 La référence publique `/remblai` utilise `ParcoursForm variant="reception"`, sept étapes : adresse, quantité, projet, matériaux, accès, photos, coordonnées. Son titre de page est « Besoin de remplir un terrain ? ».
 Le portail éditait auparavant `ReceptionConditionsForm` : capacité totale/restante, minimums, mélanges, véhicules, horaires, modes de réception et consentement. Il n'affichait pas l'adresse, le code postal, le projet, les matériaux originaux, le nom/téléphone/courriel ou les précisions. Les choix de matériaux et les règles n'étaient pas ceux du public.
