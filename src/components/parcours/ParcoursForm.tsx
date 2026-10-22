@@ -142,6 +142,9 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
   const [photoCategory, setPhotoCategory] = useState<PhotoCategoryKey>("materiau");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<"queued" | "failed" | "not_sent" | null>(null);
+  const [resending, setResending] = useState(false);
+  const lastBody = useRef<Record<string, unknown> | null>(null);
   const [handoff, setHandoff] = useState<ParcoursHandoff | null>(null);
   const [error, setError] = useState<string | null>(null);
   const startedAt = useRef(Date.now());
@@ -227,8 +230,7 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data: res, error: fnError } = await supabase.functions.invoke("submit-parcours", {
-        body: {
+      const body = {
           variant,
           address: data.address,
           postal_code: data.postalCode,
@@ -265,8 +267,9 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
           website: honeypot.current?.value ?? "",
           form_started_at: startedAt.current,
           attribution: getAttribution(),
-        },
-      });
+        };
+      lastBody.current = body;
+      const { data: res, error: fnError } = await supabase.functions.invoke("submit-parcours", { body });
       if (fnError) throw fnError;
       if (!res?.ok) throw new Error(res?.message || "Envoi impossible.");
       // Continuité : on conserve l'ID RÉEL retourné par `submissions`.
@@ -292,6 +295,7 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
         setHandoff(ho);
         saveHandoff(ho);
       }
+      setEmailStatus(res?.email_status ?? null);
       setDone(true);
       trackEvent("lead_created", { form: "parcours", variant });
       try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
@@ -305,6 +309,23 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
   };
 
   // ---------- Confirmation ----------
+  // Nouvelle tentative du courriel : même formulaire → même dossier (anti-doublon),
+  // jamais une deuxième demande.
+  const resendConfirmation = async () => {
+    if (!lastBody.current || resending) return;
+    setResending(true);
+    try {
+      const { data: res } = await supabase.functions.invoke("submit-parcours", {
+        body: { ...lastBody.current, resend_confirmation: true },
+      });
+      setEmailStatus(res?.ok && res?.email_status ? res.email_status : "failed");
+    } catch {
+      setEmailStatus("failed");
+    } finally {
+      setResending(false);
+    }
+  };
+
   if (done) {
     return (
       <div className="rounded-2xl border-2 border-primary/40 bg-primary/5 p-6 text-center">
@@ -317,6 +338,27 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
           avec les informations. Aucun site, aucune disponibilité, aucun prix et aucun délai
           ne sont confirmés à cette étape.
         </p>
+        {emailStatus === "queued" && (
+          <p role="status" className="mt-3 font-body text-sm text-foreground">
+            Le courriel contenant votre lien personnel de suivi a été accepté par notre service d’envoi.
+            Vérifiez aussi vos courriels indésirables.
+          </p>
+        )}
+        {emailStatus === "failed" && (
+          <div role="alert" className="mt-4 rounded-xl border border-destructive/40 bg-destructive/5 p-4">
+            <p className="font-body text-sm text-foreground">
+              Votre demande est bien enregistrée, mais le courriel avec votre lien de suivi n’a pas pu être envoyé.
+            </p>
+            <button
+              type="button"
+              onClick={resendConfirmation}
+              disabled={resending}
+              className="mt-3 inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 font-display text-sm font-bold text-primary-foreground disabled:opacity-60"
+            >
+              {resending ? "Nouvel essai…" : "Réessayer l’envoi du courriel"}
+            </button>
+          </div>
+        )}
         {variant === "evacuation" && user && (
           <button
             type="button"
