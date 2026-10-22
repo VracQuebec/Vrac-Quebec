@@ -3,7 +3,7 @@ import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 export type Reference={signature:string;definition:string;md5:string;owner:string;acl:string;returns:string;config:string[];security_definer:boolean};
 export const digestDefinition=(text:string)=>createHash('md5').update(text).digest('hex');
-const literal=(s:string)=>"'"+s.replaceAll("'","''")+"'";
+const literal=(s:string)=>"'"+s.replace(/'/g,"''")+"'";
 export function guard(refs:Reference[]):string {
  return `DO $guard$ BEGIN\n${refs.map(r=>`IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner WHERE p.oid=${literal('public.'+r.signature)}::regprocedure AND md5(pg_get_functiondef(p.oid))=${literal(r.md5)} AND r.rolname=${literal(r.owner)} AND p.proacl::text=${literal(r.acl)} AND pg_get_function_result(p.oid)=${literal(r.returns)} AND p.prosecdef=${r.security_definer} AND to_jsonb(p.proconfig)=${literal(JSON.stringify(r.config))}::jsonb AND NOT has_function_privilege('anon',p.oid,'EXECUTE') AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE') AND has_function_privilege('service_role',p.oid,'EXECUTE')) THEN RAISE EXCEPTION 'REFERENCE_OR_RIGHTS_DRIFT_STOP'; END IF;`).join('\n')}\nEND $guard$;\n`;
 }
