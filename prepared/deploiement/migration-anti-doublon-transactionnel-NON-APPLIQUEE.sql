@@ -34,9 +34,8 @@
 -- (scope, fingerprint) bloquerait les demandes légitimes ultérieures.
 --
 -- Idempotente : CREATE OR REPLACE + REVOKE/GRANT ; ré-exécutable sans effet.
--- Retour arrière : bloc en fin de fichier (DROP FUNCTION uniquement, aucune
--- donnée touchée). Redéployer AU PRÉALABLE l'ancienne version des fonctions
--- Edge qui appellent ces RPC (sinon : mode de secours journalisé).
+-- Retour opérationnel : ancien paquet exact après arrêt autorisé des admissions.
+-- Conserver les fonctions additives et réservations ; aucune suppression SQL.
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
@@ -251,12 +250,9 @@ GRANT EXECUTE ON FUNCTION public.guard_complete(uuid, jsonb) TO service_role;
 GRANT EXECUTE ON FUNCTION public.guard_release(uuid, text) TO service_role;
 
 -- ============================================================================
--- RETOUR ARRIÈRE (manuel, après redéploiement de l'ancien code Edge) :
---   DROP FUNCTION IF EXISTS public.guard_release(uuid, text);
---   DROP FUNCTION IF EXISTS public.guard_complete(uuid, jsonb);
---   DROP FUNCTION IF EXISTS public.guard_claim(text, text, text, jsonb, integer, integer);
---   DROP FUNCTION IF EXISTS public.guard_check_and_log(text, text, text, jsonb, integer);
---   DROP FUNCTION IF EXISTS public.guard_validate_params(text, text, text, integer);
+-- RETOUR OPÉRATIONNEL : ancien paquet exact, conserver les RPC et index additifs.
+-- Si une fonction existe déjà sur la cible, sa définition et ses droits exacts
+-- doivent être épinglés et son inverse ciblé préparé AVANT proposition.
 -- Les lignes écrites entre-temps (payload.state = pending/done/failed)
 -- restent dans public_request_guard : elles sont inoffensives pour l'ancien
 -- code (qui ne lit que scope/fingerprint/created_at) et ne sont pas effacées.
