@@ -11,6 +11,7 @@
 - `composition.ts`, `sql-compose/` : sept références contrôlées, cinq étapes ; trois dépendances inchangées (courrier atomique, quota, rôle) gardées avec leurs propres droits. Inverse complet restaure seulement quatre définitions modifiées, jamais les droits ou dépendances inchangées.
 - `references/has_role-LECTURE-SEULE.json` : définition exacte et ACL relevées ; les six références originales restent intactes. `archives/sql-compose-2257/` conserve l’ancienne composition, historique non exécutable pour le nouveau paquet.
 - `../fonctions-guard-claim-id/_shared/delivery-result.ts`, `mail-status.ts`, les deux entrypoints : timeout/réponse illisible → `unknown`, pas `failed` ; aucun écrasement d’un état certain par incertitude. Vrac manuel mémorise `not_sent`.
+- Contrôle Deno des deux copies complètes : 16 erreurs de types détectées puis corrigées exclusivement en préparation (source de journal normalisée, listes typées, résultat des branches manuel/calculé et référence post-enregistrement). Les deux points d’entrée passent désormais le contrôle Deno ; aucune exécution HTTP n’est prétendue.
 - `../fonctions-guard-claim-id/client-confirmation.ts` : contrat client inactif partagé, `null` ne vaut jamais envoyé, référence réelle obligatoire. **Non raccordé aux pages publiques**, conformément à l’interdiction de les modifier.
 - `../fonctions-guard-claim-id/INTEGRATION.md` : liste exhaustive des quatre helpers et blocage d’interface explicite.
 - `../deploiement/PRECONTROLE-SIMPLE-NON-APPLIQUE.sql` : assertions de l’état observé avant M1/M2/durable ; présence inattendue ou droits différents = arrêt et nouvelle référence/inverse, jamais adaptation automatique.
@@ -26,6 +27,7 @@
 | Deno autonome, 23:05 UTC | 3 réussis, 0 échec | Sans droits réseau ; refus d’envoi non atomique/null/upload non autorisé |
 | Vérification historique | 10/10 | Inverse exact, dérive, états historiques ambigus intacts |
 | Deno point d’entrée | Contrôle des types réussi | Aucun démarrage du serveur |
+| Deno remblai et vrac préparés | Contrôle des deux points d’entrée réussi après correction | Dépendances existantes lues, aucune source active modifiée |
 
 **196 tests Vitest distincts réussis + 3 Deno + 10 contrôles.** Les 24 ignorés dans une exécution ont effectivement tourné dans l’autre. Aucun cas de ces suites ciblées reste ignoré au total. Les fichiers de preuve `validation-complete-*.log` sont conservés sous `preuves/`.
 
@@ -35,6 +37,8 @@ Nouveaux cas : dossier fermé → zéro appel stockage ; photo uniquement dans r
 
 ## 3. Lecture seule réelle, préconditions et empreintes
 À 23:00–23:05 UTC : dispatcher/projection/émetteur initial et leurs trois dépendances conservent les empreintes originales. Retours/propriétaires/ACL inchangés ; privées non exécutables par anon/authenticated, exécutables par service_role. `has_role` original `6e055322eaad390f6c2c3ef45fec6857` reste public/exécutable selon ses droits actuels : gardés, jamais recopiés sur les fonctions privées.
+
+Dernier contrôle à 23:07 UTC : les sept empreintes/ACL originales sont encore identiques. Le précontrôle M1/M2 est préparé mais non exécuté en production ; sa validation complète sur une cible avec les mêmes rôles reste nécessaire.
 
 | Définition modifiée proposée | Original réel | Final préparé |
 |---|---|---|
