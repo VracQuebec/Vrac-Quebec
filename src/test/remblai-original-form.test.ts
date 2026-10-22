@@ -30,7 +30,7 @@ describe('Contrat du formulaire original',()=>{
 beforeAll(async()=>{
  if(!enabled)return;
  const info=(await db`select current_setting('data_directory') d,inet_server_addr()::text host,inet_server_port() port`)[0];
- if(!String(info.d).startsWith('/tmp/remblai-form-')||info.host!=='127.0.0.1'||info.port!==55438)throw Error('Not disposable local database');
+ if(!String(info.d).startsWith('/tmp/remblai-form-')||!['127.0.0.1','127.0.0.1/32'].includes(info.host)||info.port!==55438)throw Error('Not disposable local database');
  for(const path of ['src/test/fixtures/exec01b-base.sql','src/test/fixtures/exec01c-relations.sql'])await db.unsafe(await readFile(path,'utf8'));
  await db.unsafe(`ALTER TABLE submissions ADD COLUMN postal_code text,ADD COLUMN phone text,ADD COLUMN other_material text,ADD COLUMN description text,ADD COLUMN access_heavy_truck text,ADD COLUMN access_criteria text[],ADD COLUMN photos_meta jsonb,ADD COLUMN photos text[],ADD COLUMN latitude numeric,ADD COLUMN longitude numeric,ADD COLUMN formatted_address text,ADD COLUMN geocoding_status text,ADD COLUMN truck_type_key text,ADD COLUMN desired_date text,ADD COLUMN delivery_timeframe text;`);
  await db.unsafe(await readFile('prepared/exec01b/schema.sql','utf8'));
