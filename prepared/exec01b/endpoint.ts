@@ -6,6 +6,7 @@ import { conditionsSchema, unknownConditions, WAITING_MESSAGE } from '../../src/
 import { legacyReception } from '../../src/lib/remblai/cloud-contract';
 import { preparePhotos, signPhotos, type PhotoStorage } from './photos';
 import { digest, randomSecret } from '../../src/lib/remblai/service';
+import { renderConfirmationEmail, CONFIRMATION_SUBJECT } from './confirmation-email';
 const credentials = { requestId: z.string().uuid(), linkId: z.string().uuid(), secret: z.string().regex(/^[a-f0-9]{64}$/) };
 const bodySchema = z.discriminatedUnion('kind', [
  z.object({kind:z.literal('read'),...credentials}).strict(),
@@ -22,9 +23,7 @@ export type Message = { to:string; subject:string; html:string; text:string; pur
 export type Dependencies = { rpc:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>; isAdmin:(request:Request)=>Promise<boolean>; captureOrSend:(message:Message)=>Promise<'captured-test'|'sent'>; dispatchMail?:(input:Record<string,unknown>,message:Omit<Message,'to'>)=>Promise<Record<string,unknown>>; cleanup?:(id:string,paths:string[])=>Promise<{removed:number}>; portalOrigin:string; corsOrigin:string; localHarness?:boolean; storage?:PhotoStorage; enabled?:boolean; quota?:(request:Request)=>Promise<boolean> };
 function escape(value:string) { return value.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] ?? c)); }
 export function confirmationMessage(to:string,name:string,url:string):Message {
- return {to,subject:'Confirmation de votre demande — Vrac Québec',purpose:'service',tracking:false,
- html:`<html lang="fr"><meta name="referrer" content="no-referrer"><h1>Vrac Québec</h1><p>Bonjour ${escape(name)}, nous avons bien reçu votre demande de remblai.</p><p>${WAITING_MESSAGE}</p><a href="${escape(url)}">Suivre ou modifier ma demande</a></html>`,
- text:`Bonjour ${name},\n${WAITING_MESSAGE}\nSuivre ou modifier ma demande : ${url}`};
+ return {to,subject:CONFIRMATION_SUBJECT,purpose:'service',tracking:false,...renderConfirmationEmail(name,url)};
 }
 export function makeEndpoint(deps:Dependencies) {
  const reply=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','Access-Control-Allow-Origin':deps.corsOrigin,'Access-Control-Allow-Headers':'Content-Type, Authorization, apikey, x-client-info','Access-Control-Allow-Methods':'POST, GET, OPTIONS','Vary':'Origin',...(deps.localHarness?{'Access-Control-Allow-Credentials':'true'}:{})}});

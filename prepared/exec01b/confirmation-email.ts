@@ -1,0 +1,35 @@
+// Presentation only, inactive. No sender, database, token generation or network calls.
+import { PUBLIC_PHONE, PUBLIC_PHONE_E164 } from '../../src/lib/public-phone';
+export const CONFIRMATION_SUBJECT = 'Votre demande de remblai a bien été reçue — Vrac Québec';
+const palette = { canvas:'#f5f6f4',paper:'#ffffff',ink:'#171a17',muted:'#5b635a',line:'#e4e8e1',brand:'#7DD520',status:'#f1f8e9' };
+const escape = (v:string) => v.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]??c));
+const clean = (v:unknown) => typeof v==='string' && !/^(undefined|null)$/i.test(v.trim()) && !/[{}]/.test(v) ? v.trim() : '';
+function suppliedLink(v:unknown) {
+ const raw=clean(v);if(!raw)return '';
+ try {const u=new URL(raw);return u.protocol==='https:' && !u.username && !u.password ? raw : '';}catch{return '';}
+}
+export function renderConfirmationEmail(name:unknown,url:unknown,unsubscribeUrl?:unknown) {
+ const client=clean(name),follow=suppliedLink(url),unsubscribe=suppliedLink(unsubscribeUrl);
+ const greeting=client?`Bonjour ${escape(client)},`:'Bonjour,';
+ const steps=['Nous vérifions les informations et les possibilités dans votre secteur.','Si une option compatible est disponible, nous communiquons avec vous.','La livraison et sa date devront être confirmées séparément.'];
+ const base=`font-family:Arial,Helvetica,sans-serif;color:${palette.ink};`;
+ const action=follow?`<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td align="center" bgcolor="${palette.brand}" style="border-radius:6px;mso-padding-alt:17px 12px;"><a href="${escape(follow)}" style="${base}display:block;padding:17px 12px;font-size:16px;line-height:22px;font-weight:700;text-decoration:none;color:${palette.ink};border-radius:6px;">Suivre ou modifier ma demande</a></td></tr></table>`:'';
+ const html=`<!DOCTYPE html><html lang="fr" dir="ltr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light"><title>${CONFIRMATION_SUBJECT}</title></head>
+<body style="margin:0;padding:0;${base}background-color:${palette.canvas};-webkit-text-size-adjust:100%;">
+<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">Votre demande est enregistrée. La livraison et sa date restent à confirmer séparément.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${palette.canvas}"><tr><td align="center" style="padding:24px 12px;">
+<!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${palette.paper}" style="max-width:600px;border:1px solid ${palette.line};">
+<tr><td height="5" bgcolor="${palette.brand}" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+<tr><td style="padding:28px 24px 24px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="52" valign="middle"><img src="https://vracquebec.ca/icons/icon-192.png" width="44" height="44" alt="" style="display:block;border:0;border-radius:8px;"></td><td valign="middle" style="${base}font-size:23px;line-height:28px;font-weight:700;">Vrac Québec</td></tr></table></td></tr>
+<tr><td style="padding:0 24px 24px;"><h1 style="${base}font-size:28px;line-height:35px;margin:0 0 24px;font-weight:700;">Votre demande est<br>bien reçue !</h1><p style="${base}font-size:16px;line-height:26px;margin:0 0 14px;overflow-wrap:anywhere;word-break:break-word;">${greeting}</p><p style="${base}font-size:16px;line-height:26px;margin:0;">Merci d’avoir soumis votre demande de remblai auprès de Vrac Québec. Nous avons bien reçu les informations concernant votre projet.</p></td></tr>
+<tr><td style="padding:0 24px 28px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${palette.status}" style="border-left:3px solid ${palette.brand};"><tr><td style="padding:18px;"><p style="${base}font-size:12px;line-height:19px;font-weight:700;margin:0 0 8px;">STATUT : DEMANDE ENREGISTRÉE</p><p style="${base}font-size:15px;line-height:24px;margin:0;">Votre demande est active. Notre équipe pourra vérifier les possibilités disponibles dans votre secteur et vous contacter si une proposition compatible est possible.</p></td></tr></table></td></tr>
+<tr><td style="padding:0 24px 8px;"><h2 style="${base}font-size:15px;line-height:22px;font-weight:700;margin:0 0 18px;">COMMENT ÇA FONCTIONNE ?</h2><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${steps.map((text,i)=>`<tr><td width="32" valign="top" style="${base}font-size:15px;line-height:24px;font-weight:700;padding:0 8px 18px 0;">${i+1}.</td><td valign="top" style="${base}font-size:15px;line-height:24px;padding:0 0 18px;">${text}</td></tr>`).join('')}</table></td></tr>
+<tr><td style="padding:0 24px 28px;">${action}</td></tr>
+<tr><td style="padding:0 24px 28px;"><p style="${base}font-size:13px;line-height:21px;color:${palette.muted};margin:0;"><strong>À noter</strong><br>La réception de cette confirmation ne garantit pas qu’une livraison sera possible ni qu’une date est réservée.</p></td></tr>
+<tr><td style="padding:22px 24px;border-top:1px solid ${palette.line};"><p style="${base}font-size:14px;line-height:22px;font-weight:700;margin:0 0 6px;">Une question concernant votre projet ?</p><p style="${base}font-size:14px;line-height:24px;margin:0 0 14px;"><a href="tel:${PUBLIC_PHONE_E164}" style="color:${palette.ink};text-decoration:underline;">${PUBLIC_PHONE}</a><br><a href="https://vracquebec.ca" style="color:${palette.muted};text-decoration:underline;">vracquebec.ca</a></p>${unsubscribe?`<p style="${base}font-size:12px;line-height:20px;margin:0;"><a href="${escape(unsubscribe)}" style="color:${palette.muted};text-decoration:underline;">Se désabonner</a></p>`:''}</td></tr></table>
+<!--[if mso]></td></tr></table><![endif]-->
+</td></tr></table></body></html>`;
+ const text=[client?`Bonjour ${client},`:'Bonjour,','Votre demande est bien reçue !','Merci d’avoir soumis votre demande de remblai auprès de Vrac Québec. Nous avons bien reçu les informations concernant votre projet.','STATUT : DEMANDE ENREGISTRÉE','Votre demande est active. Notre équipe pourra vérifier les possibilités disponibles dans votre secteur et vous contacter si une proposition compatible est possible.','COMMENT ÇA FONCTIONNE ?',...steps.map((s,i)=>`${i+1}. ${s}`),...(follow?[`Suivre ou modifier ma demande : ${follow}`]:[]),'La réception de cette confirmation ne garantit pas qu’une livraison sera possible ni qu’une date est réservée.',`Vrac Québec — ${PUBLIC_PHONE} — vracquebec.ca`,...(unsubscribe?[`Se désabonner : ${unsubscribe}`]:[])].join('\n\n');
+ return {html,text};
+}
