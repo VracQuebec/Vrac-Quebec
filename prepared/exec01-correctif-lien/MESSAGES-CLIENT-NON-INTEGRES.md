@@ -1,57 +1,46 @@
-# Messages client — préparés seulement
+# Messages client — préparés seulement (mise à jour 22 octobre 2026, 20 h 45 UTC)
 
-Aucun texte intégré à l’interface, aucun courriel envoyé. Phrases courtes, paragraphes distincts, sans adresse client, identifiant, code ou jeton interpolés.
+Rien n’est intégré à l’interface; aucun courriel envoyé. Phrases courtes pour mobile (une idée par ligne). Jamais de code, jeton, adresse courriel, identifiant de dossier ou détail interne interpolé. Aucun message n’annonce une réussite tant que le serveur n’a pas répondu positivement.
 
-## Textes proposés
+## Contrainte technique à connaître
 
-**Information préventive, visible avant la saisie**
-« Après cinq codes incorrects, la vérification est bloquée pendant 15 minutes. Un sixième essai ne prolonge pas ce délai. Après l’attente, demandez un nouveau code. »
+La règle serveur actuelle et la version corrigée répondent seulement `denied` (refus générique), sans nombre d’essais restants ni motif. Tant qu’aucune réponse distincte n’est approuvée et déployée, l’interface doit utiliser les **messages génériques (G)**. Les **messages précis (P)** ne s’affichent que si une future réponse serveur sûre les distingue (modification non préparée, à autoriser séparément). Le nombre restant ne serait renvoyé qu’après un code erroné sur un lien valide, jamais pour un lien inconnu ou révoqué.
 
-**Refus générique actuel — ne pas annoncer un blocage confirmé**
-« Code incorrect, expiré ou vérification temporairement bloquée. Après cinq codes incorrects, attendez 15 minutes à partir du cinquième essai, puis demandez un nouveau code. Réessayer ne prolonge pas ce délai. »
+## 1. Code erroné
 
-**Blocage confirmé, seulement si une future réponse sûre permet de le distinguer**
-« Cinq codes incorrects ont été saisis. Attendez 15 minutes à partir du cinquième essai. Un nouvel essai ne prolonge pas l’attente. »
+- **P** « Code incorrect. Il vous reste {n} essai(s) avant un blocage de 15 minutes. » ({n} = 1 à 4, seul chiffre interpolé)
+- **G** « Code incorrect ou expiré. Vérifiez le dernier code reçu. Après cinq codes incorrects, la vérification est bloquée 15 minutes. »
 
-**Après l’attente — instruction, pas promesse de déblocage**
-« Après les 15 minutes, demandez un nouveau code. Le code précédent ne peut plus être utilisé. »
-Bouton existant à conserver : « Recevoir un code » ou « Renvoyer un code ».
+## 2. Cinquième erreur — blocage de 15 minutes
 
-**Avant renouvellement**
-« Demander un nouveau lien désactive les anciens liens de cette demande. Utilisez seulement le plus récent. »
+- **P** « Cinq codes incorrects ont été saisis. Par sécurité, la vérification est bloquée pendant 15 minutes. »
+- **G** utilise le message 1 G (le blocage n’est pas confirmé par le serveur).
 
-**Renouvellement accepté**
-« Un nouveau lien a été demandé pour l’adresse courriel de votre demande. Les anciens liens ne fonctionnent plus. Ouvrez le nouveau courriel pour continuer. »
-Ne pas dire « reçu » ou garantir l’arrivée du courriel après une simple mise en file.
+## 3. Nouvel essai pendant le blocage
 
-**Renouvellement refusé, sans divulguer sa cause exacte**
-« Le nouveau lien ne peut pas être demandé pour le moment. Si vous avez saisi cinq codes incorrects, attendez 15 minutes. Les demandes de lien sont limitées à une par minute et cinq sur 24 heures. Un lien désactivé ne peut pas être réutilisé. »
+- **P** « La vérification est encore bloquée. Attendez la fin des 15 minutes. Réessayer ne prolonge pas l’attente. »
+- **G** « Vérification impossible pour le moment. Si vous avez saisi cinq codes incorrects, attendez 15 minutes avant de réessayer. »
 
-**Courriel absent**
-« Vérifiez les courriels indésirables et vos autres dossiers de messagerie. Si vous avez demandé plusieurs codes ou liens, utilisez seulement le plus récent. Évitez les demandes répétées. Si rien n’arrive, contactez Vrac Québec au 819-592-3495. »
+## 4. Fin du blocage
 
-**Problème persistant / compteur historique**
-« Si le problème continue après l’attente et une nouvelle demande de code, contactez Vrac Québec au 819-592-3495. Ne transmettez jamais votre code ni votre lien personnel. »
+« Le délai est terminé. Demandez un nouveau code : l’ancien ne peut plus être utilisé. »
+Bouton existant : « Recevoir un code ». Ne pas écrire « débloqué » avant que la demande de code réussisse.
 
-**Panne réseau**
-« La connexion a été interrompue. Vérifiez votre réseau, puis réessayez. Avant une nouvelle modification, vérifiez si la précédente a été enregistrée. »
-Éviter « non enregistré » lorsque la réponse a été perdue après validation serveur.
+## 5. Lien révoqué ou expiré
 
-## Fichiers d’intégration future — aucun modifié
+« Ce lien n’est plus valide. Il a peut-être été remplacé par un lien plus récent ou il a expiré. Utilisez le dernier courriel reçu ou demandez un nouveau lien. »
+Après demande : « Si la demande est acceptée, un nouveau lien sera envoyé à l’adresse courriel de votre demande. » (formulation conditionnelle : la réponse ne confirme pas l’envoi effectif).
 
-| Fichier | Point exact actuel | Texte à intégrer après autorisation |
-|---|---|---|
-| `src/pages/RemblaiFollowup.tsx` | `requestCode()`, lignes 99–102 | Refus générique, attente, courriel absent; ne pas orienter uniquement vers renouvellement pendant blocage |
-| Même fichier | `verify()`, lignes 103–106 | Refus générique, sixième essai, nouveau code après attente |
-| Même fichier | Section première vérification ligne 135 et section avant modification ligne 142 | Information préventive et aide courriel; courts paragraphes dans les régions accessibles existantes |
-| Même fichier | Appel `service.renew(...)`, ligne 134 | Avertissement avant renouvellement et message après acceptation |
-| Même fichier | `commit()`, ligne 112 et gestionnaire `run()` | Panne réseau sans prétendre connaître le résultat, saisies conservées et même clé d’opération pour reprise |
-| `src/lib/remblai/cloud-client.ts` | `cloudPortalCall()`, lignes 10–23; `renew`, ligne 30 | Messages génériques centralisés, aide attente et plafonds; jamais corps de requête ni erreur brute |
+## 6. Ancien dossier bloqué (état ambigu)
 
-Les lignes sont des repères de la version examinée; les noms des fonctions sont la référence durable. Ne modifier aucun titre, URL, contenu public ni autre module.
+« Nous ne pouvons pas rétablir l’accès automatiquement pour cette demande. Pour votre sécurité, une vérification par notre équipe est nécessaire. Appelez ou textez le 819-592-3495. »
+Note : côté client, ce cas ressemble au refus 3 G tant que le serveur ne le distingue pas. Afficher le numéro public après deux refus consécutifs plutôt que d’affirmer un état ambigu.
 
-## Limites d’intégration
+## Erreur réseau
 
-Le serveur renvoie actuellement un refus générique (`denied` / HTTP 403) pour plusieurs causes. Ne pas déduire un délai restant ou un compteur serveur depuis les seuls essais du téléphone; ne pas démarrer un compte à rebours de 15 minutes au sixième essai. Le message préventif et le refus conditionnel fonctionnent sans nouvelle réponse serveur. Une réponse dédiée ou une échéance fiable exigerait une conception et une autorisation distinctes, sans informations privées et après validation du lien.
+« Connexion impossible. Rien n’a été modifié. Vérifiez votre réseau, puis réessayez. »
+(vrai seulement si la requête n’a pas reçu de réponse; sinon utiliser le refus générique.)
 
-Sur mobile : paragraphes empilés, pas d’alerte modale imposée pour chaque essai, `role="alert"` pour le refus et `role="status"` pour la progression, boutons désactivés pendant l’appel, aucune donnée sensible dans un libellé. Ces consignes ne constituent pas une vérification de rendu : l’interface n’a pas été modifiée.
+## Emplacements d’intégration future (non modifiés)
+
+`src/pages/RemblaiFollowup.tsx` (états vérification / refus / renouvellement) et `src/lib/remblai/cloud-client.ts` (classement des erreurs). Intégration seulement après autorisation.
