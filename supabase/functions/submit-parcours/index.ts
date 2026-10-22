@@ -10,6 +10,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { geocode } from '../_shared/vqos/runtime.ts';
 import { clientIp, GuardError } from '../_shared/public-guard.ts';
+import { classifyConfirmation, type ConfirmationStatus } from './confirmation-status.ts';
 import { runDedupedCreate } from './dedupe-flow.ts';
 import { logEvent, logEventAsync } from '../_shared/observability.ts';
 import { fetchWithTimeout } from '../_shared/http.ts';
@@ -61,9 +62,9 @@ function db() {
   });
 }
 
-async function sendEmail(payload: Record<string, unknown>) {
+async function sendEmail(payload: Record<string, unknown>): Promise<ConfirmationStatus> {
   try {
-    await fetchWithTimeout(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
+    const res = await fetchWithTimeout(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -71,13 +72,25 @@ async function sendEmail(payload: Record<string, unknown>) {
       },
       body: JSON.stringify(payload),
     }, 15_000);
+    const status = classifyConfirmation(res.ok, await res.json().catch(() => null));
+    if (status === 'failed') {
+      logEventAsync({ source: 'submit_parcours', event: 'email.failed', level: 'warn', refId: String(payload.submissionId ?? ''), context: { template: payload.templateName, http: res.status } });
+    }
+    return status;
   } catch (e) {
     logEventAsync({
       source: 'submit_parcours', event: 'email.failed', level: 'warn',
       message: e instanceof Error ? e.message : String(e),
     });
+    return 'failed';
   }
 }
+
+// Confirmation client : idempotente par demande (un seul lien par dossier côté
+// serveur, nouvelle tentative = rejeu du même envoi, jamais un second lien).
+const sendClientConfirmation = (id: string) => sendEmail({
+  templateName: 'client-confirmation', idempotencyKey: `client-confirm-${id}`, submissionId: id,
+});
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -231,9 +244,13 @@ Deno.serve(async (req) => {
     }
     if (outcome.kind === 'duplicate') {
       // Référence EXACTE mémorisée lors de la création initiale.
-      // Aucun nouvel enregistrement, aucun courriel.
+      // Aucun nouvel enregistrement. Courriel seulement sur demande explicite
+      // de nouvelle tentative (écran d'échec) : rejeu idempotent du même dossier.
       logEventAsync({ source: 'submit_parcours', event: 'submission.duplicate', level: 'warn', refId: outcome.submissionId, context: { variant } });
-      return json({ ok: true, duplicate: true, submission_id: outcome.submissionId });
+      const email_status = body?.resend_confirmation === true
+        ? await sendClientConfirmation(outcome.submissionId)
+        : undefined;
+      return json({ ok: true, duplicate: true, submission_id: outcome.submissionId, ...(email_status ? { email_status } : {}) });
     }
     if (!outcome.remembered) {
       logEventAsync({ source: 'submit_parcours', event: 'guard.complete_failed', level: 'critical', refId: outcome.submissionId, context: { variant } });
@@ -243,25 +260,21 @@ Deno.serve(async (req) => {
 
     logEventAsync({ source: 'submit_parcours', event: 'lead.created', refId: String(lead?.id ?? ''), context: { variant } });
 
-    // Les courriels ne doivent jamais retarder la confirmation affichée au demandeur.
-    const mails = (async () => {
-      await sendEmail({
-        templateName: 'new-lead-notification',
-        idempotencyKey: `new-lead-${lead.id}`,
-        submissionId: lead.id,
-      });
-      await sendEmail({
-        templateName: 'client-confirmation',
-        idempotencyKey: `client-confirm-${lead.id}`,
-        submissionId: lead.id,
-      });
-    })();
+    // Confirmation client attendue : son vrai résultat est affiché au demandeur.
+    // La notification interne reste en arrière-plan.
+    const email_status = await sendClientConfirmation(lead.id);
+    const adminMail = sendEmail({
+      templateName: 'new-lead-notification',
+      idempotencyKey: `new-lead-${lead.id}`,
+      submissionId: lead.id,
+    });
     const rt = (globalThis as { EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void } }).EdgeRuntime;
-    if (rt?.waitUntil) rt.waitUntil(mails); else await mails;
+    if (rt?.waitUntil) rt.waitUntil(adminMail); else await adminMail;
 
     return json({
       ok: true,
       submission_id: lead.id,
+      email_status,
       latitude: geo?.lat ?? null,
       longitude: geo?.lng ?? null,
       formatted_address: geo?.address ?? null,
