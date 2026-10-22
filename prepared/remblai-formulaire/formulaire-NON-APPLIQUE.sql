@@ -56,8 +56,8 @@ BEGIN
    -- Preserve the unparsed description prefix (including older intake summaries).
    description=CASE WHEN c->>'notes' IS NOT DISTINCT FROM (public.exec01_projection(s.id)->'publicForm'->>'notes') THEN s.description
     WHEN position('Notes du demandeur : ' in coalesce(s.description,''))>0
-    THEN left(s.description,position('Notes du demandeur : ' in s.description)-1)
-    ELSE coalesce(s.description,'')||E'\n' END ||'Notes du demandeur : '||(c->>'notes'),
+    THEN left(s.description,position('Notes du demandeur : ' in s.description)-1)||'Notes du demandeur : '||(c->>'notes')
+    ELSE coalesce(s.description,'')||E'\n'||'Notes du demandeur : '||(c->>'notes') END,
    latitude=CASE WHEN c->>'address'=s.address THEN s.latitude ELSE NULL END,
    longitude=CASE WHEN c->>'address'=s.address THEN s.longitude ELSE NULL END,
    formatted_address=CASE WHEN c->>'address'=s.address THEN s.formatted_address ELSE NULL END,

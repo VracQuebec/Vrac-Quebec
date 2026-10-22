@@ -461,7 +461,7 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
       case "project":
         return (
           <div className="grid gap-2 sm:grid-cols-2">
-            {editor && data.projectUsage && !PROJECT_USAGE_OPTIONS.includes(data.projectUsage) && <p className="text-sm text-muted-foreground sm:col-span-2">Réponse enregistrée : {data.projectUsage}. Elle sera conservée si vous ne choisissez pas une autre réponse.</p>}
+            {editor && data.projectUsage && !PROJECT_USAGE_OPTIONS.some(option => option === data.projectUsage) && <p className="text-sm text-muted-foreground sm:col-span-2">Réponse enregistrée : {data.projectUsage}. Elle sera conservée si vous ne choisissez pas une autre réponse.</p>}
             {PROJECT_USAGE_OPTIONS.map((p) => (
               <button key={p} type="button" onClick={() => set({ projectUsage: data.projectUsage === p ? "" : p })}
                 className={choiceCls(data.projectUsage === p)}>

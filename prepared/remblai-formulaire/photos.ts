@@ -1,5 +1,5 @@
 import { preparePhotos, signPhotos, scopedPhotoPath, type PhotoStorage } from '../exec01b/photos';
-type Photo = {url:string; category:string};
+type Photo = {url:string; category:string; signedUrl?:string};
 // Existing public intake URLs are accepted ONLY if already attached to this exact dossier.
 export async function prepareOriginalPhotos(id:string, photos:Photo[], previous:Photo[], storage?:PhotoStorage):Promise<Photo[]> {
   const out:Photo[]=[];
