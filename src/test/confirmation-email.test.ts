@@ -6,7 +6,7 @@ describe('prepared confirmation presentation preserves private envelope',()=>{
  it('preserves the supplied personal URL and recipient without creating another link',()=>{
   const message=confirmationMessage('client@test.invalid','Camille',link);
   expect(message.to).toBe('client@test.invalid');expect(message.purpose).toBe('service');expect(message.tracking).toBe(false);
-  expect(message.html).toContain(link.replaceAll('&','&amp;'));expect(message.text).toContain(link);
+  expect(message.html).toContain(link.replace(/&/g,'&amp;'));expect(message.text).toContain(link);
   expect((message.html.match(/secret-fictif/g)??[]).length).toBe(1);
  });
  it('does not render missing, null or raw template variables as personal data',()=>{
