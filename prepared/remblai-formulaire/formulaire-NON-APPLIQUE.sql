@@ -36,6 +36,11 @@ BEGIN
  dispatcher:=replace(dispatcher,'IF a=''modifier'' THEN',$edit$
  IF a='modifier' AND p ? 'publicForm' THEN
   c:=p->'publicForm';
+  -- A partial or null projection must never overwrite existing values with emptiness.
+  IF jsonb_typeof(c) IS DISTINCT FROM 'object'
+   OR NOT (c ?& ARRAY['address','postalCode','name','phone','email','quantityValue','quantityUnit','quantityUnknown','projectUsage','materials','otherMaterial','accessHeavyTruck','accessDetails','photos','notes'])
+   OR EXISTS(SELECT 1 FROM jsonb_each(c) field WHERE field.value='null'::jsonb)
+   THEN RETURN jsonb_build_object('denied',true); END IF;
   -- Endpoint applies strict Zod allowlist. RPC independently protects the identity email.
   IF c->>'email' IS DISTINCT FROM s.email OR length(trim(c->>'address'))<5
    OR length(trim(c->>'name'))<2 OR jsonb_array_length(c->'materials')<1
