@@ -1,7 +1,8 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## Mise en service ciblée EXEC-01 — 22 octobre, 21:20 UTC
-- [ ] Demande 21:28 UTC : terminer copies remblai/vrac, reprises exactes et concurrence tardive, compatibilité additive, procédure sauvegarde séparée et protocole personnel ; préparation uniquement, aucune opération réelle autorisée.
+- [x] Demande 21:28 UTC : copies remblai/vrac assemblées, reprises exactes et concurrence tardive protégées par RPC distincte, compatibilité additive testée ; procédures sauvegarde/protocole préparées ; 218 contrôles locaux verts, bilan-finalisation-isolee-2026-10-22.md.
+- [ ] Validation isolée complète : endpoints préparés HTTP/courrier idempotent et interface du statut inconnu encore à tester ; stack hébergée distincte, timestamp/restauration séparée, paquet hébergé précédent et autorisations manquants. Production toujours BLOQUÉE.
 - [x] Vérifier M1/M2, renouvellement et inverse, relever catalogue en lecture seule et préparer l'ordre conditionnel : prepared/deploiement/preparation-mise-en-service-2026-10-22.md ; 191 contrôles locaux réussis.
 - [ ] Mise en service BLOQUÉE : paquet submit-parcours par identifiant exact et retour opérationnel M1/M2 non finalisés ; durée maximale hébergée non prouvée ; timestamp UTC de sauvegarde à fournir et autorisation explicite requise. Aucun changement en production.
 
