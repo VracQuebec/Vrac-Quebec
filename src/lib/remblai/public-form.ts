@@ -35,7 +35,7 @@ export function publicStepError(step: string, data: ParcoursDraft): string | nul
 // No identifiers, administrative state, coordinates or identity owner in this payload.
 export const publicEditSchema = z.object({
   address: z.string().trim().min(5).max(500), postalCode: z.string().max(12),
-  quantityValue: z.string().max(40), quantityUnit: z.enum(['voyages', 'tonnes', 'verges3', 'm3', 'inconnu']), quantityUnknown: z.boolean(),
+  quantityValue: z.string().max(40).regex(/^\d*(?:[.,]\d+)?$/), quantityUnit: z.enum(['voyages', 'tonnes', 'verges3', 'm3', 'inconnu']), quantityUnknown: z.boolean(),
   projectUsage: z.string().max(160), materials: z.array(z.string().min(1).max(120)).min(1).max(15), otherMaterial: z.string().max(300),
   accessHeavyTruck: z.string().max(120), accessDetails: z.array(z.string().max(120)).max(20),
   photos: z.array(z.object({url: z.string().max(7000000), category: z.enum(['materiau','acces','chantier','autre'])}).strict()).max(20),

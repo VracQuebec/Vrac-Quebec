@@ -22,9 +22,9 @@ BEGIN
  'materialDescription','','refusedMaterials','[]'::jsonb,'soilCharacterized','','soilCharacterizedDetails','',
  'truckType',coalesce(to_jsonb(s)->>'truck_type_key',''),'desiredDate',coalesce(to_jsonb(s)->>'desired_date',''),'timeframe',coalesce(to_jsonb(s)->>'delivery_timeframe',''),
  'accessHeavyTruck',coalesce(to_jsonb(s)->>'access_heavy_truck',''),
- 'accessDetails',coalesce(to_jsonb(s)->'access_criteria',s.access_details->'criteres','[]'::jsonb),
- 'photos',coalesce(to_jsonb(s)->'photos_meta',s.access_details->'photos',
- (SELECT jsonb_agg(jsonb_build_object('url',x,'category','autre')) FROM jsonb_array_elements_text(coalesce(to_jsonb(s)->'photos','[]'::jsonb)) x),'[]'::jsonb),
+ 'accessDetails',coalesce(nullif(to_jsonb(s)->'access_criteria','null'::jsonb),s.access_details->'criteres','[]'::jsonb),
+ 'photos',coalesce(nullif(to_jsonb(s)->'photos_meta','null'::jsonb),s.access_details->'photos',
+ (SELECT jsonb_agg(jsonb_build_object('url',x,'category','autre')) FROM jsonb_array_elements_text(coalesce(nullif(to_jsonb(s)->'photos','null'::jsonb),'[]'::jsonb)) x),'[]'::jsonb),
  'name',s.name,'phone',coalesce(to_jsonb(s)->>'phone',''),'email',s.email,
  'notes',CASE WHEN position('Notes du demandeur : ' in coalesce(to_jsonb(s)->>'description',''))>0
  THEN substring(to_jsonb(s)->>'description' from position('Notes du demandeur : ' in to_jsonb(s)->>'description')+length('Notes du demandeur : ')) ELSE '' END),
