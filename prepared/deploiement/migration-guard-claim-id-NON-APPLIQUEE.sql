@@ -26,11 +26,6 @@ COMMENT ON COLUMN public.jsc_requests.guard_claim_id IS 'Réservation anti-doubl
 -- Le questionnaire public (insertion anonyme dans submissions) n'écrit pas
 -- cette colonne ; elle reste NULL.
 
--- ---------------- Retour arrière (à n'exécuter qu'après retour du code) ----------------
--- Le code préparé écrit guard_claim_id : revenir d'abord à l'ancien code,
--- PUIS seulement :
---   DROP INDEX IF EXISTS public.submissions_guard_claim_id_uq;
---   DROP INDEX IF EXISTS public.jsc_requests_guard_claim_id_uq;
---   COMMENT ON COLUMN public.submissions.guard_claim_id  IS 'DEPRECATED';
---   COMMENT ON COLUMN public.jsc_requests.guard_claim_id IS 'DEPRECATED';
--- (ne pas supprimer les colonnes : retrait non destructif)
+-- Retour OPÉRATIONNEL : paquet précédent exact après arrêt autorisé des admissions.
+-- CONSERVER colonnes, index uniques, RPC additives et réservations. Aucun DROP,
+-- aucune réinitialisation : retirer les index ferait perdre la protection des reprises.

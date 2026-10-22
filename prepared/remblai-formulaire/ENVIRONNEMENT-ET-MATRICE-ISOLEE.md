@@ -1,5 +1,7 @@
 # Serveur, base, photos et notifications isolés — NON CRÉÉ
 
+État/coûts actualisés : `VALIDATION-COMPLETE-ET-AUTORISATIONS.md` (Pro actif, solde lu 510,68 crédits, base 5 006 814 355 octets, sauvegardes non accessibles). Aucun Docker/Podman disponible ici. Ajouter à la matrice hébergée : dossier fermé zéro upload, nettoyage refusé pour photo d’un rejeu historique, dérive des quatre dépendances, état unknown/null des deux interfaces, vrac manuel not_sent et notifications après crash. Tous ces cas hébergés restent NON EXÉCUTÉS.
+
 ## Disponibilité et coûts
 L’aperçu courant utilise Live. Le brouillon nommé « Tests isolés dompe et remblai » n’est pas une preuve de base, identité, clés, stockage ou notifications distincts. Aucun environnement complet indépendant accessible n’a été démontré ; aucun test hébergé n’a été exécuté.
 

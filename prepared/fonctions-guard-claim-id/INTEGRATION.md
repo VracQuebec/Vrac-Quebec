@@ -7,6 +7,7 @@ Ordre : migration anti-doublon v2 → migration guard_claim_id → migration-gua
 
 ## Copie
 - `_shared/claimed-create.ts` → `supabase/functions/_shared/claimed-create.ts` (changer l'import en `./public-guard.ts`).
+- Dépendances également obligatoires : `_shared/exact-reference.ts`, `_shared/mail-status.ts`, `_shared/delivery-result.ts`. Les deux entrypoints complets sont livrés ensemble après leurs prérequis, jamais les seuls extraits ci-dessous.
 
 ## submit-parcours/index.ts
 - Remplacer `runDedupedCreate(...)` par `runClaimedCreate(sb, { ...guard, fingerprint: await parcoursFingerprint(key) }, { findByClaim, create })`.
@@ -28,6 +29,7 @@ Après un rejet d'insertion attesté sans commit, un nouvel essai est permis. Ap
 - `submit-parcours/index.ts` et `quote-submit/index.ts` sont des copies complètes de préparation, pas des fichiers déjà installés.
 - `_shared/claimed-create.ts` et `_shared/exact-reference.ts` constituent les dépendances nouvelles.
 - `_shared/mail-status.ts` exige aussi la RPC `guard_email_status(uuid,text)` du fichier durable. Les réponses `email_status: unknown` et `email_sent: null` exigent une interface préparée distincte ; ne pas activer avec l'interprétation actuelle qui peut les assimiler à un succès.
+- Les adaptateurs préparés conservent désormais `unknown` après timeout/réponse illisible ; aucun statut certain n’est écrasé. La branche manuelle mémorise `not_sent`. L’interface publique n’est PAS modifiée dans ce lot : son adaptation reste un blocage explicite.
 - Les imports `../../../supabase/functions/...` sont réservés aux essais locaux. Au report autorisé, rétablir les imports des dépendances existantes vers `../_shared/...`, `./dedupe-flow.ts`, `./dedupe.ts` et `../submit-parcours/confirmation-status.ts`. Le helper utilise alors `./public-guard.ts`.
 - `previous/` conserve six sources locales et leurs SHA-256 ; elles ne constituent pas une preuve de la version réellement hébergée. Capturer le paquet hébergé exact avant autorisation.
 - Ne pas recopier `previous/`, les tests ni les documents dans les fonctions actives.

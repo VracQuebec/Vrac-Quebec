@@ -20,7 +20,7 @@ import { quoteFingerprint, SCOPE } from '../../../supabase/functions/quote-submi
 import { runClaimedCreate, rejectedInsert, RejectedBeforeInsert } from '../_shared/claimed-create.ts';
 import { readMailState, rememberMailState, type MailState } from '../_shared/mail-status.ts';
 import { findQuote } from '../_shared/exact-reference.ts';
-import { classifyConfirmation } from '../../../supabase/functions/submit-parcours/confirmation-status.ts';
+import { deliveryResult, mailResponse } from '../_shared/delivery-result.ts';
 import { fetchWithTimeout } from '../../../supabase/functions/_shared/http.ts';
 import { logEvent, logEventAsync } from '../../../supabase/functions/_shared/observability.ts';
 
@@ -78,7 +78,7 @@ async function resolveMaterialId(sb: any, body: any): Promise<string | null> {
  * décide de la suite ; aucun succès n'est simulé.
  * `idempotencyKey` empêche tout envoi multiple du même courriel.
  */
-async function sendEmail(payload: Record<string, unknown>): Promise<{ ok: true } | { ok: false; error: string }> {
+async function sendEmail(payload: Record<string, unknown>): Promise<{ ok: boolean; state: MailState; error?: string }> {
   try {
     const res = await fetchWithTimeout(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
       method: 'POST',
@@ -88,30 +88,30 @@ async function sendEmail(payload: Record<string, unknown>): Promise<{ ok: true }
       },
       body: JSON.stringify(payload),
     });
-    const text = await res.text();
-    if (classifyConfirmation(res.ok, JSON.parse(text || '{}')) !== 'queued') {
+    const state = deliveryResult(res.ok, await res.json().catch(() => null));
+    if (state !== 'queued') {
       await logEvent({
         source: 'email', event: 'send.failed', level: 'error',
         message: `Courriel refusé (${payload.templateName})`,
         statusCode: res.status, refId: String(payload.idempotencyKey ?? ''),
         context: { template: payload.templateName },
       });
-      return { ok: false, error: `Envoi du courriel impossible (${res.status}).` };
+      return { ok: false, state, error: state === 'unknown' ? 'Statut du courriel inconnu.' : `Envoi du courriel impossible (${res.status}).` };
     }
     logEventAsync({
       source: 'email', event: 'send.ok',
       refId: String(payload.idempotencyKey ?? ''),
       context: { template: payload.templateName },
     });
-    return { ok: true };
+    return { ok: true, state: 'queued' };
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
+    const message = 'Statut du courriel inconnu.';
     await logEvent({
-      source: 'email', event: 'send.failed', level: 'error',
+      source: 'email', event: 'send.unknown', level: 'warn',
       message: `${payload.templateName}: ${message}`,
       context: { template: payload.templateName },
     });
-    return { ok: false, error: message };
+    return { ok: false, state: 'unknown', error: message };
   }
 }
 
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
       material: String(body?.material_id ?? body?.material_slug ?? ''),
       catalogId, variantId, granulometryId, customMaterial,
     });
-    const outcome = await runClaimedCreate(sb, {
+    const outcome = await runClaimedCreate<Record<string, unknown>>(sb, {
       scope: SCOPE, identity: email.toLowerCase(), fingerprint,
       honeypot: body?.website, formStartedAt: body?.form_started_at,
       freeText: [comments, name, company].filter(Boolean).join(' '), ip: clientIp(req),
@@ -243,7 +243,9 @@ Deno.serve(async (req) => {
         _body: `${name} — ${materialLabel}, ${quantity} ${unit}. Motif : ${manualReason}`,
         _audience: 'admin', _user_id: null, _entity_type: 'request', _entity_id: request.id,
       });
-      return { ref: { submission_id: String(request.id), ...recorded, manual: true }, data: { ok: true, manual: true, ...recorded, email_sent: false, emailed_to: null } };
+      clientMailState = 'not_sent';
+      await rememberMailState(sb, reservationId, clientMailState);
+      return { ref: { submission_id: String(request.id), ...recorded, manual: true }, data: { ok: true, manual: true, ...recorded, ...mailResponse(clientMailState), emailed_to: null } };
     }
     const pub = result.public;
     const sel = result.technical.selected as Record<string, any>;
@@ -443,7 +445,7 @@ Deno.serve(async (req) => {
       templateData: clientData,
     });
 
-    clientMailState = clientMail.ok ? 'queued' : 'failed';
+    clientMailState = clientMail.state;
     await rememberMailState(sb, reservationId, clientMailState);
     try {
     const adminEmail = await readSetting(sb, 'admin_notification_email');
@@ -506,8 +508,8 @@ Deno.serve(async (req) => {
     // journal critique ci-dessous et peut retenter l'envoi sans recréer
     // la demande (clé d'idempotence par soumission).
     return { ref: { submission_id: String(request.id), request_id: String(request.id), quote_id: String(quote.id), ...recorded },
-      data: { ok: true, ...recorded, email_sent: clientMail.ok, emailed_to: clientMail.ok ? email : null,
-        ...(!clientMail.ok ? { notice: 'confirmation_email_failed' } : {}) } };
+      data: { ok: true, ...recorded, ...mailResponse(clientMailState), emailed_to: clientMail.ok ? email : null,
+        ...(!clientMail.ok ? { notice: clientMailState === 'unknown' ? 'confirmation_status_uncertain' : 'confirmation_email_failed' } : {}) } };
     } });
     if (outcome.kind === 'in_progress') return json({ ok: false, code: 'in_progress', retryable: true }, 409);
     if (outcome.kind === 'duplicate') {
@@ -526,7 +528,7 @@ Deno.serve(async (req) => {
             quantity: `${p.quantity} ${p.unit}`, trips: p.trips, address: p.delivery_address,
             total: money(p.total), validUntil: quote.valid_until,
           } });
-        state = result.ok ? 'queued' : 'failed';
+        state = result.state;
         recipient = result.ok ? p.contact.email : null;
         if(outcome.claimId) await rememberMailState(sb,outcome.claimId,state);
       }
@@ -534,11 +536,12 @@ Deno.serve(async (req) => {
     }
     return json(outcome.data);
   } catch (e) {
-    if (recorded) {
+    const savedReference = recorded as { request_number: unknown; quote_number: unknown; valid_until: unknown } | null;
+    if (savedReference) {
       // La demande est enregistrée : une erreur d'après-traitement ne doit
       // jamais la faire passer pour perdue (le visiteur renverrait).
       await logEvent({ source: 'quote_submit', event: 'post_record.failed', level: 'critical', message: e instanceof Error ? e.message : String(e) });
-      return json({ ok: true, ...recorded, email_status: clientMailState, email_sent: clientMailState === 'queued' ? true : clientMailState === 'unknown' ? null : false, notice: 'confirmation_status_uncertain', emailed_to: null });
+      return json({ ok: true, ...savedReference, ...mailResponse(clientMailState), notice: 'confirmation_status_uncertain', emailed_to: null });
     }
     // Le helper conserve toute insertion incertaine en pending.
     if (e instanceof GuardError) {

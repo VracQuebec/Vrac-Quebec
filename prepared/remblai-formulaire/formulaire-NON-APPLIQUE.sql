@@ -45,6 +45,10 @@ BEGIN
  'IF kind=''read'' THEN IF l.verified_at IS NULL THEN RETURN jsonb_build_object(''denied'',true); END IF; RETURN public.exec01_projection(s.id); END IF;');
  dispatcher:=replace(dispatcher,'IF kind=''photo_authorize'' THEN',
  'IF kind=''photo_authorize'' THEN IF l.verified_at IS NULL OR l.verified_at<now()-interval ''10 minutes'' THEN RETURN jsonb_build_object(''denied'',true); END IF;');
+ -- Legitimate replays remain readable; new edits of a closed dossier cannot prepare uploads.
+ dispatcher:=replace(dispatcher,
+ 'IF FOUND AND previous.input_hash=p->>''inputHash'' THEN RETURN jsonb_build_object(''replay'',previous.result); END IF;',
+ 'IF FOUND AND previous.input_hash=p->>''inputHash'' THEN RETURN jsonb_build_object(''replay'',previous.result); END IF; IF s.availability_status=''owner_closed'' THEN RETURN jsonb_build_object(''denied'',true); END IF;');
  dispatcher:=replace(dispatcher,'''conditions'',(SELECT reception_conditions FROM submission_fill_profile WHERE submission_id=s.id)',
  '''publicForm'',public.exec01_projection(s.id)->''publicForm'',''conditions'',(SELECT reception_conditions FROM submission_fill_profile WHERE submission_id=s.id)');
  dispatcher:=replace(dispatcher,'IF a=''modifier'' THEN',$edit$

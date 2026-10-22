@@ -138,6 +138,13 @@ describe.skipIf(!enabled)('PostgreSQL jetable — formulaire personnel',()=>{
   expect((await db`select count(*)::int n from submission_portal_events where submission_id=${a}`)[0].n).toBe(history+1);
   expect(await edit()).toEqual({denied:true});expect((await db`select description,photos,email from submissions where id=${a}`)[0]).toEqual({description:before.description,photos:before.photos,email:before.email});
  });
+ it('refuses new photos on a closed dossier before any storage call',async()=>{
+  const secret='a'.repeat(64);const hash=await import('../lib/remblai/service').then(m=>m.digest(secret));await db`update submission_portal_links set secret_hash=${hash} where id=${la}`;
+  let puts=0;const handler=makeEndpoint({portalOrigin:'https://test.invalid',corsOrigin:'https://test.invalid',isAdmin:async()=>false,captureOrSend:async()=>{throw Error('No mail');},rpc,storage:{put:async()=>{puts++;},sign:async()=>{throw Error('No sign');}}});
+  const version=(await db`select exec01_version v from submissions where id=${a}`)[0].v;
+  const response=await handler(new Request('https://test.invalid',{method:'POST',body:JSON.stringify({kind:'act',requestId:a,linkId:la,secret,action:'modifier',confirmed:true,operationId:crypto.randomUUID(),version,publicForm:publicEditPayload({...initial,photos:[{url:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==',category:'chantier'}]})})}));
+  expect(response.status).toBe(403);await response.text();expect(puts).toBe(0);await db`update submission_portal_links set secret_hash='hash-a' where id=${la}`;
+ });
  it('refuses revoked and wrong secrets',async()=>{expect(await rpc({kind:'read',requestId:a,linkId:la,secretHash:'wrong'})).toEqual({denied:true});await db`update submission_portal_links set revoked_at=now() where id=${la}`;expect(await rpc({kind:'read',requestId:a,linkId:la,secretHash:'hash-a'})).toEqual({denied:true});});
  it('stops on second patch and restores exactly both original definitions locally',async()=>{await expect(db.unsafe(await readFile('prepared/remblai-formulaire/formulaire-NON-APPLIQUE.sql','utf8'))).rejects.toThrow('unexpected_reference_STOP');await db.unsafe(originalProjection);await db.unsafe(originalDispatcher);expect((await db`select pg_get_functiondef('exec01_projection(uuid,boolean)'::regprocedure) d`)[0].d).toBe(originalProjection);expect((await db`select pg_get_functiondef('exec01_dispatch(jsonb)'::regprocedure) d`)[0].d).toBe(originalDispatcher);});
 });

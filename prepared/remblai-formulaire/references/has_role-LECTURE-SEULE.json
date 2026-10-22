@@ -1,0 +1,13 @@
+{
+  "signature": "has_role(uuid,app_role)",
+  "definition": "CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT EXISTS (\n    SELECT 1 FROM public.user_roles\n    WHERE user_id = _user_id AND role = _role AND approved = true\n  )\n$function$\n",
+  "md5": "6e055322eaad390f6c2c3ef45fec6857",
+  "owner": "postgres",
+  "returns": "boolean",
+  "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+  "config": ["search_path=public"],
+  "security_definer": true,
+  "anon_execute": true,
+  "authenticated_execute": true,
+  "service_execute": true
+}
