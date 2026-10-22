@@ -1,6 +1,7 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## Correctif lien personnel — 22 octobre 2026
+- [ ] Complément 20:11 UTC : préparer messages et protocole hébergé isolé, analyser compteurs historiques fictifs et revérifier inverse exact local; production et interface inchangées.
 - [x] Préparer cinq erreurs / attente 15 minutes et préserver renouvellement, révocation et code récent du même lien.
 - [x] Tester SQL local, capture courrier et retour arrière exact avec garde d’empreinte : 54/54 tests et parcours navigateur local réussi.
 - [x] Documenter preuves, protocole Outlook/iPhone, sauvegarde manuelle et autorisations requises dans prepared/exec01-correctif-lien/VALIDATION-2026-10-22.md.
