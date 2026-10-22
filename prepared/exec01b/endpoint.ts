@@ -28,6 +28,13 @@ export function confirmationMessage(to:string,name:string,url:string):Message {
 }
 export function makeEndpoint(deps:Dependencies) {
  const reply=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','Access-Control-Allow-Origin':deps.corsOrigin,'Access-Control-Allow-Headers':'Content-Type, Authorization, apikey, x-client-info','Access-Control-Allow-Methods':'POST, GET, OPTIONS','Vary':'Origin',...(deps.localHarness?{'Access-Control-Allow-Credentials':'true'}:{})}});
+ const renderResult=async(result:Record<string,unknown>,requestId:string)=>{
+  if('conditions' in result && result.conditions==null) result.conditions=result.legacy ? legacyReception(result.legacy as Parameters<typeof legacyReception>[0]) : unknownConditions();
+  delete result.legacy;
+  if(result.conditions && deps.storage) {const c=result.conditions as {photos:{name:string;preview:string}[]};result.conditions={...c,photos:await signPhotos(requestId,c.photos,deps.storage)};}
+  if(result.publicForm && deps.storage) {const f=result.publicForm as {photos:{url:string;category:string}[]};result.publicForm={...f,photos:await signOriginalPhotos(requestId,f.photos,deps.storage)};}
+  return reply(result);
+ };
  return async (request:Request)=>{
   if(request.method==='OPTIONS') return reply({});
   if(deps.enabled===false) return reply({error:'Suivi non activé.'},503);
@@ -63,8 +70,7 @@ export function makeEndpoint(deps:Dependencies) {
     const authorized=await deps.rpc({...p,kind:'photo_authorize'});
     if(authorized.replay) {
      const replay=authorized.replay as Record<string,unknown>;
-     if(deps.storage && replay.conditions) {const c=replay.conditions as {photos:{name:string;preview:string}[]};replay.conditions={...c,photos:await signPhotos(data.requestId,c.photos,deps.storage)};}
-     return reply(replay);
+     return renderResult(replay,data.requestId);
     }
     if(authorized.denied) return reply({error:'Vérification récente requise.'},403);
     const previous=authorized.conditions as {photos?:{name:string;preview:string}[]} | null;
@@ -76,8 +82,7 @@ export function makeEndpoint(deps:Dependencies) {
     if(authorized.denied) return reply({error:'Vérification récente requise.'},403);
     if(authorized.replay) {
       const replay=authorized.replay as Record<string,unknown>;
-      if(replay.publicForm && deps.storage) {const f=replay.publicForm as {photos:{url:string;category:string}[]};replay.publicForm={...f,photos:await signOriginalPhotos(data.requestId,f.photos,deps.storage)};}
-      return reply(replay);
+      return renderResult(replay,data.requestId);
     }
     const previous=authorized.publicForm as {photos?:{url:string;category:string}[]} | undefined;
     if(!previous) return reply({error:'Formulaire original indisponible.'},503);
@@ -106,14 +111,7 @@ export function makeEndpoint(deps:Dependencies) {
     else { const fragment=new URLSearchParams({requestId:data.requestId,linkId,secret});const url=`${deps.portalOrigin}/portail/remblai${deps.localHarness?'?server=local':''}#${fragment}`;message=confirmationMessage(result.contact,String(result.name??''),url); }
     const delivery=await deps.captureOrSend(message);return reply({ok:true,delivery});
    }
-   if('conditions' in result && result.conditions==null) result.conditions=result.legacy ? legacyReception(result.legacy as Parameters<typeof legacyReception>[0]) : unknownConditions();
-   delete result.legacy;
-   if(result.conditions && deps.storage) {
-    const conditions=result.conditions as {photos:{name:string;preview:string}[]};
-    result.conditions={...conditions,photos:await signPhotos(data.requestId,conditions.photos,deps.storage)};
-   }
-   if(result.publicForm && deps.storage) { const f=result.publicForm as {photos:{url:string;category:string}[]}; result.publicForm={...f,photos:await signOriginalPhotos(data.requestId,f.photos,deps.storage)}; }
-   return reply(result);
+   return renderResult(result,data.requestId);
   }catch {return reply({error:'Service indisponible. Aucune donnée privée affichée.'},503);}
  };
 }
