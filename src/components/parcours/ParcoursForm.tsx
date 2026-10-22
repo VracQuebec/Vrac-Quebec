@@ -38,49 +38,12 @@ import {
 } from "@/lib/parcours/normalisation";
 import { buildHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff } from "@/lib/parcours/handoff";
 import { isFeatureEnabled } from "@/lib/flags";
+import { Button } from "@/components/ui/button";
+import { emptyParcoursDraft as emptyDraft, publicStepError, type ParcoursDraft as Draft } from "@/lib/remblai/public-form";
 import MaterialAssistantStep from "@/components/parcours/MaterialAssistantStep";
 import { assistantNotes, type EnvironmentAnswer } from "@/lib/parcours/assistant-materiaux";
 
 export type ParcoursVariant = "reception" | "evacuation";
-
-interface PhotoEntry { url: string; category: PhotoCategoryKey }
-
-interface Draft {
-  address: string;
-  postalCode: string;
-  lat: number | null;
-  lng: number | null;
-  quantityValue: string;
-  quantityUnit: string;
-  quantityUnknown: boolean;
-  projectUsage: string;
-  materials: string[];
-  otherMaterial: string;
-  // Champs additifs de l'assistant (utilisés seulement si le drapeau est actif).
-  materialDescription: string;
-  refusedMaterials: string[];
-  soilCharacterized: string;
-  soilCharacterizedDetails: string;
-  truckType: string;
-  desiredDate: string;
-  timeframe: string;
-  accessHeavyTruck: string;
-  accessDetails: string[];
-  photos: PhotoEntry[];
-  name: string;
-  phone: string;
-  email: string;
-  notes: string;
-}
-
-const emptyDraft: Draft = {
-  address: "", postalCode: "", lat: null, lng: null,
-  quantityValue: "", quantityUnit: "voyages", quantityUnknown: false,
-  projectUsage: "", materials: [], otherMaterial: "", truckType: "",
-  materialDescription: "", refusedMaterials: [], soilCharacterized: "", soilCharacterizedDetails: "",
-  desiredDate: "", timeframe: "", accessHeavyTruck: "", accessDetails: [],
-  photos: [], name: "", phone: "", email: "", notes: "",
-};
 
 type StepKey =
   | "address" | "quantity" | "project" | "material" | "truck" | "date"
@@ -111,16 +74,18 @@ const choiceCls = (active: boolean) =>
     active ? "border-primary bg-primary/5 font-semibold text-foreground" : "border-border bg-background text-foreground hover:border-primary/50"
   }`;
 
-const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
+type Editor = { initial: Draft; onSave: (value: Draft) => void; onCancel: () => void; busy: boolean };
+const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: Editor }) => {
   const storageKey = `vq_parcours_${variant}_v1`;
   const navigate = useNavigate();
   const { user } = useAuthReady();
   const steps = STEPS[variant];
   // Drapeau material_assistant_v2 : désactivé par défaut (production inchangée).
-  const assistantOn = useMemo(() => isFeatureEnabled("material_assistant_v2"), []);
+  const assistantOn = useMemo(() => !editor && isFeatureEnabled("material_assistant_v2"), [editor]);
   const [index, setIndex] = useState(0);
   const [data, setData] = useState<Draft>(() => {
     try {
+      if (editor) return editor.initial;
       const raw = localStorage.getItem(storageKey);
       if (!raw) return emptyDraft;
       const saved = { ...emptyDraft, ...JSON.parse(raw) } as Draft;
@@ -131,6 +96,7 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
   });
   // Brouillon retrouvé au chargement : on l'annonce pour expliquer le retour à l'étape 1.
   const [restoredDraft, setRestoredDraft] = useState<boolean>(() => {
+    if (editor) return false;
     try {
       const raw = localStorage.getItem(storageKey);
       if (!raw) return false;
@@ -154,6 +120,7 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
   const set = (patch: Partial<Draft>) => setData((d) => ({ ...d, ...patch }));
 
   useEffect(() => {
+    if (editor) return;
     try { localStorage.setItem(storageKey, JSON.stringify(data)); } catch { /* quota */ }
   }, [data, storageKey]);
 
@@ -169,36 +136,8 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
     return formatQuantity(data.quantityValue, data.quantityUnit);
   }, [data.quantityValue, data.quantityUnit, data.quantityUnknown]);
 
-  const canContinue = (): boolean => {
-    switch (step) {
-      case "address": return data.address.trim().length >= 5;
-      case "material": return data.materials.length > 0;
-      case "contact":
-        return (
-          data.name.trim().length > 1 &&
-          data.phone.replace(/\D/g, "").length >= 10 &&
-          /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email.trim())
-        );
-      default: return true; // quantité, projet, camion, date, accès et photos restent facultatifs
-    }
-  };
-
-  /** Explique pourquoi « Continuer » / « Envoyer » est bloqué (null si rien ne bloque). */
-  const blockedReason = (): string | null => {
-    if (canContinue()) return null;
-    switch (step) {
-      case "address": return "Inscrivez l'adresse du chantier (au moins 5 caractères) pour continuer.";
-      case "material": return "Choisissez au moins un matériau pour continuer.";
-      case "contact": {
-        const miss: string[] = [];
-        if (data.name.trim().length <= 1) miss.push("votre nom");
-        if (data.phone.replace(/\D/g, "").length < 10) miss.push("un téléphone à 10 chiffres");
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email.trim())) miss.push("un courriel valide (ex. nom@domaine.ca)");
-        return `Pour envoyer, indiquez ${miss.join(", ")}.`;
-      }
-      default: return null;
-    }
-  };
+  const canContinue = () => publicStepError(step, data) === null;
+  const blockedReason = () => publicStepError(step, data);
 
   const toggle = (key: "materials" | "accessDetails", value: string) => {
     const arr = data[key];
@@ -209,7 +148,15 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
     if (!files?.length) return;
     setUploading(true);
     try {
-      const added: PhotoEntry[] = [];
+      const added: Draft["photos"] = [];
+      if (editor) {
+        for (const file of Array.from(files).slice(0, Math.max(0, 20 - data.photos.length))) {
+          if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 4000000) throw Error("Photo refusée : JPEG, PNG ou WebP, 4 Mo maximum.");
+          const url = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file); });
+          added.push({url, category:photoCategory});
+        }
+        set({photos:[...data.photos,...added]}); return;
+      }
       for (const file of Array.from(files).slice(0, 6)) {
         const ext = file.name.split(".").pop();
         const safeExt = (ext || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg";
@@ -221,6 +168,8 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
         }
       }
       if (added.length) set({ photos: [...data.photos, ...added] });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Photo non ajoutée.");
     } finally {
       setUploading(false);
     }
@@ -651,7 +600,7 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
               <div className="grid grid-cols-3 gap-2">
                 {data.photos.map((p, i) => (
                   <div key={p.url} className="relative">
-                    <img src={p.url} alt={p.category} className="h-20 w-full rounded object-cover" />
+                    <img src={p.signedUrl ?? p.url} alt={p.category} className="h-20 w-full rounded object-cover" />
                     <span className="absolute inset-x-0 bottom-0 truncate bg-foreground/70 px-1 py-0.5 text-[10px] text-background">
                       {p.category}
                     </span>
@@ -674,7 +623,7 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
               placeholder="Nom complet *" autoComplete="name" className={inputCls} />
             <input type="tel" inputMode="tel" value={data.phone} onChange={(e) => set({ phone: e.target.value })}
               placeholder="Téléphone *" autoComplete="tel" className={inputCls} />
-            <input type="email" inputMode="email" value={data.email} onChange={(e) => set({ email: e.target.value })}
+            <input readOnly={!!editor} aria-label="Courriel *" type="email" inputMode="email" value={data.email} onChange={(e) => set({ email: e.target.value })}
               placeholder="Courriel *" autoComplete="email" className={inputCls} />
             <textarea value={data.notes} onChange={(e) => set({ notes: e.target.value })} rows={3}
               placeholder="Précisions (optionnel)" className={`${inputCls} resize-none`} />
@@ -716,6 +665,8 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
 
       <div className="mt-4">{renderStep()}</div>
 
+      {error && editor && <p role="alert" className="mt-3 text-destructive">{error}</p>}
+      {editor && step === "contact" && <p className="mt-3 text-sm text-muted-foreground">Le courriel associé à votre lien personnel ne peut pas être modifié ici.</p>}
       {blockedReason() && (
         <p role="status" className="mt-4 font-body text-sm text-destructive">{blockedReason()}</p>
       )}
@@ -729,15 +680,16 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
         )}
         <button
           type="button"
-          disabled={!canContinue() || loading}
-          onClick={() => (isLast ? void submit() : setIndex((i) => i + 1))}
+          disabled={!canContinue() || loading || uploading || editor?.busy}
+          onClick={() => (isLast ? editor ? editor.onSave(data) : void submit() : setIndex((i) => i + 1))}
           className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-4 font-display text-base font-bold uppercase tracking-wide text-primary-foreground shadow-lg disabled:opacity-40"
         >
           {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : isLast ? <Send className="h-5 w-5" /> : <ArrowRight className="h-5 w-5" />}
-          {isLast ? "Envoyer ma demande" : "Continuer"}
+          {isLast ? editor ? "Enregistrer ma demande" : "Envoyer ma demande" : "Continuer"}
         </button>
       </div>
 
+      {editor && <Button variant="outline" className="mt-3" disabled={editor.busy} onClick={editor.onCancel}>Annuler</Button>}
       <p className="mt-3 flex items-start gap-1.5 font-body text-xs text-muted-foreground">
         <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
         Vos réponses sont conservées si vous revenez en arrière. Aucun engagement.
