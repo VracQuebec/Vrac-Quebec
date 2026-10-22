@@ -42,11 +42,12 @@ export const publicEditSchema = z.object({
   name: z.string().trim().min(2).max(160), phone: z.string().max(40).refine(v => v.replace(/\D/g, '').length >= 10),
   email: z.string().email().max(254), notes: z.string().max(4000),
 }).strict();
-export type PublicEdit = z.infer<typeof publicEditSchema>;
+export type PublicEdit = Pick<ParcoursDraft, 'address'|'postalCode'|'quantityValue'|'quantityUnit'|'quantityUnknown'|'projectUsage'|'materials'|'otherMaterial'|'accessHeavyTruck'|'accessDetails'|'name'|'phone'|'email'|'notes'> & {photos:{url:string;category:PhotoCategoryKey}[]};
 export function publicEditPayload(d: ParcoursDraft): PublicEdit {
-  return publicEditSchema.parse({address:d.address, postalCode:d.postalCode, quantityValue:d.quantityValue,
+  const validated = publicEditSchema.parse({address:d.address, postalCode:d.postalCode, quantityValue:d.quantityValue,
     quantityUnit:d.quantityUnit, quantityUnknown:d.quantityUnknown, projectUsage:d.projectUsage,
     materials:d.materials, otherMaterial:d.otherMaterial, accessHeavyTruck:d.accessHeavyTruck,
     accessDetails:d.accessDetails, photos:d.photos.map(p=>({url:p.url,category:p.category})),
     name:d.name, phone:d.phone, email:d.email, notes:d.notes});
+  return {...validated, photos:validated.photos.map(p=>{if(typeof p.url !== 'string' || !p.category) throw Error('Photo invalide'); return {url:p.url,category:p.category};})} as PublicEdit;
 }

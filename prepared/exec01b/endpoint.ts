@@ -76,7 +76,8 @@ export function makeEndpoint(deps:Dependencies) {
     if(authorized.replay) return reply(authorized.replay);
     const previous=authorized.publicForm as {photos?:{url:string;category:string}[]} | undefined;
     if(!previous) return reply({error:'Formulaire original indisponible.'},503);
-    p.publicForm={...data.publicForm,photos:await prepareOriginalPhotos(data.requestId,data.publicForm.photos,previous.photos??[],deps.storage)};
+    const photos=data.publicForm.photos.map(p=>{if(typeof p.url!=='string'||typeof p.category!=='string')throw Error('Photo invalide');return {url:p.url,category:p.category};});
+    p.publicForm={...data.publicForm,photos:await prepareOriginalPhotos(data.requestId,photos,previous.photos??[],deps.storage)};
    }
    // The hosted adapter commits code/link + queue/capture in ONE transaction.
    // No contact, code or bearer is returned from that transaction to the browser.
