@@ -9,14 +9,14 @@
 // ============================================================
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { geocode } from '../_shared/vqos/runtime.ts';
-import { clientIp, GuardError } from '../_shared/public-guard.ts';
-import { classifyConfirmation, type ConfirmationStatus } from './confirmation-status.ts';
+import { geocode } from '../../../supabase/functions/_shared/vqos/runtime.ts';
+import { clientIp, GuardError } from '../../../supabase/functions/_shared/public-guard.ts';
+import { classifyConfirmation, type ConfirmationStatus } from '../../../supabase/functions/submit-parcours/confirmation-status.ts';
 import { parcoursFingerprint } from '../../../supabase/functions/submit-parcours/dedupe-flow.ts';
 import { runClaimedCreate, rejectedInsert } from '../_shared/claimed-create.ts';
 import { findSubmission } from '../_shared/exact-reference.ts';
-import { logEvent, logEventAsync } from '../_shared/observability.ts';
-import { fetchWithTimeout } from '../_shared/http.ts';
+import { logEvent, logEventAsync } from '../../../supabase/functions/_shared/observability.ts';
+import { fetchWithTimeout } from '../../../supabase/functions/_shared/http.ts';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

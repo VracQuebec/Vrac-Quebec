@@ -12,16 +12,16 @@
 // ============================================================
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { type Unit } from '../_shared/vqos/index.ts';
-import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
-import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
-import { clientIp, GuardError } from '../_shared/public-guard.ts';
+import { type Unit } from '../../../supabase/functions/_shared/vqos/index.ts';
+import { runCarrierQuote } from '../../../supabase/functions/_shared/vqos/jsc-engine.ts';
+import { distanceProvider, geocode, loadConfig } from '../../../supabase/functions/_shared/vqos/runtime.ts';
+import { clientIp, GuardError } from '../../../supabase/functions/_shared/public-guard.ts';
 import { quoteFingerprint, SCOPE } from '../../../supabase/functions/quote-submit/dedupe.ts';
 import { runClaimedCreate, rejectedInsert } from '../_shared/claimed-create.ts';
 import { findQuote } from '../_shared/exact-reference.ts';
 import { classifyConfirmation } from '../../../supabase/functions/submit-parcours/confirmation-status.ts';
-import { fetchWithTimeout } from '../_shared/http.ts';
-import { logEvent, logEventAsync } from '../_shared/observability.ts';
+import { fetchWithTimeout } from '../../../supabase/functions/_shared/http.ts';
+import { logEvent, logEventAsync } from '../../../supabase/functions/_shared/observability.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
 const VALIDITY_SETTING = 'quote_validity_days';
