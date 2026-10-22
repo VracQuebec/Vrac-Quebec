@@ -1,9 +1,10 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## Correctif lien personnel — 22 octobre 2026
-- [ ] Préparer cinq erreurs / attente 15 minutes et préserver renouvellement, révocation et code récent du même lien.
-- [ ] Tester SQL local, capture courrier et retour arrière exact avec garde d’empreinte.
-- [ ] Documenter preuves, protocole Outlook/iPhone, sauvegarde manuelle et autorisations requises.
+- [x] Préparer cinq erreurs / attente 15 minutes et préserver renouvellement, révocation et code récent du même lien.
+- [x] Tester SQL local, capture courrier et retour arrière exact avec garde d’empreinte : 54/54 tests et parcours navigateur local réussi.
+- [x] Documenter preuves, protocole Outlook/iPhone, sauvegarde manuelle et autorisations requises dans prepared/exec01-correctif-lien/VALIDATION-2026-10-22.md.
+- [ ] Tests Outlook/iPhone et courrier effectif : environnement mail réellement isolé, appareil et autorisation d’envoi TEST requis; sauvegarde récente non confirmée. Messages 15 minutes à préparer avant publication autorisée.
 - Production strictement en lecture seule; aucun déploiement, publication, envoi ou sauvegarde.
 
 ## Finalisation ciblée EXEC-01
