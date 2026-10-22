@@ -17,7 +17,8 @@ import { runCarrierQuote } from '../../../supabase/functions/_shared/vqos/jsc-en
 import { distanceProvider, geocode, loadConfig } from '../../../supabase/functions/_shared/vqos/runtime.ts';
 import { clientIp, GuardError } from '../../../supabase/functions/_shared/public-guard.ts';
 import { quoteFingerprint, SCOPE } from '../../../supabase/functions/quote-submit/dedupe.ts';
-import { runClaimedCreate, rejectedInsert } from '../_shared/claimed-create.ts';
+import { runClaimedCreate, rejectedInsert, RejectedBeforeInsert } from '../_shared/claimed-create.ts';
+import { readMailState, rememberMailState, type MailState } from '../_shared/mail-status.ts';
 import { findQuote } from '../_shared/exact-reference.ts';
 import { classifyConfirmation } from '../../../supabase/functions/submit-parcours/confirmation-status.ts';
 import { fetchWithTimeout } from '../../../supabase/functions/_shared/http.ts';
@@ -122,6 +123,7 @@ Deno.serve(async (req) => {
   // Réservation anti-doublon : libérée si la création échoue, confirmée
   // (avec la référence exacte) dès que la demande existe réellement.
   let claimId: string | null = null;
+  let clientMailState: MailState = 'unknown';
   let recorded: { request_number: unknown; quote_number: unknown; valid_until: unknown } | null = null;
   const sb = db();
   try {
@@ -168,7 +170,8 @@ Deno.serve(async (req) => {
     }, { findByClaim: (id) => findQuote(sb, id), create: async (reservationId) => {
     claimId = reservationId;
     // ---------- Recalcul serveur (source unique de vérité) ----------
-    const delivery = await geocode(address);
+    let delivery;
+    try { delivery = await geocode(address); } catch { throw new RejectedBeforeInsert('Adresse non validée avant insertion'); }
     let manualReason: string | null = null;
     let result: any = null;
     if (customMaterial) manualReason = 'Matériau introuvable dans le catalogue : qualification requise.';
@@ -207,7 +210,7 @@ Deno.serve(async (req) => {
         billing_address: delivery.address, city: delivery.city, postal_code: delivery.postal_code,
         latitude: delivery.lat, longitude: delivery.lng,
       }).select('id').single();
-      if (clientError) throw new Error(clientError.message);
+      if (clientError) throw new RejectedBeforeInsert('Client non enregistré avant insertion de demande');
       const { data: request, error: requestError } = await sb.from('jsc_requests').insert({
         guard_claim_id: reservationId,
         client_id: client.id, source: 'soumission_web_manuelle',
@@ -258,7 +261,7 @@ Deno.serve(async (req) => {
       latitude: delivery.lat,
       longitude: delivery.lng,
     }).select('id').single();
-    if (clientError) throw new Error(clientError.message);
+    if (clientError) throw new RejectedBeforeInsert('Client non enregistré avant insertion de demande');
 
     // ---------- CRM : demande (lead) ----------
     const { data: request, error: requestError } = await sb.from('jsc_requests').insert({
@@ -440,6 +443,9 @@ Deno.serve(async (req) => {
       templateData: clientData,
     });
 
+    clientMailState = clientMail.ok ? 'queued' : 'failed';
+    await rememberMailState(sb, reservationId, clientMailState);
+    try {
     const adminEmail = await readSetting(sb, 'admin_notification_email');
     if (adminEmail) {
       const adminMail = await sendEmail({
@@ -493,6 +499,7 @@ Deno.serve(async (req) => {
       },
     });
 
+    } catch { console.warn(JSON.stringify({event:'quote.postprocessing_failed'})); }
     // La soumission est ENREGISTRÉE : le courriel n'est jamais bloquant
     // (aligné sur quote-assistant). On confirme avec les numéros et on
     // signale honnêtement l'échec d'envoi ; l'équipe est alertée via le
@@ -505,20 +512,25 @@ Deno.serve(async (req) => {
     if (outcome.kind === 'in_progress') return json({ ok: false, code: 'in_progress', retryable: true }, 409);
     if (outcome.kind === 'duplicate') {
       // Pas de nouvel envoi automatique. Rejeu explicite par id de soumission exact.
-      let email_sent = false;
-      if (body?.resend_confirmation === true && typeof outcome.ref.quote_id === 'string') {
-        const { data: quote, error } = await sb.from('jsc_quotes').select('public_payload,quote_number,valid_until').eq('id', outcome.ref.quote_id).eq('request_id', outcome.ref.submission_id).single();
+      const fresh = outcome.claimId ? await findQuote(sb, outcome.claimId) : null;
+      const ref = fresh ?? outcome.ref;
+      let state = outcome.claimId ? await readMailState(sb, outcome.claimId) : 'unknown';
+      let recipient: string | null = null;
+      if (body?.resend_confirmation === true && typeof ref.quote_id === 'string') {
+        const { data: quote, error } = await sb.from('jsc_quotes').select('public_payload,quote_number,valid_until').eq('id', ref.quote_id).eq('request_id', ref.submission_id).single();
         if (error || !quote) throw new Error('Lecture de soumission indisponible');
         const p = quote.public_payload;
         const result = await sendEmail({ templateName: 'soumission-client', recipientEmail: p.contact.email,
-          idempotencyKey: `soumission-client-${outcome.ref.quote_id}`, templateData: {
+          idempotencyKey: `soumission-client-${ref.quote_id}`, templateData: {
             quoteNumber: quote.quote_number, name: p.contact.name, material: p.material,
             quantity: `${p.quantity} ${p.unit}`, trips: p.trips, address: p.delivery_address,
             total: money(p.total), validUntil: quote.valid_until,
           } });
-        email_sent = result.ok;
+        state = result.ok ? 'queued' : 'failed';
+        recipient = result.ok ? p.contact.email : null;
+        if(outcome.claimId) await rememberMailState(sb,outcome.claimId,state);
       }
-      return json({ ok: true, duplicate: true, ...outcome.ref, email_sent, emailed_to: null });
+      return json({ ok: true, duplicate: true, ...ref, email_status: state, email_sent: state === 'queued' ? true : state === 'unknown' ? null : false, emailed_to: recipient });
     }
     return json(outcome.data);
   } catch (e) {
@@ -526,7 +538,7 @@ Deno.serve(async (req) => {
       // La demande est enregistrée : une erreur d'après-traitement ne doit
       // jamais la faire passer pour perdue (le visiteur renverrait).
       await logEvent({ source: 'quote_submit', event: 'post_record.failed', level: 'critical', message: e instanceof Error ? e.message : String(e) });
-      return json({ ok: true, ...recorded, email_sent: false, notice: 'confirmation_email_failed', emailed_to: null });
+      return json({ ok: true, ...recorded, email_status: clientMailState, email_sent: clientMailState === 'queued' ? true : clientMailState === 'unknown' ? null : false, notice: 'confirmation_status_uncertain', emailed_to: null });
     }
     // Le helper conserve toute insertion incertaine en pending.
     if (e instanceof GuardError) {

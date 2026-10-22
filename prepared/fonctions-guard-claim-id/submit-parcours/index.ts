@@ -14,6 +14,7 @@ import { clientIp, GuardError } from '../../../supabase/functions/_shared/public
 import { classifyConfirmation, type ConfirmationStatus } from '../../../supabase/functions/submit-parcours/confirmation-status.ts';
 import { parcoursFingerprint } from '../../../supabase/functions/submit-parcours/dedupe-flow.ts';
 import { runClaimedCreate, rejectedInsert } from '../_shared/claimed-create.ts';
+import { readMailState, rememberMailState } from '../_shared/mail-status.ts';
 import { findSubmission } from '../_shared/exact-reference.ts';
 import { logEvent, logEventAsync } from '../../../supabase/functions/_shared/observability.ts';
 import { fetchWithTimeout } from '../../../supabase/functions/_shared/http.ts';
@@ -256,7 +257,8 @@ Deno.serve(async (req) => {
       logEventAsync({ source: 'submit_parcours', event: 'submission.duplicate', level: 'warn', refId: outcome.ref.submission_id, context: { variant } });
       const email_status = body?.resend_confirmation === true
         ? await sendClientConfirmation(outcome.ref.submission_id)
-        : undefined;
+        : outcome.claimId ? await readMailState(sb, outcome.claimId) : 'unknown';
+      if (outcome.claimId && email_status !== 'unknown') await rememberMailState(sb, outcome.claimId, email_status);
       return json({ ok: true, duplicate: true, submission_id: outcome.ref.submission_id, ...(email_status ? { email_status } : {}) });
     }
     if (!outcome.remembered) {
@@ -270,6 +272,7 @@ Deno.serve(async (req) => {
     // Confirmation client attendue : son vrai résultat est affiché au demandeur.
     // La notification interne reste en arrière-plan.
     const email_status = await sendClientConfirmation(lead.id);
+    if (outcome.claimId) await rememberMailState(sb, outcome.claimId, email_status);
     const adminMail = sendEmail({
       templateName: 'new-lead-notification',
       idempotencyKey: `new-lead-${lead.id}`,

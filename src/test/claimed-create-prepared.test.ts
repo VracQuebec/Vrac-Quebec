@@ -62,17 +62,17 @@ describe("anti-doublon durable préparé (guard_claim_id)", () => {
     db.rows[0].claim = "c0";
     expect((await submit(db)).kind).toBe("in_progress");
     db.age(601);
-    expect(await submit(db)).toEqual({ kind: "duplicate", ref: { submission_id: "s1" } });
+    expect(await submit(db)).toEqual({ kind: "duplicate", ref: { submission_id: "s1" }, claimId: 'c0' });
     expect(db.rows).toHaveLength(1);
     expect(db.mails).toHaveLength(0);
-    expect(await submit(db)).toEqual({ kind: "duplicate", ref: { submission_id: "s1" } });
+    expect(await submit(db)).toEqual({ kind: "duplicate", ref: { submission_id: "s1" }, claimId: 'c0' });
   });
 
   it("violation d'unicité : la demande de cette réservation est renvoyée", async () => {
     const db = fakeDb();
     db.rows.push({ id: "s9", claim: "c1" });
     const o = await submit(db);
-    expect(o).toEqual({ kind: "duplicate", ref: { submission_id: "s9" } });
+    expect(o).toEqual({ kind: "duplicate", ref: { submission_id: "s9" }, claimId: 'c1' });
   });
 
   it("échec puis reprise : créée, un seul courriel", async () => {
@@ -106,7 +106,7 @@ describe("anti-doublon durable préparé (guard_claim_id)", () => {
     expect(db.guard).toHaveLength(1);
     expect(db.rows).toHaveLength(0);
     db.rows.push({ id: 'tardif', claim: 'c1' });
-    expect(await submit(db)).toEqual({ kind: 'duplicate', ref: { submission_id: 'tardif' } });
+    expect(await submit(db)).toEqual({ kind: 'duplicate', ref: { submission_id: 'tardif' }, claimId: 'c1' });
     expect(db.mails).toHaveLength(0);
   });
 

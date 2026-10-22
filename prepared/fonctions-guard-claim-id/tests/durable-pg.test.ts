@@ -69,7 +69,7 @@ describe.skipIf(!enabled)('durable SQL + shared prepared handler', () => {
       await db`update public_request_guard set created_at=now()-interval '31 minutes' where id=${claim.data.claim_id}`;
       expect((await runClaimedCreate(sb,g,handlers(table))).kind).toBe('in_progress');
       const row=await handlers(table).create(claim.data.claim_id);
-      expect(await runClaimedCreate(sb,g,handlers(table))).toEqual({kind:'duplicate',ref:row.ref});
+      expect(await runClaimedCreate(sb,g,handlers(table))).toEqual({kind:'duplicate',ref:row.ref,claimId:claim.data.claim_id});
       expect((await db`select count(*)::int n from public_request_guard where fingerprint=${g.fingerprint}`)[0].n).toBe(1);
     });
     it(`${table}: rejected insert retries; lost response recovers without second create`, async () => {
