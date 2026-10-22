@@ -1,9 +1,10 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## Vrac Québec Simple — préparation à l’activation, 22 octobre 22:44 UTC
-- [ ] Achever le paquet serveur autonome exclusivement dans prepared/ et épingler la composition SQL ainsi que ses inverses ciblés depuis les définitions réelles lues sans écriture.
-- [ ] Exécuter les cas obligatoires sur PostgreSQL jetable et distinguer résultats exécutés, simulations et essais hébergés non exécutés.
-- [ ] Livrer matrice hébergée, stratégie des anciens liens, sauvegarde/restauration non vérifiées, coûts et procédure conditionnelle ; aucune activation autorisée.
+- [x] Paquet serveur autonome exclusivement dans prepared/, Deno vérifié ; trois fonctions réelles épinglées (projection, dispatcher, émetteur initial), composition transactionnelle et inverses exacts testés sans droits modifiés.
+- [x] 139 tests Vitest distincts + 2 tests Deno + 10 contrôles locaux réussis ; les 24 ignorés au premier passage ont tous été exécutés dans le second. Comparaison navigateur fictive aux trois tailles réussie.
+- [x] Matrice hébergée, stratégie anciens liens, coûts et procédure conditionnelle livrés : prepared/remblai-formulaire/BILAN-VRAC-QUEBEC-SIMPLE.md ; verdict PRÊT POUR LES TESTS ISOLÉS.
+- [ ] Validation finale/activation : attend cible complète distincte accessible et autorisée, validation stockage/JWT/file hébergés, preuve datée sauvegarde/restauration, archive serveur hébergée précédente et décision historique. Aucune intervention production autorisée.
 
 ## Cohérence du formulaire personnel — 22 octobre, 22:15 UTC
 - [x] Complément 22:38 UTC : empreintes/droits réels lus sans demande ; durée réelle toujours 30 jours ; JSON null historiques, payload incomplet et barrière photos corrigés en préparation ; 71 tests locaux verts, 24 ignorés dont clôture/erreur post-commit. Contrôle exact de référence préparé, non appliqué ; activation et validation hébergée restent bloquées.
