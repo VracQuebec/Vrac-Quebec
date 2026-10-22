@@ -60,7 +60,12 @@ GRANT EXECUTE ON FUNCTION public.exec01_projection(uuid,boolean) TO service_role
 
 -- The edge endpoint validates Zod conditions; only service_role can invoke this RPC.
 -- All operations serialize on the same submissions row (including concurrent CRM writes).
-CREATE FUNCTION public.exec01_dispatch(p jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,extensions AS $$
+CREATE FUNCTION public.exec01_dispatch(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions'
+AS $function$
 DECLARE s public.submissions; l public.submission_portal_links; old_conditions jsonb; c jsonb;
  kind text:=p->>'kind'; a text:=p->>'action'; result jsonb; previous public.submission_portal_operations; item jsonb;
 BEGIN
@@ -76,10 +81,14 @@ BEGIN
  SELECT * INTO l FROM public.submission_portal_links WHERE id=(p->>'linkId')::uuid AND submission_id=s.id FOR UPDATE;
  IF l.id IS NULL OR l.secret_hash IS DISTINCT FROM p->>'secretHash' OR l.revoked_at IS NOT NULL
   OR l.contact_hash IS DISTINCT FROM encode(digest(lower(trim(s.email)),'sha256'),'hex') THEN RETURN jsonb_build_object('denied',true); END IF;
+ -- After five incorrect codes, the consumed code becomes a 15-minute lock deadline.
+ -- Only code/verify/renew are gated; verified contacts retain read access.
+ IF kind IN ('code','verify','renew') AND l.failures>=5 THEN
+  IF l.code_expires_at IS NULL OR l.code_expires_at>now() THEN RETURN jsonb_build_object('denied',true); END IF;
+  UPDATE public.submission_portal_links SET failures=0,code_hash=NULL,code_expires_at=NULL WHERE id=l.id;
+  l.failures:=0; l.code_hash:=NULL; l.code_expires_at:=NULL;
+ END IF;
  IF kind='renew' THEN
-  -- Renewal goes only to the address already stored on THIS dossier (contact_hash rechecked above),
-  -- so prior verification is not required: an expired, never-verified link can recover access.
-  -- Limits: 60 s between links/codes and at most 5 links per dossier per 24 h.
   IF l.code_requested_at>now()-interval '60 seconds'
    OR EXISTS(SELECT 1 FROM public.submission_portal_links x WHERE x.submission_id=s.id AND x.created_at>now()-interval '60 seconds')
    OR (SELECT count(*) FROM public.submission_portal_links x WHERE x.submission_id=s.id AND x.created_at>now()-interval '24 hours')>=5
@@ -98,7 +107,10 @@ BEGIN
  IF kind='verify' THEN
   IF l.failures>=5 OR l.code_hash IS NULL OR l.code_expires_at<=now() THEN RETURN jsonb_build_object('denied',true); END IF;
   IF l.code_hash IS DISTINCT FROM p->>'codeHash' THEN
-   UPDATE public.submission_portal_links SET failures=failures+1 WHERE id=l.id;
+   UPDATE public.submission_portal_links SET failures=least(failures+1,5),
+    code_hash=CASE WHEN failures>=4 THEN NULL ELSE code_hash END,
+    code_expires_at=CASE WHEN failures>=4 THEN now()+interval '15 minutes' ELSE code_expires_at END,
+    verified_at=NULL WHERE id=l.id;
    RETURN jsonb_build_object('denied',true);
   END IF;
   UPDATE public.submission_portal_links SET code_hash=NULL,code_expires_at=NULL,verified_at=now(),failures=0 WHERE id=l.id;
@@ -128,8 +140,6 @@ BEGIN
  SELECT reception_conditions INTO old_conditions FROM public.submission_fill_profile WHERE submission_id=s.id;
  IF a='modifier' THEN
   c:=p->'conditions';
-  -- Installed with owner-photos.sql before enabling the endpoint. Serialize attachment
-  -- against deletion claims on the same dossier lock; no resurrection during removal.
   IF to_regclass('public.exec01_photo_files') IS NOT NULL THEN
    IF EXISTS(SELECT 1 FROM jsonb_array_elements(c->'photos') photo JOIN public.exec01_photo_files f
     ON 'private:'||f.path=photo->>'preview' WHERE f.state IN ('deleting','removed'))
@@ -139,8 +149,6 @@ BEGIN
   INSERT INTO public.submission_fill_profile(submission_id,reception_conditions,capacity_kind,capacity_value,capacity_unit,accepted_truck_codes,access_notes,source)
   VALUES(s.id,c,CASE WHEN c->>'total' IS NULL THEN 'unknown' ELSE 'known' END,(c->>'total')::numeric,nullif(c->>'unit','inconnu'),ARRAY(SELECT x->>'name' FROM jsonb_array_elements(c->'vehicles') x WHERE x->>'stance'='accepte'),c->>'access','user_manual')
   ON CONFLICT(submission_id) DO UPDATE SET reception_conditions=excluded.reception_conditions,capacity_kind=excluded.capacity_kind,capacity_value=excluded.capacity_value,capacity_unit=excluded.capacity_unit,accepted_truck_codes=excluded.accepted_truck_codes,access_notes=excluded.access_notes,source='user_manual',updated_at=now();
-  -- Owner materials remain preferences in reception_conditions. Never overwrite
-  -- submission_material_conditions (documentary/regulatory conditions) or catalog IDs.
   UPDATE public.submissions SET quantity_value=(c->>'total')::numeric,quantity_unit=nullif(c->>'unit','inconnu'),
    remaining_capacity=CASE WHEN c->>'remaining' IS NULL THEN NULL ELSE (c->>'remaining')||' '||(c->>'unit') END,
    exec01_owner_confirmed_at=NULL,opening_hours=c->>'hours',truck_types_allowed=ARRAY(SELECT x->>'name' FROM jsonb_array_elements(c->'vehicles') x WHERE x->>'stance'='accepte'),
@@ -156,7 +164,8 @@ BEGIN
  result:=public.exec01_projection(s.id);
  INSERT INTO public.submission_portal_operations(link_id,operation_id,input_hash,result) VALUES(l.id,(p->>'operationId')::uuid,p->>'inputHash',result);
  RETURN result;
-END $$;
+END $function$
+;
 REVOKE ALL ON FUNCTION public.exec01_dispatch(jsonb) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.exec01_dispatch(jsonb) TO service_role;
 REVOKE ALL ON FUNCTION public.exec01_version_guard(),public.exec01_events_immutable() FROM PUBLIC,anon,authenticated;
