@@ -84,7 +84,11 @@ BEGIN
  -- After five incorrect codes, the consumed code becomes a 15-minute lock deadline.
  -- Only code/verify/renew are gated; verified contacts retain read access.
  IF kind IN ('code','verify','renew') AND l.failures>=5 THEN
-  IF l.code_expires_at IS NULL OR l.code_expires_at>now() THEN RETURN jsonb_build_object('denied',true); END IF;
+  -- Lock deadline trusted only in the shape written by the fifth failure; historical states stay locked.
+  IF l.failures<>5 OR l.code_hash IS NOT NULL OR l.code_expires_at IS NULL OR l.code_requested_at IS NULL
+     OR l.code_expires_at<l.code_requested_at+interval '15 minutes'
+     OR l.code_expires_at>l.code_requested_at+interval '25 minutes'
+     OR l.code_expires_at>now() THEN RETURN jsonb_build_object('denied',true); END IF;
   UPDATE public.submission_portal_links SET failures=0,code_hash=NULL,code_expires_at=NULL WHERE id=l.id;
   l.failures:=0; l.code_hash:=NULL; l.code_expires_at:=NULL;
  END IF;

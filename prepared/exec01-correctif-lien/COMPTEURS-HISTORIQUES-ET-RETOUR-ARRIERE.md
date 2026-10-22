@@ -30,12 +30,12 @@ Requête agrégée sans identifiant, adresse, code, jeton ni hash retourné. Auc
 4. Pour une récupération manuelle future : vérifier l’identité par un canal approuvé, destinataire inchangé, portée limitée à un dossier, décision humaine et trace datée. Nouvelle émission/révocation uniquement après autorisation et contrôles de fréquence; ne jamais restaurer un ancien code ou réactiver un lien révoqué.
 5. Aucune réparation massive. Si une échéance historique n’est pas démontrable, ne pas présenter ce dossier comme automatiquement débloqué après 15 minutes.
 
-**Bloquant avant autorisation de déploiement :** la règle actuellement préparée peut réinitialiser certains compteurs historiques à date passée. La préparation documentaire et les essais locaux peuvent continuer; la conformité « aucune réparation automatique historique » doit être résolue par un correctif autorisé et retesté ou une stratégie explicitement approuvée.
+**Résolu localement le 22 octobre (20 h 40 UTC) :** la garde n’accepte plus qu’une échéance de forme cohérente (voir VALIDATION). Ancien constat : la règle actuellement préparée peut réinitialiser certains compteurs historiques à date passée. La préparation documentaire et les essais locaux peuvent continuer; la conformité « aucune réparation automatique historique » doit être résolue par un correctif autorisé et retesté ou une stratégie explicitement approuvée.
 
 ## Retour arrière ciblé — vérifié localement seulement
 
 Fichier inchangé : `0231_retour_arriere_NON_APPLIQUE.sql`.
-- Entrée corrigée exigée : MD5 `447920fb7b5e8902f6cd2e9118c26ef5` de `pg_get_functiondef('public.exec01_dispatch(jsonb)'::regprocedure)`.
+- Entrée corrigée exigée : MD5 `e9d8b2ad33d864aa7a3ba881e78b82cc` de `pg_get_functiondef('public.exec01_dispatch(jsonb)'::regprocedure)`.
 - Sortie initiale exigée : MD5 `2da0b80649cfacf5db57fe559adab3c2`.
 - Inverse des trois blocs, `EXECUTE` seulement après validation de chaque texte (une occurrence exacte) et du résultat entier.
 - Égalité octet pour octet de la définition initiale démontrée, pas seulement égalité de hash.

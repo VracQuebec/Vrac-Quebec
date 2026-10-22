@@ -3,7 +3,7 @@
 ## Fonction et portée exacte
 `public.exec01_dispatch(p jsonb) RETURNS jsonb`.
 Lecture seule le 22 octobre 2026 à 20:00:57 UTC et seconde lecture en fin de validation : empreinte MD5 PostgreSQL `2da0b80649cfacf5db57fe559adab3c2` inchangée.
-Empreinte corrigée attendue : `447920fb7b5e8902f6cd2e9118c26ef5`.
+Empreinte corrigée attendue : `e9d8b2ad33d864aa7a3ba881e78b82cc`.
 
 Le correctif exige désormais trois remplacements dans cette seule fonction : garde commune code/verify/renew, condition de renouvellement, compteur du cinquième échec. Il ne serait donc plus honnête de le présenter comme une seule condition changée. Aucun changement de colonne, table, permission ou quota IP; lecture et actions restent identiques octet pour octet.
 
@@ -62,3 +62,21 @@ Exigent une autorisation explicite : sauvegarde/export/restauration par l’agen
 Ordre futur proposé : preuve sauvegarde disponible → tests intégration isolée/Outlook → messages préparés → autorisation du périmètre → nouvelle lecture empreinte → correction ciblée et publication seulement si autorisées → contrôles autorisés. Jamais retour arrière ni restauration automatique.
 
 Verdict : prêt pour poursuivre les tests isolés; pas prêt à déclarer le parcours réel Outlook validé ni à déployer sans autorisation.
+## Correctif compteurs historiques — 22 octobre 2026, 20 h 40 UTC (local seulement)
+
+**Reproduction (base locale jetable, données fictives) :** 5 erreurs, `code_hash` présent, `code_expires_at` passé → l’ancienne version préparée remettait le compteur à zéro sur `code`.
+
+**Cause :** la garde lisait toute date passée comme fin du délai. Or la production n’écrit `code_expires_at` qu’à l’émission d’un code (demande + 10 min, code présent); elle n’a jamais écrit de délai de blocage.
+
+**Distinction désormais explicite (sans changement de table) :**
+- Expiration d’un code : `code_hash` présent, échéance = demande + 10 min.
+- Fin du délai de blocage : forme écrite uniquement par le cinquième échec corrigé — `failures = 5`, `code_hash` NULL, échéance entre demande + 15 et + 25 min.
+- État historique / ambigu : toute autre combinaison (code présent, compteur > 5, date absente, demande absente, échéance hors plage ou avant la demande) → refus de `code`, `verify`, `renew`, sans écriture.
+
+**Empreintes :** initiale `2da0b80649cfacf5db57fe559adab3c2` (inchangée); corrigée `e9d8b2ad33d864aa7a3ba881e78b82cc` (remplace `447920fb…`). Inverse : retour octet pour octet à la définition initiale vérifié.
+
+**Fichiers modifiés :** `0231_renouvellement_premiere_verification.sql`, `0231_retour_arriere_NON_APPLIQUE.sql`, `verification-preparation-locale.ts`, `prepared/exec01b/schema.sql`, `src/test/remblai-correctif-15minutes.test.ts`, ce rapport, `COMPTEURS-HISTORIQUES-ET-RETOUR-ARRIERE.md`.
+
+**Tests :** 14 fichiers remblai, 158 réussis, 1 ignoré (préexistant), 0 échec — dont 30 dans le fichier 15 minutes (13 nouveaux : 9 états ambigus sans aucune modification ni courriel, réinitialisation du seul état cohérent, révocation, dossier indépendant, sixième essai et fin du délai). Vérification préparation : 10/10.
+
+**Risques restants :** les anciens compteurs bloqués restent bloqués indéfiniment (voulu). Leur déblocage exige une décision humaine : vérification d’identité par canal approuvé, puis nouvel envoi autorisé dossier par dossier. Inventaire agrégé non exécuté en production. Outlook/iPhone réel non testé.
