@@ -75,7 +75,7 @@ BEGIN
  IF kind='issue' THEN
   IF s.email IS NULL THEN RETURN jsonb_build_object('denied',true); END IF;
   INSERT INTO public.submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at)
-   VALUES((p->>'linkId')::uuid,s.id,p->>'secretHash',encode(digest(lower(trim(s.email)),'sha256'),'hex'),now()+interval '30 days');
+   VALUES((p->>'linkId')::uuid,s.id,p->>'secretHash',encode(digest(lower(trim(s.email)),'sha256'),'hex'),'infinity'::timestamptz);
   RETURN jsonb_build_object('ok',true,'contact',s.email,'name',s.name);
  END IF;
  SELECT * INTO l FROM public.submission_portal_links WHERE id=(p->>'linkId')::uuid AND submission_id=s.id FOR UPDATE;
@@ -99,7 +99,7 @@ BEGIN
   THEN RETURN jsonb_build_object('denied',true); END IF;
   UPDATE public.submission_portal_links SET revoked_at=now() WHERE submission_id=s.id AND revoked_at IS NULL;
   INSERT INTO public.submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at)
-   VALUES((p->>'nextId')::uuid,s.id,p->>'nextHash',l.contact_hash,now()+interval '30 days');
+   VALUES((p->>'nextId')::uuid,s.id,p->>'nextHash',l.contact_hash,'infinity'::timestamptz);
   RETURN jsonb_build_object('ok',true,'contact',s.email,'name',s.name);
  END IF;
  IF l.expires_at<=now() THEN RETURN jsonb_build_object('denied',true); END IF;
