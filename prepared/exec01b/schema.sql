@@ -77,7 +77,13 @@ BEGIN
  IF l.id IS NULL OR l.secret_hash IS DISTINCT FROM p->>'secretHash' OR l.revoked_at IS NOT NULL
   OR l.contact_hash IS DISTINCT FROM encode(digest(lower(trim(s.email)),'sha256'),'hex') THEN RETURN jsonb_build_object('denied',true); END IF;
  IF kind='renew' THEN
-  IF s.exec01_contact_verified_at IS NULL OR s.exec01_verified_contact_hash IS DISTINCT FROM l.contact_hash OR l.verified_at IS NULL OR l.failures>=5 OR l.code_requested_at>now()-interval '60 seconds' THEN RETURN jsonb_build_object('denied',true); END IF;
+  -- Renewal goes only to the address already stored on THIS dossier (contact_hash rechecked above),
+  -- so prior verification is not required: an expired, never-verified link can recover access.
+  -- Limits: 60 s between links/codes and at most 5 links per dossier per 24 h.
+  IF l.code_requested_at>now()-interval '60 seconds'
+   OR EXISTS(SELECT 1 FROM public.submission_portal_links x WHERE x.submission_id=s.id AND x.created_at>now()-interval '60 seconds')
+   OR (SELECT count(*) FROM public.submission_portal_links x WHERE x.submission_id=s.id AND x.created_at>now()-interval '24 hours')>=5
+  THEN RETURN jsonb_build_object('denied',true); END IF;
   UPDATE public.submission_portal_links SET revoked_at=now() WHERE submission_id=s.id AND revoked_at IS NULL;
   INSERT INTO public.submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at)
    VALUES((p->>'nextId')::uuid,s.id,p->>'nextHash',l.contact_hash,now()+interval '30 days');
