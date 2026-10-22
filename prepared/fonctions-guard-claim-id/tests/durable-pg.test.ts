@@ -8,7 +8,7 @@ import { runDedupedCreate } from '../../../supabase/functions/submit-parcours/de
 import { claimQuote, completeQuote } from '../../../supabase/functions/quote-submit/dedupe';
 
 const enabled = process.env.EXEC01B_LOCAL_TEST === '1';
-const name = `durable_${crypto.randomUUID().replaceAll('-', '')}`;
+const name = `durable_${crypto.randomUUID().replace(/-/g, '')}`;
 const root = postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable');
 const db = postgres(`postgresql://lovable@127.0.0.1:55439/${name}?sslmode=disable`);
 const guard = (fp: string) => ({ scope: 'isolated', identity: 'test@test.invalid', fingerprint: fp, ip: null });

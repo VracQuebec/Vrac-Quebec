@@ -4,11 +4,11 @@
 - [x] Demande 21:28 UTC : copies remblai/vrac assemblées, reprises exactes et concurrence tardive protégées par RPC distincte, compatibilité additive testée ; procédures sauvegarde/protocole préparées ; 218 contrôles locaux verts, bilan-finalisation-isolee-2026-10-22.md.
 - [ ] Validation isolée complète : endpoints préparés HTTP/courrier idempotent et interface du statut inconnu encore à tester ; stack hébergée distincte, timestamp/restauration séparée, paquet hébergé précédent et autorisations manquants. Production toujours BLOQUÉE.
 - [x] Vérifier M1/M2, renouvellement et inverse, relever catalogue en lecture seule et préparer l'ordre conditionnel : prepared/deploiement/preparation-mise-en-service-2026-10-22.md ; 191 contrôles locaux réussis.
-- [ ] Mise en service BLOQUÉE : paquet submit-parcours par identifiant exact et retour opérationnel M1/M2 non finalisés ; durée maximale hébergée non prouvée ; timestamp UTC de sauvegarde à fournir et autorisation explicite requise. Aucun changement en production.
+- [ ] Mise en service BLOQUÉE : validation isolée complète des copies et interface encore nécessaire ; timestamp UTC/restauration de sauvegarde et autorisation explicite requis. Aucun changement en production.
 
 ## Correctif lien personnel — 22 octobre 2026
 - [x] Complément 20:11 UTC : messages/protocole préparés, compteurs fictifs analysés, inverse exact revérifié : 54 tests + 10 contrôles locaux; production/interface/SQL préparé inchangés. Bilan : prepared/exec01-correctif-lien/BILAN-PREPARATION-2011-UTC.md.
-- [ ] Blocage avant déploiement : date historique de code passée peut être interprétée comme fin d’attente et remettre le compteur à zéro; garde/provenance à résoudre et retester sans réparation réelle automatique.
+- [x] Risque historique corrigé dans la préparation : états ambigus refusés sans réinitialisation ; trente tests locaux et dix contrôles d'inverse revérifiés à 21:38 UTC.
 - [x] Préparer cinq erreurs / attente 15 minutes et préserver renouvellement, révocation et code récent du même lien.
 - [x] Tester SQL local, capture courrier et retour arrière exact avec garde d’empreinte : 54/54 tests et parcours navigateur local réussi.
 - [x] Documenter preuves, protocole Outlook/iPhone, sauvegarde manuelle et autorisations requises dans prepared/exec01-correctif-lien/VALIDATION-2026-10-22.md.
