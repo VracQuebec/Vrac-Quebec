@@ -61,9 +61,9 @@ function db() {
   });
 }
 
-async function sendEmail(payload: Record<string, unknown>) {
+async function sendEmail(payload: Record<string, unknown>): Promise<ConfirmationStatus> {
   try {
-    await fetchWithTimeout(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
+    const res = await fetchWithTimeout(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -71,13 +71,25 @@ async function sendEmail(payload: Record<string, unknown>) {
       },
       body: JSON.stringify(payload),
     }, 15_000);
+    const status = classifyConfirmation(res.ok, await res.json().catch(() => null));
+    if (status === 'failed') {
+      logEventAsync({ source: 'submit_parcours', event: 'email.failed', level: 'warn', refId: String(payload.submissionId ?? ''), context: { template: payload.templateName, http: res.status } });
+    }
+    return status;
   } catch (e) {
     logEventAsync({
       source: 'submit_parcours', event: 'email.failed', level: 'warn',
       message: e instanceof Error ? e.message : String(e),
     });
+    return 'failed';
   }
 }
+
+// Confirmation client : idempotente par demande (un seul lien par dossier côté
+// serveur, nouvelle tentative = rejeu du même envoi, jamais un second lien).
+const sendClientConfirmation = (id: string) => sendEmail({
+  templateName: 'client-confirmation', idempotencyKey: `client-confirm-${id}`, submissionId: id,
+});
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
