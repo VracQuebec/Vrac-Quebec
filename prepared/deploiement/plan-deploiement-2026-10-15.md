@@ -1,5 +1,10 @@
 # Plan de déploiement — Vrac Québec (préparé le 16 oct. 2026)
 
+> **HISTORIQUE — NON EXÉCUTABLE pour Vrac Québec Simple.** Remplacé par
+> `../remblai-formulaire/VALIDATION-COMPLETE-ET-AUTORISATIONS.md` et `../fonctions-guard-claim-id/INTEGRATION.md`.
+> Ne pas suivre les anciens ordres, recherches par courriel, secours non atomiques,
+> restrictions générales de droits ou suppressions SQL figurant ci-dessous.
+
 > **Document de PRÉPARATION. Ce n'est pas une autorisation de déployer.**
 > Chaque étape marquée [AUTORISATION] exige un accord explicite du propriétaire.
 > Ce fichier n'est pas publié sur le site (dossier `prepared/`, hors du site).

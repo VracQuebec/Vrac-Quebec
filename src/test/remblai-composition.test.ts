@@ -14,10 +14,14 @@ beforeAll(async()=>{
  await root.unsafe('CREATE DATABASE simple_composition');
  for(const file of ['src/test/fixtures/exec01b-base.sql','src/test/fixtures/exec01c-relations.sql','prepared/exec01b/schema.sql'])await db.unsafe(await readFile(file,'utf8'));
  await db.unsafe(`ALTER TABLE submissions ADD COLUMN postal_code text,ADD COLUMN phone text,ADD COLUMN other_material text,ADD COLUMN description text,ADD COLUMN access_heavy_truck text,ADD COLUMN access_criteria text[],ADD COLUMN photos_meta jsonb,ADD COLUMN photos text[],ADD COLUMN latitude numeric,ADD COLUMN longitude numeric,ADD COLUMN formatted_address text,ADD COLUMN geocoding_status text,ADD COLUMN truck_type_key text,ADD COLUMN desired_date text,ADD COLUMN delivery_timeframe text;`);
- refs=JSON.parse(await readFile('prepared/remblai-formulaire/references/catalogue.json','utf8')).functions.filter((r:Reference)=>['exec01_dispatch(jsonb)','exec01_projection(uuid,boolean)','exec01_enqueue_confirmation(jsonb)'].includes(r.signature));
+ await db.unsafe(await readFile('prepared/exec01b/owner-photos.sql','utf8'));
+ await db.unsafe('CREATE TABLE public.user_roles(user_id uuid,role app_role,approved boolean);');
+ refs=[...JSON.parse(await readFile('prepared/remblai-formulaire/references/catalogue.json','utf8')).functions,JSON.parse(await readFile('prepared/remblai-formulaire/references/has_role-LECTURE-SEULE.json','utf8'))];
  for(const r of refs)await db.unsafe(r.definition);
  // Match observed existing rights only on the local new confirmation fixture.
  await db.unsafe('REVOKE ALL ON FUNCTION exec01_enqueue_confirmation(jsonb) FROM PUBLIC; GRANT EXECUTE ON FUNCTION exec01_enqueue_confirmation(jsonb) TO service_role;');
+ for(const name of ['exec01_dispatch_mail(jsonb,jsonb,boolean)','exec01_quota(text)'])await db.unsafe('REVOKE ALL ON FUNCTION '+name+' FROM PUBLIC; GRANT EXECUTE ON FUNCTION '+name+' TO service_role;');
+ await db.unsafe('GRANT EXECUTE ON FUNCTION has_role(uuid,app_role) TO postgres,anon,authenticated,service_role;');
 },30000);
 afterAll(async()=>{await db.end();if(enabled)await root.unsafe('DROP DATABASE simple_composition');await root.end();});
 describe.skipIf(!enabled)('Composition des références réelles sur base jetable',()=>{
@@ -47,7 +51,23 @@ describe.skipIf(!enabled)('Composition des références réelles sur base jetabl
   expect((await db`select exec01_dispatch(${db.json({...input,kind:'read',secretHash:'wrong'})}) r`)[0].r).toEqual({denied:true});
   expect((await db`select exec01_dispatch(${db.json({...input,kind:'read'})}) r`)[0].r.publicForm).toMatchObject(form);
  });
- it('restores every intermediate definition without changing permissions or deleting fixtures',async()=>{for(const name of ['04-confirmation-initiale','03-formulaire','02-duree','01-renouvellement'])await db.unsafe(await readFile(`prepared/remblai-formulaire/sql-compose/RETOUR-${name}-NON-APPLIQUE.sql`,'utf8'));await db.unsafe(guard(refs));expect((await db`select count(*)::int n from submissions`)[0].n).toBe(1);expect((await db`select expires_at::text e from submission_portal_links`)[0].e).toBe('infinity');});
+ it('refuses cleanup of a photo retained only in an original-form replay',async()=>{
+  const id='90000000-0000-0000-0000-000000000001',link='91000000-0000-0000-0000-000000000001',path=`submissions/${id}/${'a'.repeat(64)}.png`;
+  await db.unsafe('CREATE TABLE exec01_test_dossiers(submission_id uuid);');
+  await db`insert into exec01_test_dossiers values(${id})`;await db`update submissions set email='alpha@test.invalid',photos=ARRAY[]::text[] where id=${id}`;
+  await db`insert into exec01_photo_files(path,submission_id,created_at,lease_until) values(${path},${id},now()-interval '25 hours',now()-interval '1 hour')`;
+  await db`insert into submission_portal_operations(link_id,operation_id,input_hash,result) values(${link},${crypto.randomUUID()},'historical-photo',${db.json({publicForm:{photos:[{url:'private:'+path}]}})})`;
+  expect((await db`select exec01_photo_manage(${db.json({kind:'claim',requestId:id,path})}) r`)[0].r).toEqual({claimed:false});
+  expect((await db`select state from exec01_photo_files where path=${path}`)[0].state).toBe('uploading');
+  await db`update submissions set email='alpha@capture.fixture' where id=${id}`;
+ });
+ for(const signature of ['exec01_dispatch_mail(jsonb,jsonb,boolean)','exec01_photo_manage(jsonb)','exec01_quota(text)','has_role(uuid,app_role)'])it(`blocks dependency drift: ${signature}`,async()=>{
+  const ref=final.find(r=>r.signature===signature);if(!ref)throw Error('Missing dependency');
+  await db.unsafe(ref.definition.replace('AS $function$', 'AS $function$\n-- drift'));
+  await expect(db.unsafe(guard(final))).rejects.toThrow('REFERENCE_OR_RIGHTS_DRIFT_STOP');
+  await db.unsafe(ref.definition);await db.unsafe(guard(final));
+ });
+ it('restores every intermediate definition without changing permissions or deleting fixtures',async()=>{for(const name of ['05-photos-historique','04-confirmation-initiale','03-formulaire','02-duree','01-renouvellement'])await db.unsafe(await readFile(`prepared/remblai-formulaire/sql-compose/RETOUR-${name}-NON-APPLIQUE.sql`,'utf8'));await db.unsafe(guard(refs));expect((await db`select count(*)::int n from submissions`)[0].n).toBe(1);expect((await db`select expires_at::text e from submission_portal_links`)[0].e).toBe('infinity');});
  it('stops on altered definition and rolls back all partial stages on error',async()=>{await db.unsafe(refs[0].definition.replace('DECLARE s','-- drift\nDECLARE s'));await expect(db.unsafe(await readFile('prepared/remblai-formulaire/sql-compose/ACTIVATION-NON-APPLIQUEE.sql','utf8'))).rejects.toThrow('REFERENCE_OR_RIGHTS_DRIFT_STOP');await db.unsafe('ROLLBACK');await db.unsafe(refs[0].definition);const activation=await readFile('prepared/remblai-formulaire/sql-compose/ACTIVATION-NON-APPLIQUEE.sql','utf8');await expect(db.unsafe(activation.replace('COMMIT;','SELECT 1/0; COMMIT;'))).rejects.toThrow();await db.unsafe('ROLLBACK');await db.unsafe(guard(refs));});
  it('refuses ACL drift without granting any wider rights',async()=>{await db.unsafe('GRANT EXECUTE ON FUNCTION exec01_projection(uuid,boolean) TO anon');await expect(db.unsafe(guard(refs))).rejects.toThrow('REFERENCE_OR_RIGHTS_DRIFT_STOP');await db.unsafe('REVOKE EXECUTE ON FUNCTION exec01_projection(uuid,boolean) FROM anon');await db.unsafe(guard(refs));});
  it('applies the complete artifact then restores exactly the original functions',async()=>{await db.unsafe(await readFile('prepared/remblai-formulaire/sql-compose/ACTIVATION-NON-APPLIQUEE.sql','utf8'));await db.unsafe(guard(final));await db.unsafe(await readFile('prepared/remblai-formulaire/sql-compose/RETOUR-COMPLET-NON-APPLIQUE.sql','utf8'));await db.unsafe(guard(refs));});
