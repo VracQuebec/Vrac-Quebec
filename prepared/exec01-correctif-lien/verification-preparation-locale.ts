@@ -57,7 +57,7 @@ try {
     const id = crypto.randomUUID(), linkId = crypto.randomUUID();
     await db`insert into submissions(id,materials,property_type,quantity,tonnage,address,name,email,request_type,parcours_direction) values(${id},ARRAY['Terre'],'terrain','500','inconnu','Fictif','TEST','historique@test.invalid','remblai','reception')`;
     await db`insert into submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at,failures,code_hash,code_expires_at,revoked_at)
-      values(${linkId},${id},'local-fixture-hash',encode(digest('historique@test.invalid','sha256'),'hex'),now()+interval '1 day',${failures},'ancien-code-fictif',
+      values(${linkId},${id},'local-fixture-hash',encode(extensions.digest('historique@test.invalid','sha256'),'hex'),now()+interval '1 day',${failures},'ancien-code-fictif',
       CASE ${deadline} WHEN 'past' THEN now()-interval '1 hour' WHEN 'future' THEN now()+interval '1 hour' ELSE NULL END,
       CASE WHEN ${revoked} THEN now() ELSE NULL END)`;
     const input = { requestId: id, linkId, secretHash: 'local-fixture-hash', kind: 'code', codeHash: 'nouveau-code-fictif' };
