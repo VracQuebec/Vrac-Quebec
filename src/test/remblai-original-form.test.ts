@@ -78,10 +78,57 @@ describe.skipIf(!enabled)('PostgreSQL jetable — formulaire personnel',()=>{
  it('records several edits and reads them back while preserving other request and protected fields',async()=>{const other=(await db`select to_jsonb(s) r from submissions s where id=${b}`)[0].r;const f=publicEditPayload({...initial,address:'456 rue Fictive, Lévis',name:'Camille Modifié',quantityValue:'8',quantityUnit:'tonnes',projectUsage:'Nouveau projet',materials:['Sable'],otherMaterial:'',accessDetails:['recul_limite'],notes:'Notes modifiées\nDeuxième ligne'});const result=await edit(f);expect(result.publicForm).toMatchObject(f);const reopened=await rpc({kind:'read',requestId:a,linkId:la,secretHash:'hash-a'});expect(reopened.publicForm).toMatchObject(f);expect((await db`select to_jsonb(s) r from submissions s where id=${b}`)[0].r).toEqual(other);const protectedRow=(await db`select email,status,internal_notes,latitude,longitude from submissions where id=${a}`)[0];expect(protectedRow).toEqual({email:initial.email,status:'nouveau',internal_notes:'ADMIN SECRET',latitude:null,longitude:null});});
  it('rejects another dossier and leaves both records unchanged',async()=>{const before=await db`select to_jsonb(s) r from submissions s order by id`;expect(await edit(undefined,{requestId:b})).toEqual({denied:true});expect(await db`select to_jsonb(s) r from submissions s order by id`).toEqual(before);});
  it('rejects an identity email change without mutation',async()=>{const before=(await db`select to_jsonb(s) r from submissions s where id=${a}`)[0].r;expect(await edit({...publicEditPayload(initial),email:'autre@test.invalid'})).toEqual({denied:true});expect((await db`select to_jsonb(s) r from submissions s where id=${a}`)[0].r).toEqual(before);});
+ it('refuses incomplete or null original form input without clearing any existing data',async()=>{
+  const before=(await db`select to_jsonb(s) r from submissions s where id=${a}`)[0].r;
+  for(const key of ['postalCode','quantityValue','materials','photos','notes','accessDetails']) {
+   const form:Record<string,unknown>={...publicEditPayload(initial)};delete form[key];
+   expect(await edit(undefined,{publicForm:form})).toEqual({denied:true});
+   expect(await edit(undefined,{publicForm:{...publicEditPayload(initial),[key]:null}})).toEqual({denied:true});
+  }
+  expect((await db`select to_jsonb(s) r from submissions s where id=${a}`)[0].r).toEqual(before);
+ });
  it('rejects writes without recent verification',async()=>{await db`update submission_portal_links set verified_at=now()-interval '11 minutes' where id=${la}`;const before=(await db`select to_jsonb(s) r from submissions s where id=${a}`)[0].r;expect(await edit()).toEqual({denied:true});expect((await db`select to_jsonb(s) r from submissions s where id=${a}`)[0].r).toEqual(before);await db`update submission_portal_links set verified_at=now() where id=${la}`;});
  it('persists unknown quantity and optional blank fields without inventing values',async()=>{const r=await edit(publicEditPayload({...initial,quantityUnknown:true,quantityValue:'',postalCode:'',projectUsage:'',accessHeavyTruck:'',accessDetails:[],photos:[],notes:''}));expect(r.publicForm).toMatchObject({quantityUnknown:true,quantityValue:'',quantityUnit:'inconnu',postalCode:'',projectUsage:'',photos:[],notes:''});});
  it('reads absent photos and access through exact legacy fallback',async()=>{await db`update submissions set photos_meta=null,photos=null,access_criteria=null,access_details=null where id=${a}`;const r=await rpc({kind:'read',requestId:a,linkId:la,secretHash:'hash-a'});expect(r.publicForm.photos).toEqual([]);expect(r.publicForm.accessDetails).toEqual([]);});
+ it('uses stored legacy photo references when JSON metadata is null, without inventing emptiness',async()=>{
+  await db`update submissions set photos_meta='null'::jsonb,photos=ARRAY['https://test.invalid/legacy.jpg'],access_criteria=null,access_details='{"photos":null,"criteres":null}'::jsonb where id=${a}`;
+  const read=await rpc({kind:'read',requestId:a,linkId:la,secretHash:'hash-a'});expect(read.publicForm.photos).toEqual([{url:'https://test.invalid/legacy.jpg',category:'autre'}]);expect(read.publicForm.accessDetails).toEqual([]);
+  const form=publicEditPayload({...read.publicForm,name:'Camille Photo conservée'});await edit(form);
+  expect((await db`select photos from submissions where id=${a}`)[0].photos).toEqual(['https://test.invalid/legacy.jpg']);
+ });
+ it('retains the private photo deletion barrier without any dossier mutation',async()=>{
+  await db.unsafe('CREATE TABLE public.exec01_photo_files(path text,state text);');
+  const url=`private:submissions/${a}/${'c'.repeat(64)}.png`;
+  await db`insert into exec01_photo_files(path,state) values(${url.slice(8)},'deleting')`;
+  const before=(await db`select to_jsonb(s) r from submissions s where id=${a}`)[0].r;
+  expect(await edit(publicEditPayload({...initial,photos:[{url,category:'chantier'}]}))).toEqual({denied:true});
+  expect((await db`select to_jsonb(s) r from submissions s where id=${a}`)[0].r).toEqual(before);
+ });
+ it('recovers the committed result after a lost endpoint response, without duplicate history',async()=>{
+  const secret='a'.repeat(64);const hash=await import('../lib/remblai/service').then(m=>m.digest(secret));await db`update submission_portal_links set secret_hash=${hash} where id=${la}`;
+  try {
+   const version=(await db`select exec01_version v from submissions where id=${a}`)[0].v;
+   const form=publicEditPayload({...initial,phone:'4185550303'});const input={kind:'act',requestId:a,linkId:la,secret,action:'modifier',confirmed:true,operationId:crypto.randomUUID(),version,publicForm:form};
+   let fail=true;const handler=makeEndpoint({portalOrigin:'https://test.invalid',corsOrigin:'https://test.invalid',isAdmin:async()=>false,captureOrSend:async()=>{throw Error('No mail');},rpc:async p=>{const result=await rpc(p);if(p.kind==='act'&&fail){fail=false;throw Error('Lost response');}return result;}});
+   const response=await handler(new Request('https://test.invalid',{method:'POST',body:JSON.stringify(input)}));expect(response.status).toBe(503);expect(await response.json()).not.toHaveProperty('ok',true);
+   const retry=await handler(new Request('https://test.invalid',{method:'POST',body:JSON.stringify(input)}));expect(retry.status).toBe(200);const saved=await retry.json();expect(saved.publicForm).toMatchObject(form);assertSavedRequest(saved,a,version);
+   expect((await db`select count(*)::int n from submission_portal_events where submission_id=${a} and version=${saved.version}`)[0].n).toBe(1);
+  } finally {await db`update submission_portal_links set secret_hash='hash-a' where id=${la}`;}
+ });
  it('replays concurrent identical edits once and preserves reception conditions',async()=>{const version=(await db`select exec01_version v from submissions where id=${a}`)[0].v;const before=(await db`select reception_conditions c from submission_fill_profile where submission_id=${a}`)[0]?.c;const input={kind:'act',action:'modifier',requestId:a,linkId:la,secretHash:'hash-a',version,confirmed:true,operationId:crypto.randomUUID(),inputHash:'same',publicForm:publicEditPayload(initial)};const [first,second]=await Promise.all([rpc(input),rpc(input)]);expect(first).toEqual(second);expect(first.version).toBe(version+1);expect((await db`select count(*)::int n from submission_portal_events where submission_id=${a} and version=${version+1}`)[0].n).toBe(1);expect((await db`select reception_conditions c from submission_fill_profile where submission_id=${a}`)[0]?.c).toEqual(before);});
+ it('requires confirmation for closure, denies another dossier, retains history and keeps closed dossier readable',async()=>{
+  const version=(await db`select exec01_version v from submissions where id=${a}`)[0].v;
+  const before=(await db`select to_jsonb(s) r from submissions s where id=${a}`)[0].r;
+  const other=(await db`select to_jsonb(s) r from submissions s where id=${b}`)[0].r;
+  const input={kind:'act',action:'fermer',requestId:a,linkId:la,secretHash:'hash-a',version,confirmed:true,operationId:crypto.randomUUID(),inputHash:'close'};
+  expect(await rpc({...input,confirmed:false})).toEqual({denied:true});expect((await db`select to_jsonb(s) r from submissions s where id=${a}`)[0].r).toEqual(before);
+  expect(await rpc({...input,requestId:b})).toEqual({denied:true});expect((await db`select to_jsonb(s) r from submissions s where id=${b}`)[0].r).toEqual(other);
+  const history=(await db`select count(*)::int n from submission_portal_events where submission_id=${a}`)[0].n;
+  const closed=await rpc(input);expect(closed.availability).toBe('owner_closed');expect(closed.status).toBe(before.status);expect(closed.id).toBe(a);
+  const read=await rpc({kind:'read',requestId:a,linkId:la,secretHash:'hash-a'});expect(read.publicForm).toEqual(closed.publicForm);expect(read.availability).toBe('owner_closed');
+  expect((await db`select count(*)::int n from submission_portal_events where submission_id=${a}`)[0].n).toBe(history+1);
+  expect(await edit()).toEqual({denied:true});expect((await db`select description,photos,email from submissions where id=${a}`)[0]).toEqual({description:before.description,photos:before.photos,email:before.email});
+ });
  it('refuses revoked and wrong secrets',async()=>{expect(await rpc({kind:'read',requestId:a,linkId:la,secretHash:'wrong'})).toEqual({denied:true});await db`update submission_portal_links set revoked_at=now() where id=${la}`;expect(await rpc({kind:'read',requestId:a,linkId:la,secretHash:'hash-a'})).toEqual({denied:true});});
  it('stops on second patch and restores exactly both original definitions locally',async()=>{await expect(db.unsafe(await readFile('prepared/remblai-formulaire/formulaire-NON-APPLIQUE.sql','utf8'))).rejects.toThrow('unexpected_reference_STOP');await db.unsafe(originalProjection);await db.unsafe(originalDispatcher);expect((await db`select pg_get_functiondef('exec01_projection(uuid,boolean)'::regprocedure) d`)[0].d).toBe(originalProjection);expect((await db`select pg_get_functiondef('exec01_dispatch(jsonb)'::regprocedure) d`)[0].d).toBe(originalDispatcher);});
 });

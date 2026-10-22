@@ -1,6 +1,7 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## Cohérence du formulaire personnel — 22 octobre, 22:15 UTC
+- [x] Complément 22:38 UTC : empreintes/droits réels lus sans demande ; durée réelle toujours 30 jours ; JSON null historiques, payload incomplet et barrière photos corrigés en préparation ; 71 tests locaux verts, 24 ignorés dont clôture/erreur post-commit. Contrôle exact de référence préparé, non appliqué ; activation et validation hébergée restent bloquées.
 - [x] Complément 22:34 UTC : outils/client liés à Live confirmés, brouillon présent sans preuve d’isolation ; manifeste exact et protocole/retour ciblé documentés dans prepared/remblai-formulaire/ACTIVATION-ET-VALIDATION-ISOLEE.md. Aucun nouvel essai métier ni ressource créée ; arrêt à la préparation.
 - [x] Complément 22:26 UTC : conservation des descriptions et valeurs historiques, photos indisponibles, validation commune et confirmation exacte corrigées ; endpoint→SQL→relecture et rejeu vérifiés localement ; comparaison navigateur des sept étapes à trois tailles réussie. Bilan actualisé dans prepared/remblai-formulaire/RAPPORT.md.
 - [x] Formulaire public réutilisé en édition ; projection/enregistrement préparés, 51 tests réussis, 24 ignorés ; parcours fictif vérifié téléphone/tablette/ordinateur ; rapport prepared/remblai-formulaire/RAPPORT.md.
