@@ -26,7 +26,7 @@ const sb = {
       ? [a.p_scope,a.p_identity,a.p_fingerprint,JSON.stringify(a.p_payload),a.p_dedupe_minutes,a.p_pending_seconds]
       : n === 'guard_complete' ? [a.p_claim_id,JSON.stringify(a.p_result)] : [a.p_claim_id,a.p_reason];
     try { const rows = await db.unsafe(query, params); return { data: rows[0].r, error: null }; }
-    catch (e) { return { data: null, error: { code: (e as { code?: string }).code } }; }
+    catch (e) { console.error('Local fixture RPC error', n, (e as Error).message); return { data: null, error: { code: (e as { code?: string }).code } }; }
   },
 };
 function handlers(table: 'submissions' | 'jsc_requests') {
