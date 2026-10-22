@@ -12,7 +12,7 @@ const databaseName=`exec01b_${crypto.randomUUID().replace(/-/g,'')}`;
 const adminDb=postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable',{ssl:false});
 const db=postgres(`postgresql://lovable@127.0.0.1:55439/${databaseName}?sslmode=disable`,{ssl:false,max:5});
 const mail:Message[]=[];
-const handler=makeEndpoint({portalOrigin:'http://localhost:8080',corsOrigin:'http://localhost:8080',isAdmin:async r=>r.headers.get('authorization')==='Bearer local-test-admin',captureOrSend:async m=>{if(!m.to.endsWith('.invalid'))throw Error('Real mail forbidden');mail.push(m);return 'captured-test';},rpc:async p=>{
+const handler=makeEndpoint({localHarness:true,portalOrigin:'http://localhost:8080',corsOrigin:'http://localhost:8080',isAdmin:async r=>r.headers.get('authorization')==='Bearer local-test-admin',captureOrSend:async m=>{if(!m.to.endsWith('.invalid'))throw Error('Real mail forbidden');mail.push(m);return 'captured-test';},rpc:async p=>{
  const rows=await db`select public.exec01_dispatch(${db.json(p as postgres.JSONValue)}) as result`;return rows[0].result;
 }});
 async function call(p:Record<string,unknown>,admin=false){const response=await handler(new Request('http://localhost/portal',{method:'POST',headers:{'content-type':'application/json',...(admin?{authorization:'Bearer local-test-admin'}:{})},body:JSON.stringify(p)}));return {status:response.status,body:await response.json()};}

@@ -53,6 +53,11 @@ export function makeEndpoint(deps:Dependencies) {
   const parsed=bodySchema.safeParse(json); if(!parsed.success) return reply({error:'Requête invalide.'},400);
   const data=parsed.data;
   if(data.kind==='act' && data.publicForm && data.conditions) return reply({error:'Choisissez un seul formulaire.'},400);
+  if(deps.localHarness && !['localhost','127.0.0.1'].includes(new URL(deps.portalOrigin).hostname))
+   return reply({error:'Environnement local requis.'},503);
+  // No mutation may precede a separately failing mail delivery outside local capture tests.
+  if(['issue','renew','code'].includes(data.kind) && !deps.dispatchMail && !deps.localHarness)
+   return reply({error:'Envoi sécurisé indisponible. Réessayez plus tard.'},503);
   try {
    if((data.kind==='issue'||data.kind==='crm'||data.kind==='cleanup') && !await deps.isAdmin(request)) return reply({error:'Accès refusé.'},403);
    if(data.kind==='cleanup') {
@@ -109,7 +114,9 @@ export function makeEndpoint(deps:Dependencies) {
     let message:Message;
     if(data.kind==='code') message={to:result.contact,subject:'Code de vérification — Vrac Québec',html:`<p>Votre code : <strong>${code}</strong></p>`,text:`Votre code : ${code}`,purpose:'service',tracking:false};
     else { const fragment=new URLSearchParams({requestId:data.requestId,linkId,secret});const url=`${deps.portalOrigin}/portail/remblai${deps.localHarness?'?server=local':''}#${fragment}`;message=confirmationMessage(result.contact,String(result.name??''),url); }
-    const delivery=await deps.captureOrSend(message);return reply({ok:true,delivery});
+    const delivery=await deps.captureOrSend(message);
+    if(delivery!=='captured-test')throw Error('Local delivery must be capture-only');
+    return reply({ok:true,delivery});
    }
    return renderResult(result,data.requestId);
   }catch {return reply({error:'Service indisponible. Aucune donnée privée affichée.'},503);}

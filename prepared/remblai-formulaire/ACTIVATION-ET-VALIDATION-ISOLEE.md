@@ -1,5 +1,8 @@
 # Portail personnel — manifeste de préparation, NON ACTIVÉ
 
+## Mise à jour faisant autorité — 22 octobre 2026, 22:56 UTC
+Consulter `BILAN-VRAC-QUEBEC-SIMPLE.md`, `ENVIRONNEMENT-ET-MATRICE-ISOLEE.md`, `STRATEGIE-ANCIENS-LIENS.md` et `sql-compose/`. Le paquet autonome et les inverses SQL manquants au moment de rédaction ci-dessous sont maintenant préparés et testés localement. La création initiale réelle passe aussi par `exec01_enqueue_confirmation(jsonb)` : elle est incluse comme troisième fonction ciblée dans la composition. Aucun environnement hébergé distinct ni sauvegarde/restauration n’est vérifié ; activation interdite. Les anciens instructions/prototypes ci-dessous ne doivent pas être appliqués séparément.
+
 Date : 22 octobre 2026, session commencée à 22:34 UTC.
 
 ## Verdict et environnement

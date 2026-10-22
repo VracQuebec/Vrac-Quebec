@@ -31,6 +31,20 @@ BEGIN
  THEN substring(to_jsonb(s)->>'description' from position('Notes du demandeur : ' in to_jsonb(s)->>'description')+length('Notes du demandeur : ')) ELSE '' END),
  $insert$);
  EXECUTE projection;
+ -- Fail closed on absent/null versions: SQL <> NULL must never bypass the check.
+ dispatcher:=replace(dispatcher,' SELECT * INTO l FROM public.submission_portal_links WHERE id=', $checks$
+ IF kind IN ('act','photo_authorize') AND (
+  jsonb_typeof(p->'version') IS DISTINCT FROM 'number'
+  OR coalesce(p->>'version','') !~ '^[1-9][0-9]*$'
+  OR coalesce(p->>'operationId','') !~ '^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$'
+  OR coalesce(p->>'inputHash','')=''
+ ) THEN RETURN jsonb_build_object('denied',true); END IF;
+ SELECT * INTO l FROM public.submission_portal_links WHERE id=$checks$);
+ -- A verified dossier does not verify a newly issued or renewed link.
+ dispatcher:=replace(dispatcher, 'IF kind=''read'' THEN RETURN public.exec01_projection(s.id); END IF;',
+ 'IF kind=''read'' THEN IF l.verified_at IS NULL THEN RETURN jsonb_build_object(''denied'',true); END IF; RETURN public.exec01_projection(s.id); END IF;');
+ dispatcher:=replace(dispatcher,'IF kind=''photo_authorize'' THEN',
+ 'IF kind=''photo_authorize'' THEN IF l.verified_at IS NULL OR l.verified_at<now()-interval ''10 minutes'' THEN RETURN jsonb_build_object(''denied'',true); END IF;');
  dispatcher:=replace(dispatcher,'''conditions'',(SELECT reception_conditions FROM submission_fill_profile WHERE submission_id=s.id)',
  '''publicForm'',public.exec01_projection(s.id)->''publicForm'',''conditions'',(SELECT reception_conditions FROM submission_fill_profile WHERE submission_id=s.id)');
  dispatcher:=replace(dispatcher,'IF a=''modifier'' THEN',$edit$

@@ -1,11 +1,17 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## Vrac Québec Simple — préparation à l’activation, 22 octobre 22:44 UTC
+- [x] Paquet serveur autonome exclusivement dans prepared/, Deno vérifié ; trois fonctions réelles épinglées (projection, dispatcher, émetteur initial), composition transactionnelle et inverses exacts testés sans droits modifiés.
+- [x] 139 tests Vitest distincts + 2 tests Deno + 10 contrôles locaux réussis ; les 24 ignorés au premier passage ont tous été exécutés dans le second. Comparaison navigateur fictive aux trois tailles réussie.
+- [x] Matrice hébergée, stratégie anciens liens, coûts et procédure conditionnelle livrés : prepared/remblai-formulaire/BILAN-VRAC-QUEBEC-SIMPLE.md ; verdict PRÊT POUR LES TESTS ISOLÉS.
+- [ ] Validation finale/activation : attend cible complète distincte accessible et autorisée, validation stockage/JWT/file hébergés, preuve datée sauvegarde/restauration, archive serveur hébergée précédente et décision historique. Aucune intervention production autorisée.
+
 ## Cohérence du formulaire personnel — 22 octobre, 22:15 UTC
 - [x] Complément 22:38 UTC : empreintes/droits réels lus sans demande ; durée réelle toujours 30 jours ; JSON null historiques, payload incomplet et barrière photos corrigés en préparation ; 71 tests locaux verts, 24 ignorés dont clôture/erreur post-commit. Contrôle exact de référence préparé, non appliqué ; activation et validation hébergée restent bloquées.
 - [x] Complément 22:34 UTC : outils/client liés à Live confirmés, brouillon présent sans preuve d’isolation ; manifeste exact et protocole/retour ciblé documentés dans prepared/remblai-formulaire/ACTIVATION-ET-VALIDATION-ISOLEE.md. Aucun nouvel essai métier ni ressource créée ; arrêt à la préparation.
 - [x] Complément 22:26 UTC : conservation des descriptions et valeurs historiques, photos indisponibles, validation commune et confirmation exacte corrigées ; endpoint→SQL→relecture et rejeu vérifiés localement ; comparaison navigateur des sept étapes à trois tailles réussie. Bilan actualisé dans prepared/remblai-formulaire/RAPPORT.md.
 - [x] Formulaire public réutilisé en édition ; projection/enregistrement préparés, 51 tests réussis, 24 ignorés ; parcours fictif vérifié téléphone/tablette/ordinateur ; rapport prepared/remblai-formulaire/RAPPORT.md.
-- [ ] Activation réelle bloquée par paquet serveur autonome/typecheck Deno, références SQL/inverse épinglés et validation Cloud/Storage isolée ; assemblage JavaScript et contrôles locaux réussis seulement. Autorisation distincte requise. Aucune migration, publication, fonction ou donnée réelle modifiée.
+- [ ] Activation réelle : paquet autonome/types Deno et références SQL/inverses maintenant prêts (section Vrac Québec Simple) ; reste validation hébergée distincte, sauvegarde/restauration, archive serveur antérieure, décision historique et autorisations. Aucune migration, publication, fonction ou donnée réelle modifiée.
 
 ## Mise en service ciblée EXEC-01 — 22 octobre, 21:20 UTC
 - [x] Demande 21:28 UTC : copies remblai/vrac assemblées, reprises exactes et concurrence tardive protégées par RPC distincte, compatibilité additive testée ; procédures sauvegarde/protocole préparées ; 218 contrôles locaux verts, bilan-finalisation-isolee-2026-10-22.md.
