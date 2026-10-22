@@ -1,5 +1,10 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## Vrac Québec Simple — validation complète demandée, 22 octobre 22:59 UTC
+- [ ] Relire composition/inverses et cohérence remblai/vrac, relancer les suites jetables et relever les droits actuels en lecture seule.
+- [ ] Vérifier solde/coûts/limites et taille de base, distinguer sauvegardes non accessibles ; préciser la cible complète la moins coûteuse sans la créer.
+- [ ] Livrer actions séparées et autorisation minimale ; tests hébergés et restauration attendent une cible indépendante et une sauvegarde datée vérifiables.
+
 ## Vrac Québec Simple — préparation à l’activation, 22 octobre 22:44 UTC
 - [x] Paquet serveur autonome exclusivement dans prepared/, Deno vérifié ; trois fonctions réelles épinglées (projection, dispatcher, émetteur initial), composition transactionnelle et inverses exacts testés sans droits modifiés.
 - [x] 139 tests Vitest distincts + 2 tests Deno + 10 contrôles locaux réussis ; les 24 ignorés au premier passage ont tous été exécutés dans le second. Comparaison navigateur fictive aux trois tailles réussie.
