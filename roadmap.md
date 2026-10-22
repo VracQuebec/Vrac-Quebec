@@ -1,6 +1,7 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## Cohérence du formulaire personnel — 22 octobre, 22:15 UTC
+- [ ] Complément 22:34 UTC : vérifier disponibilité d’un serveur/stockage distincts et préparer le manifeste exact d’activation/retour arrière ; arrêt à la préparation si isolation indisponible.
 - [x] Complément 22:26 UTC : conservation des descriptions et valeurs historiques, photos indisponibles, validation commune et confirmation exacte corrigées ; endpoint→SQL→relecture et rejeu vérifiés localement ; comparaison navigateur des sept étapes à trois tailles réussie. Bilan actualisé dans prepared/remblai-formulaire/RAPPORT.md.
 - [x] Formulaire public réutilisé en édition ; projection/enregistrement préparés, 51 tests réussis, 24 ignorés ; parcours fictif vérifié téléphone/tablette/ordinateur ; rapport prepared/remblai-formulaire/RAPPORT.md.
 - [ ] Activation réelle bloquée par paquet serveur autonome/typecheck Deno, références SQL/inverse épinglés et validation Cloud/Storage isolée ; assemblage JavaScript et contrôles locaux réussis seulement. Autorisation distincte requise. Aucune migration, publication, fonction ou donnée réelle modifiée.
