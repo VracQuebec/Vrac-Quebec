@@ -3,7 +3,8 @@ import {beforeAll,afterAll,describe,it,expect} from 'vitest';
 import postgres from 'postgres';
 import {readFile} from 'node:fs/promises';
 import {emptyParcoursDraft,publicEditPayload,publicEditSchema,publicStepError} from '../lib/remblai/public-form';
-import {prepareOriginalPhotos} from '../../prepared/remblai-formulaire/photos';
+import {prepareOriginalPhotos,signOriginalPhotos} from '../../prepared/remblai-formulaire/photos';
+import {assertSavedRequest} from '../lib/remblai/service';
 import {makeEndpoint} from '../../prepared/exec01b/endpoint';
 const enabled=process.env.REMBLAI_FORM_LOCAL==='1';
 const db=postgres('postgresql://postgres@127.0.0.1:55438/postgres?sslmode=disable',{ssl:false});
@@ -24,6 +25,11 @@ describe('Contrat du formulaire original',()=>{
  it('rejects identifiers and administrative fields in editable payload',()=>{for(const key of ['id','owner_id','status','company_id','priority'])expect(publicEditSchema.safeParse({...publicEditPayload(initial),[key]:'forbidden'}).success).toBe(false);});
  it('retains notes, material details and conditional access without conversions',()=>{expect(publicEditPayload(initial)).toMatchObject({quantityValue:'3.5',quantityUnit:'m3',notes:initial.notes,otherMaterial:'Petites roches',accessDetails:['sol_mou']});});
  it('rejects an invalid quantity instead of claiming it is saved',()=>{expect(publicEditSchema.safeParse({...publicEditPayload(initial),quantityValue:'3..2'}).success).toBe(false);});
+ it('blocks malformed decimals in the shared quantity step',()=>{expect(publicStepError('quantity',{...initial,quantityValue:'3..2'})).toBeTruthy();expect(publicStepError('quantity',{...initial,quantityValue:'3,5'})).toBeNull();});
+ it('never confirms an empty, failed or other-dossier save response',()=>{for(const value of [null,{}, {ok:true},{denied:true},{id:b,version:2,conditions:{},proposals:[],deliveries:[]},{id:a,version:1,conditions:{},proposals:[],deliveries:[]}])expect(()=>assertSavedRequest(value,a,1)).toThrow();expect(()=>assertSavedRequest({id:a,version:2,conditions:{},proposals:[],deliveries:[]},a,1)).not.toThrow();});
+ it('does not trust a private photo from another dossier even if already listed',async()=>{const p={url:`private:submissions/${b}/${'a'.repeat(64)}.png`,category:'chantier'};await expect(prepareOriginalPhotos(a,[p],[p])).rejects.toThrow('hors dossier');});
+ it('uploads a new photo locally and signs without persisting the signature',async()=>{const png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==';let uploaded='';const storage={put:async(path:string)=>{uploaded=path;},sign:async()=> 'https://test.invalid/signed'};const photos=await prepareOriginalPhotos(a,[{url:png,category:'chantier'}],[],storage);expect(uploaded).toContain(`submissions/${a}/`);expect(photos[0].url).toBe('private:'+uploaded);const read=await signOriginalPhotos(a,photos,storage);expect(read[0].signedUrl).toBe('https://test.invalid/signed');expect(photos[0]).not.toHaveProperty('signedUrl');});
+ it('retains a canonical photo when signing fails',async()=>{const p={url:`private:submissions/${a}/${'a'.repeat(64)}.png`,category:'chantier'};expect(await signOriginalPhotos(a,[p],{put:async()=>{},sign:async()=>{throw Error('Unavailable');}})).toEqual([p]);});
  it('rejects a photo URL from another dossier',async()=>{await expect(prepareOriginalPhotos(a,[{url:'https://test.invalid/b.jpg',category:'chantier'}],[{url:'https://test.invalid/a.jpg',category:'acces'}])).rejects.toThrow();});
  it('preserves original photo and category without upload or URL replacement',async()=>{const p={url:'https://test.invalid/a.jpg',category:'acces'};expect(await prepareOriginalPhotos(a,[p],[p])).toEqual([p]);});
  it('rejects protected input at endpoint before any RPC',async()=>{let called=false;const handler=makeEndpoint({portalOrigin:'https://test.invalid',corsOrigin:'https://test.invalid',isAdmin:async()=>false,rpc:async()=>{called=true;return{};},captureOrSend:async()=>{throw Error('Forbidden');}});const response=await handler(new Request('https://test.invalid',{method:'POST',body:JSON.stringify({kind:'act',requestId:a,linkId:la,secret:'a'.repeat(64),action:'modifier',confirmed:true,operationId:crypto.randomUUID(),version:1,publicForm:{...publicEditPayload(initial),status:'approved'}})}));expect(response.status).toBe(400);expect(called).toBe(false);});
@@ -49,6 +55,26 @@ beforeAll(async()=>{
 afterAll(async()=>{await db.end();});
 describe.skipIf(!enabled)('PostgreSQL jetable — formulaire personnel',()=>{
  it('projects all values from the original intake including photo category and multiline notes',async()=>{const r=await rpc({kind:'read',requestId:a,linkId:la,secretHash:'hash-a'});expect(r.publicForm).toMatchObject({...initial,lat:46,lng:-71,photos:[{url:"https://test.invalid/a.jpg",category:"acces"}]});expect(r.publicForm.photos).toEqual([{url:'https://test.invalid/a.jpg',category:'acces'}]);expect(r.publicForm).not.toHaveProperty('internal_notes');});
+ it('saves through the actual endpoint, then reopens the exact dossier',async()=>{
+  const secret='a'.repeat(64);const hash=await import('../lib/remblai/service').then(m=>m.digest(secret));await db`update submission_portal_links set secret_hash=${hash} where id=${la}`;
+  const handler=makeEndpoint({portalOrigin:'https://test.invalid',corsOrigin:'https://test.invalid',isAdmin:async()=>false,captureOrSend:async()=>{throw Error('No mail');},rpc});
+  const version=(await db`select exec01_version v from submissions where id=${a}`)[0].v;
+  const form=publicEditPayload({...initial,name:'Camille Endpoint'});
+  const input={kind:'act',requestId:a,linkId:la,secret,action:'modifier',confirmed:true,operationId:crypto.randomUUID(),version,publicForm:form};
+  const response=await handler(new Request('https://test.invalid',{method:'POST',body:JSON.stringify(input)}));expect(response.status).toBe(200);const saved=await response.json();expect(saved.id).toBe(a);expect(saved.publicForm).toMatchObject(form);
+  const replay=await handler(new Request('https://test.invalid',{method:'POST',body:JSON.stringify(input)}));expect(await replay.json()).toEqual(saved);
+  const reopened=await handler(new Request('https://test.invalid',{method:'POST',body:JSON.stringify({kind:'read',requestId:a,linkId:la,secret})}));expect((await reopened.json()).publicForm).toMatchObject(form);
+  const denied=await handler(new Request('https://test.invalid',{method:'POST',body:JSON.stringify({...input,requestId:b,operationId:crypto.randomUUID()})}));expect(denied.status).toBe(403);
+  await db`update submission_portal_links set secret_hash='hash-a' where id=${la}`;
+ });
+ it('preserves historical unmarked notes and all undisplayed values on a single-field edit',async()=>{
+  await db`update submissions set description='Historique sans marqueur fiable',truck_type_key='legacy-truck',desired_date='2027-01-01',delivery_timeframe='legacy-delay' where id=${a}`;
+  const read=await rpc({kind:'read',requestId:a,linkId:la,secretHash:'hash-a'});expect(read.publicForm.unavailableFields).toEqual(['notes']);expect(read.publicForm.notes).toBe('');
+  const form=publicEditPayload({...read.publicForm,phone:'4185550202'});expect((await edit(form)).publicForm.phone).toBe('4185550202');
+  expect((await db`select description,truck_type_key,desired_date,delivery_timeframe from submissions where id=${a}`)[0]).toEqual({description:'Historique sans marqueur fiable',truck_type_key:'legacy-truck',desired_date:'2027-01-01',delivery_timeframe:'legacy-delay'});
+  expect(await edit({...form,notes:'Invented'})).toEqual({denied:true});
+  await db`update submissions set description=${'Résumé conservé\nNotes du demandeur : '+initial.notes} where id=${a}`;
+ });
  it('records several edits and reads them back while preserving other request and protected fields',async()=>{const other=(await db`select to_jsonb(s) r from submissions s where id=${b}`)[0].r;const f=publicEditPayload({...initial,address:'456 rue Fictive, Lévis',name:'Camille Modifié',quantityValue:'8',quantityUnit:'tonnes',projectUsage:'Nouveau projet',materials:['Sable'],otherMaterial:'',accessDetails:['recul_limite'],notes:'Notes modifiées\nDeuxième ligne'});const result=await edit(f);expect(result.publicForm).toMatchObject(f);const reopened=await rpc({kind:'read',requestId:a,linkId:la,secretHash:'hash-a'});expect(reopened.publicForm).toMatchObject(f);expect((await db`select to_jsonb(s) r from submissions s where id=${b}`)[0].r).toEqual(other);const protectedRow=(await db`select email,status,internal_notes,latitude,longitude from submissions where id=${a}`)[0];expect(protectedRow).toEqual({email:initial.email,status:'nouveau',internal_notes:'ADMIN SECRET',latitude:null,longitude:null});});
  it('rejects another dossier and leaves both records unchanged',async()=>{const before=await db`select to_jsonb(s) r from submissions s order by id`;expect(await edit(undefined,{requestId:b})).toEqual({denied:true});expect(await db`select to_jsonb(s) r from submissions s order by id`).toEqual(before);});
  it('rejects an identity email change without mutation',async()=>{const before=(await db`select to_jsonb(s) r from submissions s where id=${a}`)[0].r;expect(await edit({...publicEditPayload(initial),email:'autre@test.invalid'})).toEqual({denied:true});expect((await db`select to_jsonb(s) r from submissions s where id=${a}`)[0].r).toEqual(before);});

@@ -17,6 +17,7 @@ import OwnerCommunicationPreferences from "@/components/marketing/OwnerCommunica
 import { conditionsSchema, quantityLabel, WAITING_MESSAGE, type ReceptionConditions } from "@/lib/remblai/conditions";
 import { previewRepository, previewService, PREVIEW_EVENT, FICTIONAL_ID, startPreview, resetPreview, type PreviewSession } from "@/lib/remblai/preview";
 import type { Action, RequestRecord } from "@/lib/remblai/service";
+import { assertSavedRequest } from '@/lib/remblai/service';
 import { isLocalServerMode, takeFragment, isolatedService, readIsolatedCrm } from "@/lib/remblai/isolated-client";
 import { REMBLAI_CLOUD_ENABLED, RECEPTION_CLOUD_ENABLED } from "@/lib/remblai/activation";
 import { cloudPortalService, cloudPortalCall, PortalCallError } from "@/lib/remblai/cloud-client";
@@ -113,6 +114,8 @@ export default function RemblaiFollowup({ crm = false }: { crm?: boolean }) {
     await run(async () => {
       const id = operation.current ?? crypto.randomUUID(); operation.current = id;
       let result: PublicRequest; try { result = await service.act({ ...session, action: next, confirmed: true, operationId: id, version: row.version, ...(next === 'modifier' && formDraft ? {publicForm: publicEditPayload(formDraft)} : {conditions: next === "modifier" && draft ? draft : undefined}) }); } catch (e) { setAction(null); if (e instanceof PortalCallError && e.failure === "denied") { setVerified(false); throw new Error("Enregistrement refusé : votre vérification a expiré (10 minutes) ou le dossier a changé. Vos changements sont conservés; demandez un nouveau code puis réessayez."); } throw new Error("Enregistrement non effectué. Vos changements sont conservés; vérifiez votre réseau puis réessayez."); }
+      assertSavedRequest(result, session.requestId, row.version);
+      if (next === 'modifier' && formDraft && !result.publicForm) throw new Error('Enregistrement du formulaire original non confirmé. Vos changements sont conservés.');
       setRow(result); setDraft(result.conditions); setEditing(false); setAction(null); operation.current = null;
       setMessage(hosted ? "Dossier mis à jour. Aucune livraison autorisée ni réservée." : "Dossier TEST mis à jour. Aucune livraison autorisée ni réservée.");
     });

@@ -26,6 +26,7 @@ BEGIN
  'photos',coalesce(nullif(to_jsonb(s)->'photos_meta','null'::jsonb),s.access_details->'photos',
  (SELECT jsonb_agg(jsonb_build_object('url',x,'category','autre')) FROM jsonb_array_elements_text(coalesce(nullif(to_jsonb(s)->'photos','null'::jsonb),'[]'::jsonb)) x),'[]'::jsonb),
  'name',s.name,'phone',coalesce(to_jsonb(s)->>'phone',''),'email',s.email,
+ 'unavailableFields',CASE WHEN coalesce(to_jsonb(s)->>'description','')<>'' AND position('Notes du demandeur : ' in to_jsonb(s)->>'description')=0 THEN '["notes"]'::jsonb ELSE '[]'::jsonb END,
  'notes',CASE WHEN position('Notes du demandeur : ' in coalesce(to_jsonb(s)->>'description',''))>0
  THEN substring(to_jsonb(s)->>'description' from position('Notes du demandeur : ' in to_jsonb(s)->>'description')+length('Notes du demandeur : ')) ELSE '' END),
  $insert$);
@@ -39,6 +40,9 @@ BEGIN
   IF c->>'email' IS DISTINCT FROM s.email OR length(trim(c->>'address'))<5
    OR length(trim(c->>'name'))<2 OR jsonb_array_length(c->'materials')<1
    OR length(regexp_replace(c->>'phone','[^0-9]','','g'))<10 THEN RETURN jsonb_build_object('denied',true); END IF;
+  -- Never interpret an unmarked historical description as recoverable owner notes.
+  IF coalesce(s.description,'')<>'' AND position('Notes du demandeur : ' in s.description)=0
+   AND c->>'notes' IS DISTINCT FROM '' THEN RETURN jsonb_build_object('denied',true); END IF;
   UPDATE public.submissions SET address=c->>'address',postal_code=c->>'postalCode',
    name=c->>'name',phone=c->>'phone',
    quantity_value=CASE WHEN (c->>'quantityUnknown')::boolean OR c->>'quantityValue'='' THEN NULL ELSE replace(c->>'quantityValue',',','.')::numeric END,
@@ -50,9 +54,10 @@ BEGIN
    access_details=coalesce(s.access_details,'{}'::jsonb)||jsonb_build_object('criteres',c->'accessDetails','photos',c->'photos'),
    photos_meta=c->'photos',photos=ARRAY(SELECT x->>'url' FROM jsonb_array_elements(c->'photos') x),
    -- Preserve the unparsed description prefix (including older intake summaries).
-   description=CASE WHEN position('Notes du demandeur : ' in coalesce(s.description,''))>0
-    THEN left(s.description,position('Notes du demandeur : ' in s.description)-1)
-    ELSE coalesce(s.description,'')||E'\n' END ||'Notes du demandeur : '||(c->>'notes'),
+   description=CASE WHEN c->>'notes' IS NOT DISTINCT FROM (public.exec01_projection(s.id)->'publicForm'->>'notes') THEN s.description
+    WHEN position('Notes du demandeur : ' in coalesce(s.description,''))>0
+    THEN left(s.description,position('Notes du demandeur : ' in s.description)-1)||'Notes du demandeur : '||(c->>'notes')
+    ELSE coalesce(s.description,'')||E'\n'||'Notes du demandeur : '||(c->>'notes') END,
    latitude=CASE WHEN c->>'address'=s.address THEN s.latitude ELSE NULL END,
    longitude=CASE WHEN c->>'address'=s.address THEN s.longitude ELSE NULL END,
    formatted_address=CASE WHEN c->>'address'=s.address THEN s.formatted_address ELSE NULL END,
