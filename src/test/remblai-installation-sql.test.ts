@@ -105,7 +105,7 @@ describe.skipIf(!enabled)('EXEC01 additive SQL installation',()=>{
  it('renewal replay returns one capture and verifies changed contact and revoked bearer',async()=>{
   const f=await fixture();await mail({kind:'issue',...f});const codeHash=await digest(`${f.linkId}:123456`);
   await mail({kind:'code',...f,codeHash});expect(await rpc({kind:'verify',...f,codeHash})).toMatchObject({ok:true});
-  await db`update submission_portal_links set code_requested_at=now()-interval '61 seconds',expires_at=now()-interval '1 second' where id=${f.linkId}`;
+  await db`update submission_portal_links set code_requested_at=now()-interval '61 seconds',expires_at=now()-interval '1 second',created_at=now()-interval '2 minutes' where id=${f.linkId}`;
   const renew={kind:'renew',...f,nextId:crypto.randomUUID(),nextHash:await digest('next')};
   expect(await mail(renew)).toMatchObject({ok:true});expect(await mail({...renew,nextId:crypto.randomUUID()})).toMatchObject({ok:true,replay:true});
   expect(await rpc({kind:'read',...f})).toMatchObject({denied:true});

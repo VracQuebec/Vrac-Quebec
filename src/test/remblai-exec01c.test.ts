@@ -29,7 +29,8 @@ async function verified(){const f=await fixture();await call({...f,kind:'code'})
 beforeAll(async()=>{if(!enabled)return;await admin.unsafe(`CREATE DATABASE ${name} ENCODING 'UTF8' TEMPLATE template0`);for(const path of ['./fixtures/exec01b-base.sql','./fixtures/exec01c-relations.sql','../../prepared/exec01b/schema.sql','../../prepared/exec01b/quota.sql'])await db.unsafe(await readFile(new URL(path,import.meta.url),'utf8'));},30000);
 afterAll(async()=>{await db.end();if(enabled)await admin.unsafe(`DROP DATABASE ${name}`);await admin.end();});
 describe('EXEC01C disabled client and private photo policy',()=>{
- it('Cloud remains disabled without making a request',async()=>{await expect(cloudPortalCall({kind:'crm'})).rejects.toThrow('pas activé');});
+ // Suivi Cloud activé : l'ancien test « désactivé » appelait la fonction en ligne; retiré pour ne jamais contacter la production.
+ it.skip('Cloud remains disabled without making a request',async()=>{await expect(cloudPortalCall({kind:'crm'})).rejects.toThrow('pas activé');});
  it('unknown historical quantities remain unknown without conversion',()=>{expect(legacyReception({quantity_value:500,quantity_unit:'unknown',opening_hours:null}).total).toBeNull();expect(legacyReception({quantity_value:500,quantity_unit:'tonnes',capacity_kind:'unknown',opening_hours:null}).remaining).toBeNull();});
  it('rejects forged image bytes and another dossier private path',async()=>{const id=crypto.randomUUID();await expect(preparePhotos(id,[{name:'x',preview:'data:image/png;base64,YWJjZA=='}],[],storage)).rejects.toThrow();await expect(signPhotos(id,[{name:'x',preview:`private:submissions/${crypto.randomUUID()}/${'a'.repeat(64)}.png`}],storage)).rejects.toThrow('hors dossier');});
 });
