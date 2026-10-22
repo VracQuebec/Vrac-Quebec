@@ -1,4 +1,5 @@
 import { unknownConditions } from "./conditions";
+import { emptyParcoursDraft } from './public-form';
 import { digest, randomSecret, RemblaiService, type LinkRecord, type Repository, type RequestRecord } from "./service";
 const KEY = "vq.exec01.fictional.v1";
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
@@ -7,7 +8,7 @@ export const PREVIEW_EVENT = "vq-exec01-change";
 export function fictionalRequest(legacy = false): RequestRecord {
   const conditions = unknownConditions();
   if (!legacy) { conditions.total = 1000; conditions.remaining = 750; conditions.unit = "m3"; conditions.materials[0] = { name: "Terre", stance: "accepte" }; }
-  return { id: FICTIONAL_ID, reference: "Demande TEST-01", name: "Camille Exemple", city: "Québec", status: "En attente", availability: "a_confirmer", lastConfirmed: null, version: 1, conditions, proposals: [], deliveries: [], history: [] };
+  return { id: FICTIONAL_ID, reference: "Demande TEST-01", name: "Camille Exemple", city: "Québec", status: "En attente", availability: "a_confirmer", lastConfirmed: null, version: 1, conditions, publicForm: {...emptyParcoursDraft, address:'123 rue Fictive, Québec', postalCode:'G1A 1A1', quantityValue:'3', projectUsage:'Remplir un terrain', materials:['Terre'], accessHeavyTruck:'oui', accessDetails:['sol_mou'], name:'Camille Exemple', phone:'4185550101', email:'camille@test.invalid', notes:'Entrée côté nord'}, proposals: [], deliveries: [], history: [] };
 }
 // Never imports the hosted client, never reads/writes production. This repository
 // is NOT a security boundary and cannot be used for real anonymous access.

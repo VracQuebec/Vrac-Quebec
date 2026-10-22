@@ -26,6 +26,6 @@ export const cloudPortalService = {
  read: (linkId: string, secret: string, requestId: string) => cloudPortalCall<Omit<RequestRecord, 'history'>>({ kind: 'read', linkId, secret, requestId }),
  requestCode: async (linkId: string, secret: string, requestId: string, _deliver: unknown) => { await cloudPortalCall({ kind: 'code', linkId, secret, requestId }); },
  verifyCode: async (linkId: string, secret: string, requestId: string, code: string) => { await cloudPortalCall({ kind: 'verify', linkId, secret, requestId, code }); },
- act: (input: PortalSession & { action: Action; operationId: string; version: number; confirmed: boolean; conditions?: unknown }) => cloudPortalCall<Omit<RequestRecord, 'history'>>({ kind: 'act', ...input }),
+ act: (input: PortalSession & { action: Action; operationId: string; version: number; confirmed: boolean; conditions?: unknown; publicForm?: unknown }) => cloudPortalCall<Omit<RequestRecord, 'history'>>({ kind: 'act', ...input }),
  renew: async (linkId: string, _deliver: unknown) => { const session=takeFragment(); if (!session) throw Error('Lien personnel requis.'); try { await cloudPortalCall({kind:'renew',...session,linkId}); } catch (e) { if (e instanceof PortalCallError && e.failure === 'denied') throw new PortalCallError('denied', 'Nouveau lien impossible pour le moment (un lien par minute, 5 par jour au maximum, ou lien révoqué). Réessayez plus tard ou contactez Vrac Québec au 819-592-3495.'); throw e; } },
 };

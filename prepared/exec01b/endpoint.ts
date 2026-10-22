@@ -1,5 +1,7 @@
 // Prepared edge handler: dependency-injected RPC and email. No hosted access on import.
 import { z } from 'zod';
+import { publicEditSchema } from '../../src/lib/remblai/public-form';
+import { prepareOriginalPhotos, signOriginalPhotos } from '../remblai-formulaire/photos';
 import { conditionsSchema, unknownConditions, WAITING_MESSAGE } from '../../src/lib/remblai/conditions';
 import { legacyReception } from '../../src/lib/remblai/cloud-contract';
 import { preparePhotos, signPhotos, type PhotoStorage } from './photos';
@@ -11,7 +13,7 @@ const bodySchema = z.discriminatedUnion('kind', [
  z.object({kind:z.literal('verify'),...credentials,code:z.string().regex(/^\d{6}$/)}).strict(),
  z.object({kind:z.literal('renew'),...credentials}).strict(),
  z.object({kind:z.literal('revoke'),...credentials,confirmed:z.literal(true)}).strict(),
- z.object({kind:z.literal('act'),...credentials,confirmed:z.literal(true),operationId:z.string().uuid(),version:z.number().int().positive(),action:z.enum(['modifier','confirmer','pause','reprendre','fermer']),conditions:conditionsSchema.optional()}).strict(),
+ z.object({kind:z.literal('act'),...credentials,confirmed:z.literal(true),operationId:z.string().uuid(),version:z.number().int().positive(),action:z.enum(['modifier','confirmer','pause','reprendre','fermer']),conditions:conditionsSchema.optional(),publicForm:publicEditSchema.optional()}).strict(),
  z.object({kind:z.literal('issue'),requestId:z.string().uuid()}).strict(),
  z.object({kind:z.literal('crm'),requestId:z.string().uuid()}).strict(),
  z.object({kind:z.literal('cleanup'),requestId:z.string().uuid(),paths:z.array(z.string().max(180)).max(20),confirmed:z.literal(true)}).strict(),
@@ -43,6 +45,7 @@ export function makeEndpoint(deps:Dependencies) {
   let json:unknown; try {json=JSON.parse(raw);} catch {return reply({error:'Requête invalide.'},400);}
   const parsed=bodySchema.safeParse(json); if(!parsed.success) return reply({error:'Requête invalide.'},400);
   const data=parsed.data;
+  if(data.kind==='act' && data.publicForm && data.conditions) return reply({error:'Choisissez un seul formulaire.'},400);
   try {
    if((data.kind==='issue'||data.kind==='crm'||data.kind==='cleanup') && !await deps.isAdmin(request)) return reply({error:'Accès refusé.'},403);
    if(data.kind==='cleanup') {
@@ -55,7 +58,7 @@ export function makeEndpoint(deps:Dependencies) {
    if(data.kind==='issue'||data.kind==='renew') {secret=randomSecret();linkId=crypto.randomUUID();if(data.kind==='issue'){p.linkId=linkId;p.secretHash=await digest(secret);}else{p.nextId=linkId;p.nextHash=await digest(secret);}}
    if(data.kind==='code') { const a=new Uint32Array(1); do{crypto.getRandomValues(a);}while((a[0]??0)>=4294000000);code=String((a[0]??0)%1000000).padStart(6,'0');p.codeHash=await digest(`${data.linkId}:${code}`); }
    if(data.kind==='verify') p.codeHash=await digest(`${data.linkId}:${data.code}`);
-   if(data.kind==='act') {if(data.action==='modifier'&&!data.conditions) return reply({error:'Conditions requises.'},400);p.inputHash=await digest(JSON.stringify({action:data.action,version:data.version,conditions:data.conditions??null}));}
+   if(data.kind==='act') {if(data.action==='modifier'&&!data.conditions&&!data.publicForm) return reply({error:'Conditions requises.'},400);p.inputHash=await digest(JSON.stringify({action:data.action,version:data.version,conditions:data.conditions??null,publicForm:data.publicForm??null}));}
    if(data.kind==='act' && data.action==='modifier' && data.conditions) {
     const authorized=await deps.rpc({...p,kind:'photo_authorize'});
     if(authorized.replay) {
@@ -67,6 +70,19 @@ export function makeEndpoint(deps:Dependencies) {
     const previous=authorized.conditions as {photos?:{name:string;preview:string}[]} | null;
     const photos=data.conditions.photos.map(photo=>{if(typeof photo.name!=='string'||typeof photo.preview!=='string')throw Error('Photo invalide');return {name:photo.name,preview:photo.preview};});
     p.conditions={...data.conditions,photos:await preparePhotos(data.requestId,photos,previous?.photos??[],deps.storage)};
+   }
+   if(data.kind==='act' && data.action==='modifier' && data.publicForm) {
+    const authorized=await deps.rpc({...p,kind:'photo_authorize'});
+    if(authorized.denied) return reply({error:'Vérification récente requise.'},403);
+    if(authorized.replay) {
+      const replay=authorized.replay as Record<string,unknown>;
+      if(replay.publicForm && deps.storage) {const f=replay.publicForm as {photos:{url:string;category:string}[]};replay.publicForm={...f,photos:await signOriginalPhotos(data.requestId,f.photos,deps.storage)};}
+      return reply(replay);
+    }
+    const previous=authorized.publicForm as {photos?:{url:string;category:string}[]} | undefined;
+    if(!previous) return reply({error:'Formulaire original indisponible.'},503);
+    const photos=data.publicForm.photos.map(p=>{if(typeof p.url!=='string'||typeof p.category!=='string')throw Error('Photo invalide');return {url:p.url,category:p.category};});
+    p.publicForm={...data.publicForm,photos:await prepareOriginalPhotos(data.requestId,photos,previous.photos??[],deps.storage)};
    }
    // The hosted adapter commits code/link + queue/capture in ONE transaction.
    // No contact, code or bearer is returned from that transaction to the browser.
@@ -96,6 +112,7 @@ export function makeEndpoint(deps:Dependencies) {
     const conditions=result.conditions as {photos:{name:string;preview:string}[]};
     result.conditions={...conditions,photos:await signPhotos(data.requestId,conditions.photos,deps.storage)};
    }
+   if(result.publicForm && deps.storage) { const f=result.publicForm as {photos:{url:string;category:string}[]}; result.publicForm={...f,photos:await signOriginalPhotos(data.requestId,f.photos,deps.storage)}; }
    return reply(result);
   }catch {return reply({error:'Service indisponible. Aucune donnée privée affichée.'},503);}
  };

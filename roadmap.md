@@ -1,5 +1,9 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## Cohérence du formulaire personnel — 22 octobre, 22:15 UTC
+- [x] Formulaire public réutilisé en édition ; projection/enregistrement préparés, 51 tests réussis, 24 ignorés ; parcours fictif vérifié téléphone/tablette/ordinateur ; rapport prepared/remblai-formulaire/RAPPORT.md.
+- [ ] Activation réelle bloquée par assemblage Deno, références SQL/inverse épinglés et validation Cloud/Storage isolée ; autorisation distincte requise. Aucune migration, publication, fonction ou donnée réelle modifiée.
+
 ## Mise en service ciblée EXEC-01 — 22 octobre, 21:20 UTC
 - [x] Demande 21:28 UTC : copies remblai/vrac assemblées, reprises exactes et concurrence tardive protégées par RPC distincte, compatibilité additive testée ; procédures sauvegarde/protocole préparées ; 218 contrôles locaux verts, bilan-finalisation-isolee-2026-10-22.md.
 - [ ] Validation isolée complète : endpoints préparés HTTP/courrier idempotent et interface du statut inconnu encore à tester ; stack hébergée distincte, timestamp/restauration séparée, paquet hébergé précédent et autorisations manquants. Production toujours BLOQUÉE.
