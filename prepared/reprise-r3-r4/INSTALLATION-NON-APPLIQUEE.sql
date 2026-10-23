@@ -61,10 +61,9 @@ BEGIN
  -- Agreements are never overwritten: unsafe operational execution blocks the edit.
  IF EXISTS(SELECT 1 FROM public.transport_requests t WHERE t.origin_submission_id=s.id AND (t.lifecycle_status IN ('prete_transport','en_cours','terminee') OR t.driver_id IS NOT NULL OR t.truck_id IS NOT NULL OR t.requisition_state IN ('running','completed'))) THEN RAISE EXCEPTION 'Transport affecté ou en cours : coordination requise'; END IF;
  IF EXISTS(SELECT 1 FROM public.trips t WHERE t.submission_id=s.id AND t.status::text NOT IN ('demande','soumission_envoyee','accepte','annule')) THEN RAISE EXCEPTION 'Voyage opérationnel : coordination requise'; END IF;
- -- EXEC-02 remains uninstalled: refuse rather than bypass its capacity ledger if present.
+ -- Exact EXEC-02 ledger: invalidate, never silently retain an agreement after editing.
  IF to_regclass('public.submission_reception_reservations') IS NOT NULL THEN
-   EXECUTE 'SELECT EXISTS(SELECT 1 FROM public.submission_reception_reservations WHERE (submission_id=$1 OR origin_submission_id=$1) AND state IN (''pending'',''reserved''))' INTO critical USING s.id;
-   IF critical THEN RAISE EXCEPTION 'Réservation engagée : revalidation de capacité par EXEC-02 requise avant modification'; END IF;
+   PERFORM public.workbench_invalidate_reservations(s.id,_company,_operation);
  END IF;
  critical:=EXISTS(SELECT 1 FROM public.submission_site_decisions WHERE submission_id=s.id AND status='approuvee') OR EXISTS(SELECT 1 FROM public.transport_requests WHERE origin_submission_id=s.id AND lifecycle_status IN ('confirmee','attente_confirmation_dompe'));
  UPDATE public.submissions SET address=newvalues->>'address',formatted_address=CASE WHEN 'address'=ANY(changed) THEN NULL ELSE formatted_address END,
@@ -78,7 +77,7 @@ BEGIN
  SELECT _company,'submission_agreement',s.id,'revalidation_requise',to_jsonb(d),jsonb_build_object('operation',_operation),auth.uid(),'entrepreneur' FROM public.submission_site_decisions d WHERE d.submission_id=s.id AND d.status='approuvee';
  UPDATE public.submission_site_decisions SET status='en_attente',decision_note='Conditions modifiées : nouvelle validation requise',updated_at=now() WHERE submission_id=s.id AND status='approuvee';
  PERFORM set_config('vq.lifecycle','on',true);
- UPDATE public.transport_requests SET lifecycle_status='revalidation_requise',updated_at=now(),requisition_state=CASE WHEN requisition_state IN ('accepted','transmitted') THEN 'revalidation' ELSE requisition_state END WHERE origin_submission_id=s.id AND lifecycle_status IN ('confirmee','attente_confirmation_dompe');
+ UPDATE public.transport_requests SET lifecycle_status='revalidation_requise',updated_at=now(),requisition_version=requisition_version+1,requisition_state=CASE WHEN requisition_state IN ('accepted','transmitted','prepared') THEN 'revalidation' ELSE requisition_state END WHERE origin_submission_id=s.id AND (lifecycle_status IN ('confirmee','attente_confirmation_dompe') OR requisition_state IN ('accepted','transmitted','prepared'));
  response:=jsonb_build_object('id',s.id,'version',s.edit_version+1,'revalidation',true);
  INSERT INTO public.ent_crm_history(company_id,entity,entity_id,action,before,after,actor_id,origin) VALUES(_company,'submission_edit',s.id,'demande_modifiee',oldvalues,jsonb_build_object('id',s.id,'operation',_operation,'changes',_changes,'changed',changed,'version',s.edit_version+1,'result',response,'values',newvalues),auth.uid(),'entrepreneur');
  PERFORM public.crm_notify('submission-edit:'||s.id||':'||_operation,'demandes','demande_modifiee','haute','Demande modifiée — revalidation requise',array_to_string(changed,', '),'submission',s.id,'/admin/centre-controle',NULL,s.submission_number::text,NULL,jsonb_build_object('company_id',_company,'version',s.edit_version+1),false);
@@ -123,6 +122,10 @@ BEGIN
  UPDATE public.transport_requests SET requisition_company_id=_company,requisition_driver_id=(_values->>'driver_id')::uuid,requisition_truck_id=(_values->>'truck_id')::uuid,requisition_details=_values,requisition_state=CASE WHEN requisition_accepted_snapshot IS NOT NULL THEN 'revalidation' ELSE 'prepared' END,requisition_version=requisition_version+1,updated_at=now() WHERE id=t.id;
  response:=jsonb_build_object('id',t.id,'version',t.requisition_version+1,'state',CASE WHEN t.requisition_accepted_snapshot IS NOT NULL THEN 'revalidation' ELSE 'prepared' END);
  INSERT INTO public.transport_request_events(request_id,action,version,details,actor_id,actor_role,origin) VALUES(t.id,'requisition_assign',t.requisition_version+1,jsonb_build_object('id',t.id,'operation',_operation,'values',_values,'result',response,'previous_accepted',t.requisition_accepted_snapshot),auth.uid(),'manager','entreprise');
+ IF t.requisition_driver_id IS NOT NULL THEN
+   INSERT INTO public.jsc_notifications(company_id,audience,user_id,channel,title,body,entity_type,entity_id,status)
+   SELECT _company,'driver',user_id,'in_app','Réquisition modifiée — ancien accord invalide',t.request_number,'transport_request',t.id,'pending' FROM public.jsc_drivers WHERE id=t.requisition_driver_id;
+ END IF;
  RETURN response;
 END $$;
 REVOKE ALL ON FUNCTION public.requisition_assign(uuid,uuid,integer,jsonb,uuid,boolean) FROM PUBLIC,anon;
@@ -152,6 +155,7 @@ BEGIN
  WHEN role_name='driver' AND _action IN ('loading','arrival','unloading') AND t.requisition_state='running' THEN 'running' END;
  IF next_state IS NULL THEN RAISE EXCEPTION 'Transition interdite';END IF;
  IF _action IN ('transmit','accept','start') AND NOT EXISTS(SELECT 1 FROM public.jsc_drivers d JOIN public.jsc_company_members m ON m.company_id=d.company_id AND m.user_id=d.user_id WHERE d.id=t.requisition_driver_id AND d.is_active AND d.archived_at IS NULL AND m.is_active AND m.archived_at IS NULL AND m.role='chauffeur') THEN RAISE EXCEPTION 'Accès chauffeur révoqué' USING ERRCODE='42501';END IF;
+ IF _action IN ('transmit','accept','start') AND NOT EXISTS(SELECT 1 FROM public.jsc_trucks WHERE id=t.requisition_truck_id AND company_id=_company AND is_active AND archived_at IS NULL) THEN RAISE EXCEPTION 'Camion révoqué' USING ERRCODE='42501';END IF;
  IF _action IN ('transmit','accept','start') AND NOT EXISTS(SELECT 1 FROM public.submission_site_decisions sd JOIN public.submissions s ON s.id=sd.submission_id WHERE sd.submission_id=t.origin_submission_id AND sd.site_id=(t.requisition_details->>'destination_id')::uuid AND sd.status='approuvee' AND s.revalidation_requested_at IS NULL) THEN RAISE EXCEPTION 'Destination à revalider' USING ERRCODE='42501';END IF;
  IF _action IN ('start','complete') AND (t.requisition_accepted_snapshot IS NULL OR (t.requisition_accepted_snapshot-'accepted_by'-'accepted_at'-'version') IS DISTINCT FROM t.requisition_details) THEN RAISE EXCEPTION 'Conditions acceptées périmées';END IF;
  UPDATE public.transport_requests SET requisition_state=next_state,requisition_version=requisition_version+1,requisition_accepted_snapshot=CASE WHEN _action='accept' THEN requisition_details||jsonb_build_object('accepted_by',auth.uid(),'accepted_at',now(),'version',requisition_version) ELSE requisition_accepted_snapshot END,updated_at=now() WHERE id=t.id;
@@ -161,7 +165,7 @@ BEGIN
    SELECT * INTO assigned_driver FROM public.jsc_drivers WHERE id=t.requisition_driver_id;
    INSERT INTO public.jsc_notifications(company_id,audience,user_id,channel,title,body,entity_type,entity_id,status) VALUES(_company,'driver',assigned_driver.user_id,'in_app','Réquisition à examiner',t.request_number,'transport_request',t.id,'pending');
  END IF;
- IF _action IN ('refuse','incident','cancel') THEN PERFORM public.crm_notify('requisition:'||t.id||':'||_operation,'demandes','requisition_exception','haute','Réquisition à vérifier',_reason,'transport_request',t.id,'/admin/demandes-acces',NULL,t.request_number,NULL,jsonb_build_object('company_id',_company,'state',next_state),false);END IF;
+ PERFORM public.crm_notify('requisition:'||t.id||':'||_operation,'demandes','requisition_'||_action,CASE WHEN _action IN ('refuse','incident','cancel') THEN 'haute' ELSE 'normale' END,'Réquisition mise à jour',_reason,'transport_request',t.id,'/admin/demandes-acces',NULL,t.request_number,NULL,jsonb_build_object('company_id',_company,'state',next_state,'version',t.requisition_version+1),false);
  RETURN response;
 END $$;
 REVOKE ALL ON FUNCTION public.requisition_action(uuid,uuid,integer,text,text,uuid,boolean) FROM PUBLIC,anon;
