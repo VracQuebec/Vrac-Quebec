@@ -1,6 +1,7 @@
 // PREPARED COPY ONLY; install after isolated validation and explicit deployment authorization.
 import {receptionMessageAllowed} from './queue-reception-guard.ts';
 import {targetedMessageAllowed} from '../exec04/queue-guard.ts';
+import {captureDriverTestMessage} from '../reprise-r3-r4/capture-worker.ts';
 import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 
