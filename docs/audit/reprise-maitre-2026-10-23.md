@@ -1,5 +1,31 @@
 # Registre de reprise Vrac Québec — 23 octobre 2026
 
+## R4C — actualisation après 18:44 UTC, préparation non installée
+**Réalisé localement** : invitations employés existantes composées avec un profil JSC explicitement choisi; activation liée au compte personnel confirmé et à la bonne entreprise, expiration/renouvellement avec rotation, révocation du membre/profil et anciennes RPCs couvertes par trigger. Notifications/historique uniques et persistants dans les objets existants. Catalogue et panneaux chauffeurs préparés, non raccordés aux écrans actifs. Lectures hébergées ont confirmé deux autres écarts : `jsc_driver_portal` ignore membership/is_active, et policy « portal driver reads own file » autorise user_id seul; corrections préparées et SQL local validé, **pas appliquées**.
+
+**Preuves actuelles** : 154 tests réussis / 12 fichiers / zéro ignoré (`docs/audit/reprise-r4c-preuves/tests-final.txt`). PostgreSQL 17 jetable 127.0.0.1:55439, identités Auth fixtures et rôles SQL : invitation capturée→activation→réquisition→acceptation ou refus→étapes→clôture, mauvais compte/B, expiration/rotation, compte non confirmé, révocation concurrente, profil/portail privés retirés. R3/R4/R4B conservés/rejoués avec vrai SQL EXEC-02 préparé : acceptation concurrente à édition, snapshots, livraison mesurée/débit unique, notification atomique. Chromium 1280×1800 confirme seulement la fermeture de l’écran actif; deux tentatives externes bloquées par l’essai. Aucun vrai parcours Auth/API/Storage certifié.
+
+**Code / serveur / publication / activation** : code préparé, installation partagée **aucune**, publication **aucune**, activation nouvelle **aucune**, validation métier **non effectuée**. Flags false conservés. Paquet exact et dépendances : `prepared/reprise-r3-r4/INSTALLATION-R4C.md`, empreintes `MANIFEST-R4C.sha256`. Dépendance employés extraite sans punch/paie; dépendances EXEC-02 non installables aveuglément. Retour ferme nouveaux RPCs et conserve guards/historiques, sans réouvrir ancienne faille.
+
+**Libellés** : aucun « Fixed admin SEO » revendiqué. R4B vérifiable uniquement : `src/hooks/useUserRole.ts` + `src/lib/auth/approved-roles.ts`, hints approuvés et pas admin restauré du cache. `has_role` décide serveur. Refus entrepreneur SEO normal; 188 villes/couverture pertinente distinctes; session réelle déjà admin approuvée requise pour lecture SEO. Action : ce compte se connecte dans l’aperçu et demande contrôle en lecture seule, ou est désigné pour session nominative avec approbation; aucun rôle changé.
+
+### Prochaine reprise exacte : R4D, puis R5
+| Travail ouvert | État / dépendance réelle |
+|---|---|
+| Invitation complète hébergée | **Partiel** : composer reprise de connexion (écran actuel efface le fragment au clic Connexion), branchement panneaux/activation et courrier atomique dans file existante, capture-only. Pas une simple levée de flag. |
+| Permissions chauffeurs transversales | **Partiel** : nouveaux RPCs/helper/portail/profil local vérifiés; policies alternatives `jsc_can_manage`, notifications personnelles, documents/Storage et `drv_*` encore à composer/vérifier dans schéma complet. |
+| Cible Auth/API/Storage/file indépendante | **Dépendance externe** : PostgreSQL local disponible mais pas stack complète accessible; aucune simulation remplaçante ni écriture partagée. CI/installation locale conteneurs réellement accessible requise. |
+| Coordination EXEC-02 | Composition R4B locale testée; installation dépendances et boucle billets/capacité/écrans hébergés non validées. |
+| Communications/hiver 2027 | Garde TEST renforcé en préparation (mode explicite/destinataires réservés), huit nouveaux tests; 28 régressions communications/secteurs rejouées. File/oppositions/horaires/capture Auth complets restent R5; aucun message réel. |
+| Partenaires/commissions | Préparations conservées; attribution/acquisition et écritures financières transversales dans cible complète; pas taux inventé. |
+| Flotte et chauffeurs | Profils/camions réutilisés, pas fusion des catalogues; documents/assurance et révocation toutes voies restent ouverts. |
+| Localisation | R1 conservé; pas suivi réel. Consentement/retrait/rétention à vérifier côté serveur; verrouillage/arrière-plan seulement nécessitent appareils physiques. |
+| Formation Jonathan | Checklist enrichie invitation→chauffeur et R4B; séance métier non effectuée. Captures/scripts existants conservés; matériel commercial extérieur manquant. |
+| SEO R2 | 188 villes, reprise/double lancement tests verts; admin réel et catalogue/file/disponibilité effectifs non validés. Aucun système déclaré entièrement corrigé. |
+| EXEC-01/03/05/06/07/08 | Préparations antérieures conservées, tests complets A–E et installations distinctes restent au registre; pas paiement/paie/achat ni nouvelle activation. |
+
+Les sections et comptes datés ci-dessous restent historiques; cette actualisation prévaut. Mandat maître non terminé. Prochaine action concrète : R4D branchement sécurisé et transport atomique préparés, puis validation sur cible complète avant décision unique d’installation partagée; autorisations EXEC-01 acquises non redemandées et non étendues.
+
 ## R4B — actualisation après 18:19 UTC
 Sauvegarde locale composée avec EXEC-02, accord affecté invalidé vers exception, snapshot conservé, restant et livré inchangés. Acceptation propriétaire concurrente à édition testée dans le moteur commun. Wrapper transport versionné et notification unique préparés, original préservé. Navigation admin exige rôle approuvé et ne restaure plus admin depuis cache; refus entrepreneur SEO maintenu. Installation, activation, publication : **aucune**.
 

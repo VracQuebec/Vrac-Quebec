@@ -1,5 +1,7 @@
 # R4B — opérations de mise en service, NON exécutées
 
+**Actualisation R4C** : l’ordre courant est `INSTALLATION-R4C.md` et `MANIFEST-R4C.sha256`; les limites d’invitations ci-dessous sont historiques. Composition SQL/panneaux prêts localement, branchement/transport Auth complets encore R4D. Aucun correctif « Fixed admin SEO » revendiqué, aucune installation exécutée.
+
 ## Ce que couvre R4B
 Composition entre édition d’un dossier, réquisitions et accords EXEC-02 : persistance transactionnelle, contrôle des acteurs, concurrence, version/rejeu, historique, notifications applicatives et invalidation des accords affectés. Une édition ne doit pas laisser une ancienne acceptation utilisable ou une capacité réservée silencieusement. Ce lot ne livre pas un serveur Auth/Storage indépendant ni des invitations chauffeurs nouvelles.
 
