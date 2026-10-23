@@ -1,5 +1,5 @@
 // Vrac Québec OS — Portail chauffeur (mobile) : feuille de route et preuve de livraison.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, MapPin, Truck, CheckCircle2, ArrowLeft, PenLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,16 +38,20 @@ export default function DriverPortal() {
   const [signature, setSignature] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loadError,setLoadError]=useState<string|null>(null);
+  const readVersion=useRef(0);
 
   const load = useCallback(async () => {
+    const version=++readVersion.current;
     setLoading(true);
     const { data: res, error } = await supabase.rpc("jsc_driver_portal", { _from: null, _to: null });
-    if (error) console.error("driver portal:", error.message);
+    if(version!==readVersion.current)return;
+    setLoadError(error?.message??null);
     setData((res as unknown as Portal) ?? null);
     setLoading(false);
   }, []);
 
-  useEffect(() => { if (isReady && user) void load(); else if (isReady) setLoading(false); }, [isReady, user, load]);
+  useEffect(() => {setData(null);setSignature("");setNotes("");setOpenId(null);if (isReady && user) void load(); else if (isReady) setLoading(false);return()=>{readVersion.current+=1;};}, [isReady, user?.id, load]);
 
   const advance = async (d: Delivery, next: string) => {
     setSaving(true);
@@ -86,7 +90,7 @@ export default function DriverPortal() {
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
         <h1 className="text-xl font-semibold">Portail chauffeur</h1>
         <p className="max-w-md text-sm text-muted-foreground">
-          Votre compte n'est relié à aucun profil de chauffeur. Contactez votre répartiteur.
+          {loadError??"Votre compte n'est relié à aucun profil de chauffeur. Contactez votre répartiteur."}
         </p>
         <Link to="/" className="text-sm text-primary hover:underline">Retour à l'accueil</Link>
       </div>
@@ -97,7 +101,7 @@ export default function DriverPortal() {
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <div className="mx-auto max-w-2xl px-4"><RequisitionPanel driver /></div>
+      <div className="mx-auto max-w-2xl px-4"><RequisitionPanel key={user.id} driver /></div>
       <header className="border-b bg-card">
         <div className="mx-auto max-w-2xl px-4 py-5">
           <Link to="/" className="mb-2 inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
