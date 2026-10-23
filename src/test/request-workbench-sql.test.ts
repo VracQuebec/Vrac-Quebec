@@ -135,4 +135,11 @@ describe.skipIf(!enabled)('SQL préparé exécuté uniquement dans PostgreSQL je
   expect(results.filter(r=>r.status==='rejected')).toHaveLength(1);
   expect((await db`select edit_version from submissions`)[0].edit_version).toBe(6);
  });
+ it('retour non destructif ferme les nouveaux RPCs et conserve les dossiers et le legacy',async()=>{
+  const count=(await db`select count(*) n from submissions`)[0].n;
+  await db.unsafe(await readFile('prepared/reprise-r3-r4/RETOUR-NON-APPLIQUE.sql','utf8'));
+  await expect(as(ids.admin,async tx=>tx`select submission_edit_read(${ids.submission}::uuid)`)).rejects.toMatchObject({code:'42501'});
+  expect((await db`select count(*) n from submissions`)[0].n).toBe(count);
+  expect((await db`select to_regprocedure('public.request_update(uuid,jsonb)') is not null present`)[0].present).toBe(true);
+ });
 });
