@@ -6,6 +6,7 @@ import { RequestCard } from "@/components/entrepreneur-app/ui";
 import { Button } from "@/components/ui/button";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { buildEntrepreneurRequests } from "@/lib/entrepreneur-app/requests";
+import RequisitionPanel from "@/components/entrepreneur-app/RequisitionPanel";
 
 export default function EntrepreneurTransports() {
   const { loading, error, submissions, accessRequests, chantiers, refresh } = useEntrepreneurData();
@@ -29,6 +30,7 @@ export default function EntrepreneurTransports() {
   return (
     <EntrepreneurAppShell title="Transports" backTo={null}>
       <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 lg:py-6">
+        <RequisitionPanel />
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="font-body text-xs text-muted-foreground">{active.length} dossier{active.length !== 1 ? "s" : ""} en cours</p>
