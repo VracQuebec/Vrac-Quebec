@@ -1,0 +1,16 @@
+
+ RUN  v3.2.4 /dev-server
+
+ ✓ src/test/approved-roles.test.ts (3 tests) 5ms
+ ✓ src/test/seo-city-plan.test.ts (15 tests) 16ms
+ ✓ src/test/seo-city-generation-launch.test.tsx (6 tests) 368ms
+ ✓ src/test/transport-edit-readback.test.tsx (2 tests) 640ms
+   ✓ transport — succès seulement après relecture > annonce une édition uniquement si les valeurs et la version se relisent  429ms
+ ✓ src/test/request-workbench-ui.test.tsx (7 tests) 605ms
+   ✓ éditeurs sur dépendances injectées — sans requête réelle > préremplit les valeurs, confirme puis relit le même dossier  351ms
+
+ Test Files  5 passed (5)
+      Tests  33 passed (33)
+   Start at  18:29:31
+   Duration  4.50s (transform 629ms, setup 1.29s, collect 2.18s, tests 1.63s, environment 7.93s, prepare 840ms)
+

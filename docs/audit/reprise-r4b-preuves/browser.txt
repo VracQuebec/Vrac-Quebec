@@ -1,0 +1,2 @@
+Skipping host requirements validation logic because `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS` env variable is set.
+[{"width": 360, "overflow": false, "save_mock": 1, "readback": 1, "real_writes": 0}, {"width": 768, "overflow": false, "save_mock": 1, "readback": 1, "real_writes": 0}, {"width": 1280, "overflow": false, "save_mock": 1, "readback": 1, "real_writes": 0}]

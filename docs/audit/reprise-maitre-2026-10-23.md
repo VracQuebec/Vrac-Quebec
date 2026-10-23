@@ -3,6 +3,8 @@
 ## R4B — actualisation après 18:19 UTC
 Sauvegarde locale composée avec EXEC-02, accord affecté invalidé vers exception, snapshot conservé, restant et livré inchangés. Acceptation propriétaire concurrente à édition testée dans le moteur commun. Wrapper transport versionné et notification unique préparés, original préservé. Navigation admin exige rôle approuvé et ne restaure plus admin depuis cache; refus entrepreneur SEO maintenu. Installation, activation, publication : **aucune**.
 
+Derniers essais : **59 SQL + 33 interface/rôles/SEO**, soit 92 réussis; zéro ignoré dans ces sept fichiers. PostgreSQL jetable 127.0.0.1:55439; vraie fonction EXEC02 composée, JWT de fixture (pas vraie Auth), messages capture-only. Chromium 360/768/1280 injection fictive sans appel externe; compilation OK. Retour des nouveaux RPCs testé localement, inverse helper non certifié. Preuves dans `docs/audit/reprise-r4b-preuves/`.
+
 R4B n’est pas parcours réel opérationnel : nouveaux RPCs absents du serveur partagé, flag false; vraie chaîne Auth/API/Storage complète, session admin autorisée et raccordement invitation/profil JSC restent R4C. Liste d’opérations et autorisations : `prepared/reprise-r3-r4/INSTALLATION-R4B.md`.
 
 ### Suite unique à conserver
