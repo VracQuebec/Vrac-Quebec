@@ -8,11 +8,12 @@ RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE d jsc_drivers; i uuid;
 BEGIN
  IF NOT entcrm_can_admin(_company) THEN RAISE EXCEPTION 'Accès refusé' USING ERRCODE='42501'; END IF;
- PERFORM pg_advisory_xact_lock(hashtext('driver-access:'||_company));
+ i:=pun_invite_prepare(_company,_email,'chauffeur',_key,_token);
+ -- Canonical invitation row first, driver row second: same order as acceptance/revocation.
+ PERFORM 1 FROM ent_employee_invites WHERE id=i FOR UPDATE;
  SELECT * INTO d FROM jsc_drivers WHERE id=_driver AND company_id=_company FOR UPDATE;
  IF d.id IS NULL OR d.archived_at IS NOT NULL OR NOT d.is_active OR d.user_id IS NOT NULL THEN RAISE EXCEPTION 'Profil chauffeur indisponible' USING ERRCODE='42501'; END IF;
  IF EXISTS(SELECT 1 FROM ent_employee_invites WHERE driver_id=_driver AND revoked_at IS NULL AND accepted_at IS NULL AND expires_at>now() AND request_key<>_key) THEN RAISE EXCEPTION 'Invitation déjà en attente' USING ERRCODE='P0409'; END IF;
- i:=pun_invite_prepare(_company,_email,'chauffeur',_key,_token);
  IF EXISTS(SELECT 1 FROM ent_employee_invites WHERE id=i AND driver_id IS NOT NULL AND driver_id<>_driver) THEN RAISE EXCEPTION 'Clé réutilisée' USING ERRCODE='P0409'; END IF;
  UPDATE ent_employee_invites SET driver_id=_driver WHERE id=i;
  RETURN i;
@@ -28,7 +29,6 @@ BEGIN
  IF TG_OP='UPDATE' AND OLD.revoked_at IS NOT NULL AND NEW.revoked_at IS DISTINCT FROM OLD.revoked_at THEN RAISE EXCEPTION 'Révocation définitive' USING ERRCODE='42501'; END IF;
  IF TG_OP='UPDATE' AND OLD.accepted_at IS NOT NULL AND (NEW.accepted_at,NEW.accepted_by,NEW.token_hash) IS DISTINCT FROM (OLD.accepted_at,OLD.accepted_by,OLD.token_hash) THEN RAISE EXCEPTION 'Activation immuable' USING ERRCODE='42501'; END IF;
  IF NEW.accepted_at IS NOT NULL AND (TG_OP='INSERT' OR OLD.accepted_at IS NULL) THEN
-  PERFORM pg_advisory_xact_lock(hashtext('driver-access:'||NEW.company_id));
   SELECT * INTO d FROM jsc_drivers WHERE id=NEW.driver_id AND company_id=NEW.company_id FOR UPDATE;
   IF d.id IS NULL OR NOT d.is_active OR d.archived_at IS NOT NULL OR d.user_id IS NOT NULL OR NEW.revoked_at IS NOT NULL OR NEW.expires_at<=now()
    OR NOT EXISTS(SELECT 1 FROM auth.users WHERE id=NEW.accepted_by AND lower(email)=NEW.email AND email_confirmed_at IS NOT NULL)
@@ -40,7 +40,6 @@ BEGIN
   PERFORM crm_notify('driver-invite-accepted-'||NEW.id,'transport','driver_access','normale','Accès chauffeur activé',NULL,'chauffeur',d.id,'/admin/missions',NULL,NULL,NULL,jsonb_build_object('company_id',NEW.company_id),false);
  END IF;
  IF TG_OP='UPDATE' AND OLD.revoked_at IS NULL AND NEW.revoked_at IS NOT NULL AND OLD.accepted_by IS NOT NULL THEN
-  PERFORM pg_advisory_xact_lock(hashtext('driver-access:'||NEW.company_id));
   UPDATE jsc_company_members SET is_active=false WHERE company_id=NEW.company_id AND user_id=OLD.accepted_by AND role='chauffeur';
   UPDATE jsc_drivers SET is_active=false WHERE id=NEW.driver_id AND user_id=OLD.accepted_by AND company_id=NEW.company_id;
   INSERT INTO ent_crm_history(company_id,entity,entity_id,action,actor_id,after,origin)
@@ -56,7 +55,6 @@ DECLARE i ent_employee_invites; c uuid;
 BEGIN
  SELECT * INTO i FROM ent_employee_invites WHERE token_hash=encode(sha256(convert_to(_token,'UTF8')),'hex') FOR UPDATE;
  IF i.driver_id IS NULL OR i.revoked_at IS NOT NULL THEN RAISE EXCEPTION 'Invitation inaccessible' USING ERRCODE='42501'; END IF;
- PERFORM pg_advisory_xact_lock(hashtext('driver-access:'||i.company_id));
  c:=pun_invite_accept(_token);
  IF NOT EXISTS(SELECT 1 FROM jsc_drivers d JOIN jsc_company_members m ON m.company_id=d.company_id AND m.user_id=d.user_id WHERE d.id=i.driver_id AND d.company_id=c AND d.user_id=auth.uid() AND d.is_active AND d.archived_at IS NULL AND m.is_active AND m.archived_at IS NULL AND m.role='chauffeur') THEN RAISE EXCEPTION 'Accès retiré' USING ERRCODE='42501'; END IF;
  RETURN jsonb_build_object('company_id',c,'driver_id',i.driver_id,'user_id',auth.uid());
@@ -68,6 +66,7 @@ BEGIN
  SELECT * INTO i FROM ent_employee_invites WHERE id=_id FOR UPDATE;
  IF i.id IS NULL OR i.driver_id IS NULL OR NOT entcrm_can_admin(i.company_id) OR i.revoked_at IS NOT NULL OR i.accepted_at IS NOT NULL THEN RAISE EXCEPTION 'Renouvellement inaccessible' USING ERRCODE='42501'; END IF;
  IF _key IS NULL OR length(coalesce(_token,''))<40 THEN RAISE EXCEPTION 'Invitation invalide'; END IF;
+ PERFORM 1 FROM jsc_drivers WHERE id=i.driver_id AND company_id=i.company_id FOR UPDATE;
  IF i.renewal_key=_key THEN IF i.token_hash<>h THEN RAISE EXCEPTION 'Clé réutilisée' USING ERRCODE='P0409'; END IF; RETURN i.id; END IF;
  IF i.token_hash=h OR EXISTS(SELECT 1 FROM ent_crm_history WHERE entity='chauffeur_invitation' AND entity_id=i.id AND after->>'operation'=_key::text) THEN RAISE EXCEPTION 'Nouveau lien requis' USING ERRCODE='P0409'; END IF;
  IF NOT EXISTS(SELECT 1 FROM jsc_drivers WHERE id=i.driver_id AND company_id=i.company_id AND user_id IS NULL AND is_active AND archived_at IS NULL) THEN RAISE EXCEPTION 'Profil indisponible' USING ERRCODE='42501'; END IF;
