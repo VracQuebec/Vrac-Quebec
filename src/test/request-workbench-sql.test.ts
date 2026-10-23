@@ -33,7 +33,7 @@ beforeAll(async()=>{
  await db`insert into user_roles values(${ids.admin},'admin',true)`;
  await db`insert into jsc_drivers(id,company_id,user_id,is_active,archived_at) values(${ids.driver},${ids.company},${ids.driverUser},true,NULL)`;
  await db`insert into jsc_trucks(id,company_id,is_active,archived_at) values(${ids.truck},${ids.company},true,NULL)`;
- await db`insert into submissions(id,created_by,status,availability_status,materials,address,quantity_value,quantity_unit,quantity,edit_company_id,submission_number)values(${ids.submission},${ids.owner},'nouveau','available',ARRAY['Terre'],'Chantier fictif',100,'m3','100 m3',${ids.company},77)`;
+ await db.begin(async tx=>{await tx`select set_config('vq.workbench','on',true)`;await tx`insert into submissions(id,created_by,status,availability_status,materials,address,quantity_value,quantity_unit,quantity,edit_company_id,submission_number)values(${ids.submission},${ids.owner},'nouveau','available',ARRAY['Terre'],'Chantier fictif',100,'m3','100 m3',${ids.company},77)`;});
  await db`insert into transport_requests(id,request_number,origin_submission_id,lifecycle_status,dump_name)values(${ids.request},'DT-TEST',${ids.submission},'confirmee','Destination fictive')`;
  await db`insert into submission_site_decisions(submission_id,site_id,status)values(${ids.submission},${ids.site},'approuvee')`;
 },30000);
@@ -141,5 +141,9 @@ describe.skipIf(!enabled)('SQL préparé exécuté uniquement dans PostgreSQL je
   await expect(as(ids.admin,async tx=>tx`select submission_edit_read(${ids.submission}::uuid)`)).rejects.toMatchObject({code:'42501'});
   expect((await db`select count(*) n from submissions`)[0].n).toBe(count);
   expect((await db`select to_regprocedure('public.request_update(uuid,jsonb)') is not null present`)[0].present).toBe(true);
+ });
+ it('insertion directe ne peut préattribuer entreprise ou accord accepté',async()=>{
+  await expect(db`insert into submissions(id,edit_company_id)values(${crypto.randomUUID()},${ids.company})`).rejects.toThrow('RPC obligatoire');
+  await expect(db`insert into transport_requests(id,requisition_state)values(${crypto.randomUUID()},'accepted')`).rejects.toThrow('RPC obligatoire');
  });
 });

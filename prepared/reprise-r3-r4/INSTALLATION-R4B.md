@@ -10,6 +10,10 @@ Composition entre édition d’un dossier, réquisitions et accords EXEC-02 : pe
 - `request_update_versioned` compose `request_update` existant : ID inchangé, version optimiste même sur notes, résultat rejoué, notification unique. Ancien appel bloqué pour les champs d’une nouvelle réquisition liée afin de ne pas contourner la revalidation.
 - Camion actif relu avant transmission/acceptation/départ; notifications admin pour transitions; ancien chauffeur informé lors de réaffectation. Réaffectation après incident retourne à revalidation et exige retransmission/acceptation, jamais reprise implicite.
 - Présentation : choix d’entreprise via catalogue existant; confirmation d’édition transport seulement après relecture des valeurs attendues; double clic gardé. Toujours `REQUEST_WORKBENCH_INSTALLED=false`.
+- Garde INSERT additive : anciens formulaires inchangés peuvent créer les valeurs par défaut; aucun insert direct ne préattribue entreprise, chauffeur ou snapshot accepté.
+
+## Preuves finales de cette reprise
+Suite ciblée finale : 27 contrôles workbench SQL, 32 coordination EXEC-02 (incluant composition concurrente), 33 interface/rôles/SEO/transport. Ces nombres sont ceux du dernier essai, pas cumul des bilans. Captures fictives Chromium 360/768/1280 sans débordement; API externes bloquées, sauvegarde de capture injectée. Retour non destructif des nouveaux RPCs testé localement; inverse helper chauffeur non certifié. Journal de compilation sans erreur.
 
 ## « Fixed admin role check » — précision
 Le libellé exact n’a pas été retrouvé dans les fichiers ou le diff accessible : aucune attribution historique à un défaut serveur ne peut être certifiée. Le refus SEO du compte entrepreneur était et reste attendu.

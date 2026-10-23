@@ -178,6 +178,14 @@ GRANT EXECUTE ON FUNCTION public.requisition_action(uuid,uuid,integer,text,text,
 CREATE FUNCTION public.workbench_write_guard() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$
 BEGIN
  IF coalesce(current_setting('vq.workbench',true),'')<>'on' THEN
+  IF TG_OP='INSERT' THEN
+   IF TG_TABLE_NAME='submissions' THEN
+    IF NEW.edit_company_id IS NOT NULL OR NEW.edit_version<>1 OR NEW.edit_details<>'{}'::jsonb THEN RAISE EXCEPTION 'Association initiale par RPC obligatoire';END IF;
+   ELSE
+    IF NEW.requisition_company_id IS NOT NULL OR NEW.requisition_driver_id IS NOT NULL OR NEW.requisition_truck_id IS NOT NULL OR NEW.requisition_state IS NOT NULL OR NEW.requisition_version<>1 OR NEW.requisition_details<>'{}'::jsonb OR NEW.requisition_accepted_snapshot IS NOT NULL THEN RAISE EXCEPTION 'Affectation initiale par RPC obligatoire';END IF;
+   END IF;
+   RETURN NEW;
+  END IF;
   IF TG_TABLE_NAME='submissions' THEN
    IF NEW.edit_company_id IS DISTINCT FROM OLD.edit_company_id OR NEW.edit_version IS DISTINCT FROM OLD.edit_version OR NEW.edit_details IS DISTINCT FROM OLD.edit_details THEN RAISE EXCEPTION 'Écriture par RPC obligatoire'; END IF;
   ELSIF TG_TABLE_NAME='transport_requests' THEN
@@ -188,6 +196,8 @@ BEGIN
 END $$;
 CREATE TRIGGER workbench_submission_guard BEFORE UPDATE ON public.submissions FOR EACH ROW EXECUTE FUNCTION public.workbench_write_guard();
 CREATE TRIGGER workbench_requisition_guard BEFORE UPDATE ON public.transport_requests FOR EACH ROW EXECUTE FUNCTION public.workbench_write_guard();
+CREATE TRIGGER workbench_submission_insert_guard BEFORE INSERT ON public.submissions FOR EACH ROW EXECUTE FUNCTION public.workbench_write_guard();
+CREATE TRIGGER workbench_requisition_insert_guard BEFORE INSERT ON public.transport_requests FOR EACH ROW EXECUTE FUNCTION public.workbench_write_guard();
 REVOKE ALL ON FUNCTION public.workbench_write_guard() FROM PUBLIC,anon,authenticated;
 
 CREATE FUNCTION public.requisition_options(_company uuid) RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public AS $$
