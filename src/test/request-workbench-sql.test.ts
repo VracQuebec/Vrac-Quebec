@@ -1,0 +1,45 @@
+// @vitest-environment node
+import { beforeAll,afterAll,describe,it,expect } from 'vitest';
+import postgres from 'postgres';
+import { readFile } from 'node:fs/promises';
+const enabled=process.env.REQUEST_WORKBENCH_LOCAL==='1';
+const name='workbench_'+crypto.randomUUID().replace(/-/g,'');
+const root=postgres('postgresql://lovable@127.0.0.1:55439/postgres?sslmode=disable',{ssl:false});
+const db=postgres(`postgresql://lovable@127.0.0.1:55439/${name}?sslmode=disable`,{ssl:false});
+const ids=Object.fromEntries(['company','otherCompany','owner','other','driverUser','driver','truck','site','request','submission','admin'].map(k=>[k,crypto.randomUUID()]));
+beforeAll(async()=>{
+ if(!enabled)return;
+ const check=(await root`select host(inet_server_addr()) host,inet_server_port() port,current_setting('data_directory') path`)[0];
+ if(check.host!=='127.0.0.1'||check.port!==55439||!check.path.startsWith('/tmp/exec-correctifs/reprise-r3/'))throw Error('Isolation non prouvée');
+ await root.unsafe(`CREATE DATABASE ${name} TEMPLATE template0`);
+ await db.unsafe(await readFile('prepared/reprise-r3-r4/fixture.sql','utf8'));
+ await db.unsafe(await readFile('prepared/reprise-r3-r4/INSTALLATION-NON-APPLIQUEE.sql','utf8'));
+ await db`insert into jsc_companies values(${ids.company},'Fictif A'),(${ids.otherCompany},'Fictif B')`;
+ await db`insert into jsc_company_members(company_id,user_id,role)values(${ids.company},${ids.owner},'proprietaire'),(${ids.otherCompany},${ids.other},'proprietaire'),(${ids.company},${ids.driverUser},'chauffeur')`;
+ await db`insert into user_roles values(${ids.admin},'admin',true)`;
+ await db`insert into jsc_drivers values(${ids.driver},${ids.company},${ids.driverUser},true,NULL)`;
+ await db`insert into jsc_trucks values(${ids.truck},${ids.company},true,NULL)`;
+ await db`insert into submissions(id,created_by,status,availability_status,materials,address,quantity_value,quantity_unit,quantity,edit_company_id,submission_number)values(${ids.submission},${ids.owner},'nouveau','available',ARRAY['Terre'],'Chantier fictif',100,'m3','100 m3',${ids.company},77)`;
+ await db`insert into transport_requests(id,request_number,origin_submission_id,lifecycle_status,dump_name)values(${ids.request},'DT-TEST',${ids.submission},'confirmee','Destination fictive')`;
+ await db`insert into submission_site_decisions(submission_id,site_id,status)values(${ids.submission},${ids.site},'approuvee')`;
+},30000);
+afterAll(async()=>{await db.end();if(enabled)await root.unsafe(`DROP DATABASE ${name}`);await root.end();});
+const as=<T>(user:string,fn:(tx:postgres.TransactionSql)=>Promise<T>)=>db.begin(async tx=>{await tx`select set_config('request.jwt.claim.sub',${user},true)`;return fn(tx);});
+const values=()=>({company_id:ids.company,request_id:ids.request,driver_id:ids.driver,truck_id:ids.truck,destination_id:ids.site,material:'Terre',quantity:20,unit:'m3',starts_at:'2026-11-01T13:00:00Z',instructions:'Essai fictif'});
+const edit=(user:string,changes:Record<string,unknown>,version=1,key=crypto.randomUUID())=>as(user,async tx=>(await tx`select submission_edit_save(${ids.submission}::uuid,${ids.company}::uuid,${version},${tx.json(changes)},${key}::uuid,true) r`)[0].r);
+const assign=()=>as(ids.owner,async tx=>(await tx`select requisition_assign(${ids.request}::uuid,${ids.company}::uuid,1,${tx.json(values())},${crypto.randomUUID()}::uuid,true) r`)[0].r);
+const action=(user:string,a:string,version:number,key=crypto.randomUUID(),reason='Motif fictif')=>as(user,async tx=>(await tx`select requisition_action(${ids.request}::uuid,${ids.company}::uuid,${version},${a},${reason},${key}::uuid,true) r`)[0].r);
+describe.skipIf(!enabled)('SQL préparé exécuté uniquement dans PostgreSQL jetable',()=>{
+ it('un autre entrepreneur ne lit ni modifie le dossier',async()=>{await expect(as(ids.other,async tx=>tx`select submission_edit_read(${ids.submission}::uuid)`)).rejects.toMatchObject({code:'42501'});await expect(edit(ids.other,{quantity_value:120})).rejects.toMatchObject({code:'42501'});});
+ it('les champs administratifs sont refusés sans mutation',async()=>{await expect(edit(ids.owner,{created_by:ids.other})).rejects.toThrow('Champ interdit');expect((await db`select quantity_value from submissions`)[0].quantity_value).toBe('100');});
+ it('la réquisition réutilise le même identifiant et les références existantes',async()=>{const r=await assign();expect(r).toMatchObject({id:ids.request,version:2,state:'prepared'});expect(Number((await db`select count(*) n from transport_requests`)[0].n)).toBe(1);});
+ it('un chauffeur étranger ne voit aucune réquisition',async()=>{expect(await as(ids.other,async tx=>(await tx`select requisition_read(${ids.company}::uuid) r`)[0].r)).toEqual([]);});
+ it('transmission TEST persistante au seul chauffeur affecté, rejeu sans doublon',async()=>{const key=crypto.randomUUID();const r=await action(ids.owner,'transmit',2,key);expect(r.state).toBe('transmitted');await action(ids.owner,'transmit',2,key);expect((await db`select user_id,channel from jsc_notifications`)).toEqual([{user_id:ids.driverUser,channel:'in_app'}]);});
+ it('chauffeur affecté accepte, snapshot daté préservé',async()=>{const r=await action(ids.driverUser,'accept',3);expect(r.state).toBe('accepted');const s=(await db`select requisition_accepted_snapshot s from transport_requests`)[0].s;expect(s.driver_id).toBe(ids.driver);expect(s.accepted_by).toBe(ids.driverUser);});
+ it('révocation retire immédiatement lecture et actions',async()=>{await db`update jsc_company_members set is_active=false where user_id=${ids.driverUser}`;expect(await as(ids.driverUser,async tx=>(await tx`select requisition_read(${ids.company}::uuid) r`)[0].r)).toEqual([]);await expect(action(ids.driverUser,'start',4)).rejects.toMatchObject({code:'42501'});await db`update jsc_company_members set is_active=true where user_id=${ids.driverUser}`;});
+ it('quantité modifiée : même dossier, historique unique, accord à revalider',async()=>{const key=crypto.randomUUID();const r=await edit(ids.owner,{quantity_value:120},1,key);expect(r).toEqual({id:ids.submission,version:2,revalidation:true});await edit(ids.owner,{quantity_value:120},1,key);expect((await db`select quantity_value,submission_number from submissions`)[0]).toEqual({quantity_value:'120',submission_number:77});expect(Number((await db`select count(*) n from ent_crm_history where entity='submission_edit'`)[0].n)).toBe(1);expect((await db`select status from submission_site_decisions`)[0].status).toBe('en_attente');expect((await db`select lifecycle_status,requisition_state from transport_requests`)[0]).toEqual({lifecycle_status:'revalidation_requise',requisition_state:'revalidation'});});
+ it('accord accepté jamais silencieusement remplacé',async()=>{const s=(await db`select requisition_accepted_snapshot s from transport_requests`)[0].s;expect(s.quantity).toBe(20);await expect(action(ids.driverUser,'start',4)).rejects.toThrow();});
+ it('version périmée et clé rejouée avec contenu différent sont refusées',async()=>{await expect(edit(ids.owner,{quantity_value:130},1)).rejects.toMatchObject({code:'P0409'});});
+ it('le super admin relit le même dossier et la notification exacte',async()=>{const r=await as(ids.admin,async tx=>(await tx`select submission_edit_read(${ids.submission}::uuid) r`)[0].r);expect(r.id).toBe(ids.submission);expect(r.values.quantity_value).toBe(120);expect((await db`select entity_id from crm_notifications where entity_type='submission'`)[0].entity_id).toBe(ids.submission);});
+ it('une demande close et une entreprise révoquée refusent toute édition',async()=>{await db`update submissions set status='terminee'`;await expect(edit(ids.owner,{quantity_value:140},2)).rejects.toThrow('non modifiable');await db`update submissions set status='nouveau'`;await db`update jsc_company_members set is_active=false where user_id=${ids.owner}`;await expect(edit(ids.owner,{quantity_value:140},2)).rejects.toMatchObject({code:'42501'});});
+});

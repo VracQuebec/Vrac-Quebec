@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import RequisitionPanel from "@/components/entrepreneur-app/RequisitionPanel";
 
 type Delivery = {
   id: string; delivery_number: string | null; status: string | null;
@@ -96,6 +97,7 @@ export default function DriverPortal() {
 
   return (
     <div className="min-h-screen bg-background pb-10">
+      <div className="mx-auto max-w-2xl px-4"><RequisitionPanel driver /></div>
       <header className="border-b bg-card">
         <div className="mx-auto max-w-2xl px-4 py-5">
           <Link to="/" className="mb-2 inline-flex items-center text-sm text-muted-foreground hover:text-foreground">

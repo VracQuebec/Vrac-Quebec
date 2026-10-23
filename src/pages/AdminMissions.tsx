@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { detectStops, type Point } from "@/lib/ops/stops";
 import type { Database } from "@/integrations/supabase/types";
+import RequisitionPanel from "@/components/entrepreneur-app/RequisitionPanel";
 
 type M = Database["public"]["Tables"]["drv_missions"]["Row"];
 const hm = (s: string) => new Date(s).toLocaleString("fr-CA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -40,6 +41,7 @@ export default function AdminMissions() {
     <div className="min-h-screen bg-background">
       <PageHeader title="Missions des chauffeurs" subtitle="Positions recueillies seulement pendant les missions activées par le chauffeur. Un arrêt est un indice à confirmer." />
       <main className="mx-auto max-w-5xl space-y-2 px-4 py-5">
+        <RequisitionPanel />
         {rows.length === 0 && <p className="py-10 text-center text-sm text-muted-foreground">Aucune mission.</p>}
         {rows.map((m) => {
           const p = pts[m.id] ?? [];
