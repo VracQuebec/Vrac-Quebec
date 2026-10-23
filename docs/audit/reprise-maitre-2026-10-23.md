@@ -1,5 +1,25 @@
 # Registre de reprise Vrac Québec — 23 octobre 2026
 
+## R4B — actualisation après 18:19 UTC
+Sauvegarde locale composée avec EXEC-02, accord affecté invalidé vers exception, snapshot conservé, restant et livré inchangés. Acceptation propriétaire concurrente à édition testée dans le moteur commun. Wrapper transport versionné et notification unique préparés, original préservé. Navigation admin exige rôle approuvé et ne restaure plus admin depuis cache; refus entrepreneur SEO maintenu. Installation, activation, publication : **aucune**.
+
+R4B n’est pas parcours réel opérationnel : nouveaux RPCs absents du serveur partagé, flag false; vraie chaîne Auth/API/Storage complète, session admin autorisée et raccordement invitation/profil JSC restent R4C. Liste d’opérations et autorisations : `prepared/reprise-r3-r4/INSTALLATION-R4B.md`.
+
+### Suite unique à conserver
+| Sous-lot | État / travail suivant | Dépendance / preuve attendue |
+|---|---|---|
+| R4C coordination | R4B local développé; nouvelle proposition après invalidation | Cible complète indépendante, admin autorisé; API/écran/débit unique et révocation |
+| Chauffeurs/flotte | Accès assigné local protégé; invitations/profil JSC non raccordés | Compose modules existants sans détourner invitations Punch; preuve identité + entreprise + véhicule/documents |
+| Localisation | Correctifs R1 conservés; aucun suivi réel | Permissions et arrêt web testés; appareils physiques pour arrière-plan/verrouillage seulement |
+| Communications EXEC-04 | Préparées, pas activées | File capture-only + opposition/finalité/horaires/rebond/rejeu dans cible indépendante |
+| Hiver printemps 2027 | `prepared/campagne-hiver-2027.md` existe, enrichi | Liste contrôlée/exclusions et validation métier; aucun envoi fixé ou lancé |
+| Partenaires/commission | Préparation EXEC-04 conservée | Accord réel et événement financier, pas taux inventé; périmètre partagé consenti et même entreprise |
+| Formation Jonathan | Checklist existante enrichie scénario R4B/flotte/chauffeur | Date non fixée, responsable métier Jonathan; séance non effectuée |
+| EXEC-05/06 | Préparations conservées, pas nouvelle activation | Cible adaptée + leurs tests/permissions; pas processeur/paiement/paie activés |
+| SEO R2 | 188 villes, catalogue théorique ≠ pertinence; tests reprise/doublon conservés | Session admin approuvée pour lecture E2E; pas IA/publication massive |
+
+Les bilans datés ci-dessous demeurent historiques; ne pas additionner leurs comptes de tests ou prendre leurs blocages résolus comme actuels.
+
 ## Actualisation R3/R4 — 23 octobre après 17:58 UTC
 Édition et réquisitions développées en préparation, serveur non installé (`REQUEST_WORKBENCH_INSTALLED=false`), publication/activation inchangées. Même dossier/numéro, droits/version/historique, revalidation des décisions, chauffeur personnel et notification applicative capturée testés sur PostgreSQL jetable. 18 tests SQL + 17 EXEC-03 dont les cinq ignorés de R1 exécutés; 34 tests interface/SEO/GPS. Bilan actuel : `prepared/reprise-r3-r4/README.md`.
 
