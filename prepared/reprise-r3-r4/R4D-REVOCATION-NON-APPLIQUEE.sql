@@ -20,7 +20,11 @@ CREATE FUNCTION public.driver_tracking_write_guard() RETURNS trigger LANGUAGE pl
 BEGIN
  IF auth.uid() IS NOT NULL AND NOT has_role(auth.uid(),'admin') THEN
   IF TG_TABLE_NAME='drv_points' THEN IF NOT driver_mission_access(NEW.mission_id,true) THEN RAISE EXCEPTION 'Accès mission retiré' USING ERRCODE='42501'; END IF;
-  ELSE IF TG_OP='INSERT' OR NOT driver_mission_access(OLD.id,true) THEN RAISE EXCEPTION 'Mission autorisée requise' USING ERRCODE='42501'; END IF; END IF;
+  ELSE
+   IF TG_OP='INSERT' THEN
+    IF NOT EXISTS(SELECT 1 FROM transport_requests t WHERE t.id=NEW.requisition_id AND t.requisition_company_id=NEW.company_id AND requisition_access(t)='driver' AND t.requisition_state IN ('accepted','running') AND NEW.user_id=auth.uid()) THEN RAISE EXCEPTION 'Mission autorisée requise' USING ERRCODE='42501'; END IF;
+   ELSIF NOT driver_mission_access(OLD.id,true) THEN RAISE EXCEPTION 'Accès mission retiré' USING ERRCODE='42501'; END IF;
+  END IF;
  END IF; RETURN NEW;
 END $$;
 CREATE TRIGGER driver_tracking_write_guard BEFORE INSERT OR UPDATE ON public.drv_points FOR EACH ROW EXECUTE FUNCTION driver_tracking_write_guard();
@@ -40,3 +44,13 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.driver_tracking_start(uuid,boolean),public.driver_tracking_write_guard() FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.driver_tracking_start(uuid,boolean) TO authenticated;
+
+-- Delivery RLS already delegates identity to jsc_my_driver_ids; preserve the existing
+-- protected-column trigger and add a current identity guard covering SECURITY DEFINER writes.
+CREATE FUNCTION public.driver_delivery_access_guard() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+ IF auth.uid() IS NOT NULL AND NOT jsc_can_manage(auth.uid()) AND (NOT driver_company_active(OLD.company_id) OR OLD.driver_id NOT IN(SELECT jsc_my_driver_ids()) OR (NEW.company_id,NEW.driver_id) IS DISTINCT FROM (OLD.company_id,OLD.driver_id)) THEN RAISE EXCEPTION 'Accès livraison retiré' USING ERRCODE='42501'; END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER driver_delivery_access_guard BEFORE UPDATE ON public.jsc_deliveries FOR EACH ROW EXECUTE FUNCTION driver_delivery_access_guard();
+REVOKE ALL ON FUNCTION public.driver_delivery_access_guard() FROM PUBLIC,anon;
