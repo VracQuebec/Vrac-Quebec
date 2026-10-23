@@ -19,6 +19,8 @@ it.skipIf(process.env.REQUEST_WORKBENCH_LOCAL!=='1')('chaîne intégrée SQL R4D
  expect(await captureDriverTestMessage(msg.payload,{receipt:async value=>{await db`insert into email_send_log(message_id,template_name,recipient_email,status,metadata)values(${String(value.message_id)},'driver-invitation-test','conducteur@test.invalid','suppressed',${db.json(value.metadata as never)})`;},remove:async()=>{await db`delete from local_email_capture where id=${msg.id}`;}})).toBe(true);
  expect((await db`select metadata from email_send_log where status='suppressed'`)[0].metadata.capture_result).toBe('captured-test');
  expect((await as(user,tx=>tx`select driver_invite_accept(${token}) r`))[0].r.user_id).toBe(user);
+ const path=company+'/test.pdf';await db`insert into ent_company_documents(company_id,category,title,storage_path,file_name,mime_type,size_bytes)values(${company},'vehicule','TEST',${path},'test.pdf','application/pdf',1)`;await db`insert into storage.objects(bucket_id,name)values('company-docs',${path})`;
+ expect(await as(user,tx=>tx`select * from storage.objects`)).toHaveLength(1);
  await db.begin(async tx=>{await tx`select set_config('vq.workbench','on',true)`;await tx`insert into submissions(id,created_by,status,availability_status,materials,address,quantity_value,quantity_unit,edit_company_id)values(${sub},${manager},'nouveau','available',ARRAY['Terre'],'Chantier TEST',100,'m3',${company})`;});
  await db`insert into transport_requests(id,origin_submission_id,lifecycle_status,request_number)values(${request},${sub},'confirmee','TEST')`;await db`insert into submission_site_decisions(submission_id,site_id,status)values(${sub},${site},'approuvee')`;
  const values={company_id:company,request_id:request,driver_id:driver,truck_id:truck,destination_id:site,material:'Terre',quantity:10,unit:'m3',starts_at:'2026-11-01T12:00:00Z',instructions:'TEST'};
@@ -38,6 +40,7 @@ it.skipIf(process.env.REQUEST_WORKBENCH_LOCAL!=='1')('chaîne intégrée SQL R4D
  await as(manager,tx=>tx`select driver_invite_revoke(${inv.id}::uuid)`);
  expect(await as(user,tx=>tx`select * from drv_missions where id=${mid}`)).toHaveLength(0);
  expect(await as(user,tx=>tx`select * from jsc_notifications`)).toHaveLength(0);
+ expect(await as(user,tx=>tx`select * from ent_company_documents`)).toHaveLength(0);expect(await as(user,tx=>tx`select * from storage.objects`)).toHaveLength(0);
  expect((await as(user,tx=>tx`select requisition_read(${company}::uuid) r`))[0].r).toEqual([]);
  await expect(as(user,tx=>tx`select drv_mission_end(${mid}::uuid)`)).rejects.toMatchObject({code:'42501'});
  await expect(as(user,tx=>tx`select drv_points_batch(${mid}::uuid,'[]'::jsonb,'web')`)).rejects.toMatchObject({code:'42501'});

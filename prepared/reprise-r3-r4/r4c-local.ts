@@ -59,6 +59,17 @@ export async function createR4CLocal() {
   await db.unsafe(await readFile('prepared/reprise-r3-r4/R4D-CAPTURE-NON-APPLIQUEE.sql','utf8'));
   await db.unsafe(await readFile('prepared/reprise-r3-r4/R4D-REVOCATION-NON-APPLIQUEE.sql','utf8'));
   await db.unsafe(await readFile('prepared/reprise-r3-r4/R4D-RPC-MISSIONS-NON-APPLIQUE.sql','utf8'));
+  // Storage policy fixture only: metadata authorization, NOT a running Storage service.
+  await db.unsafe(`CREATE SCHEMA storage;CREATE TABLE storage.objects(id uuid DEFAULT gen_random_uuid(),bucket_id text,name text);
+   CREATE FUNCTION storage.foldername(name text) RETURNS text[] LANGUAGE sql IMMUTABLE AS $$SELECT string_to_array(name,'/')$$;
+   GRANT USAGE ON SCHEMA storage TO authenticated;GRANT SELECT ON storage.objects TO authenticated;ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+   CREATE FUNCTION entcrm_can_read(c uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$SELECT EXISTS(SELECT 1 FROM jsc_company_members WHERE company_id=c AND user_id=auth.uid() AND is_active AND archived_at IS NULL)$$;
+   CREATE FUNCTION asr_can_read(c uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$SELECT false$$;
+   CREATE TABLE asr_documents(id uuid,storage_path text,company_id uuid);
+   CREATE FUNCTION asr_driver_doc_ok(did uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$SELECT EXISTS(SELECT 1 FROM asr_documents d WHERE d.id=did AND driver_company_active(d.company_id))$$;
+   CREATE POLICY asr_files_read ON storage.objects FOR SELECT TO authenticated USING(bucket_id='asr-files' AND EXISTS(SELECT 1 FROM asr_documents d WHERE d.storage_path=objects.name AND asr_driver_doc_ok(d.id)));`);
+  await db.unsafe(await readFile('drizzle/migrations/0175_company_documents.sql','utf8'));
+  await db.unsafe(await readFile('prepared/reprise-r3-r4/R4D-DOCUMENTS-NON-APPLIQUE.sql','utf8'));
   const as=<T>(user:string,fn:(tx:postgres.TransactionSql)=>Promise<T>)=>db.begin(async tx=>{await tx`select set_config('request.jwt.claim.sub',${user},true)`;await tx.unsafe('SET LOCAL ROLE authenticated');return fn(tx);});
   // No network/sender: internal DB capture only. Never exported as a hosted mail adapter.
   const capture=async(invitation:string,token:string)=>{await db`insert into local_invitation_capture values(${invitation},${db.json({mode:'TEST_CAPTURE_ONLY',token})}) on conflict(invitation_id) do update set payload=excluded.payload`;};
