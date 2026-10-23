@@ -1,0 +1,40 @@
+# R4D — raccordements réalisés, validation hébergée non clôturée
+
+## Réalisé et distinction des preuves
+- `EmployeeAccess.tsx` raccorde le panneau R4C via `src/lib/auth/driver-invitations.ts`; porte false conservée. `EmployeeInviteScreen.tsx` raccorde activation et connexion sur le document privé, sans passage par `/login`, sans stocker le fragment. `InvitationLogin.tsx` appelle le client Auth **existant** pour connexion/inscription personnelle; confirmation du courriel reste requise. Aucun compte créé réellement dans ce lot.
+- Capture : `driver_invite_capture` compose `pun_*`, `enqueue_email('transactional_emails',...)` et `email_send_log` dans une seule transaction; échec file annule invitation/renouvellement. Rejeu unique, token dans payload privé de file seulement, jamais journal. Capture exclusivement destinataires TEST, pas invitation à contact réel.
+- Worker préparé existant `prepared/exec01b/process-email-queue.ts` appelle `captureDriverTestMessage` avant suppression/adresse/prestataire; reçu sans token, retrait seulement après reçu. Aucune deuxième file, simulation serveur ni nouvel émetteur. Le PGMQ local est une **fixture de contrat**, pas un service PGMQ réellement exécuté.
+- Révocation : nouveaux scopes sur `drv_missions`, policy notifications/mission/points, garde écritures livraison/points, anciens `drv_mission_point/end/points_batch` corrigés avec contrôle initial même pour lot vide. Missions nouvelles liées à une réquisition autorisée, aucun rattachement historique automatique. Documents entreprise/assurances : policy renforcée par identité chauffeur actuelle. `jsc_can_manage` hébergé lu = admin approuvé uniquement; pas policy parallèle accordant gestion au chauffeur.
+- Interface : point refusé arrête le suivi et purge positions locales; lecture réquisition refusée purge ses données; preuves d’assurance relues au retour de fenêtre. Cela ne remplace pas la sécurité serveur et ne retire pas un fichier déjà téléchargé.
+
+## Parcours effectivement démontré
+`src/test/driver-r4d-integration.test.ts` exécute, dans une même base PostgreSQL jetable : gestionnaire fixture → invitation/file TEST atomique → worker capture réutilisé → activation identité → affectation → acceptation → modification → revalidation empêchant départ → destination explicitement revalidée par fixture coordination → retransmission/nouvelle acceptation → mission liée → clôture → révocation → refus requêtes anciennes, lot vide, ancien token, notifications, documents et métadonnées Storage. Historiques conservés, aucune livraison/trip inventée.
+
+La revalidation de destination est injectée dans la fixture, **pas exécutée par une vraie session super admin dans son écran**. Auth = identités fixtures SQL; connexion testée avec réponse Auth injectée. Storage = tables/policies fixtures, pas téléchargement réel. Les tests R4B complets préparés sont conservés : acceptation concurrente/édition, mesures et débit unique. Refus chauffeur et concurrence activation/révocation restent les essais R4C. Aucune preuve de chaîne Auth→PostgREST→Storage hébergée complète.
+
+## Limites précises empêchant la clôture réelle
+1. Services complets indépendants Auth/PostgREST/Storage/PGMQ indisponibles ici; PostgreSQL seul ne les remplace pas. Aucun environnement rebaptisé ou endpoint fictif présenté comme preuve. Aucun test métier sur serveur partagé.
+2. Les URL Storage signées déjà délivrées restent valides jusqu’à expiration, même après RLS resserrée; fichiers déjà téléchargés et captures ne sont pas récupérables. Les ouvertures actuelles documents/preuves utilisent download authentifié (revérification), mais les chemins externes et signatures historiques doivent être inventoriés sur cible complète. **Révocation immédiate de tout ancien lien de document non certifiée** : proxy authentifié/no-store avec contrôle à chaque requête ou stratégie d’expiration vérifiée nécessaire avant ce verdict. Pas purge d’objets/clefs non autorisée.
+3. Le démarrage GPS historique sans entreprise/réquisition est désormais refusé pour un chauffeur lié; aucun backfill inventé. La page sait appeler `driver_tracking_start` avec `?requisition=<id>`, mais aucun lien ne constitue une autorisation. Vérifier la navigation affectation→mission et le contexte entreprise multi-appartenance en cible complète avant activation.
+4. Les policies Storage préparées ont été essayées structurellement; helper asr de fixture n’est pas le serveur ASSUR-01 complet. Pas de certification documents complète sur cette seule preuve.
+
+## Ordre exact d’installation proposé, non exécuté
+Préalable : cible/sauvegarde/empreintes/ACL et dépendances EXEC-01/02/employés de `INSTALLATION-R4C.md`. Ne pas rejouer 0225–0230 ou installer punch/paie entiers.
+1. Paquet R4C existant : dépendance invitation-only si absente → composition R4B → workbench → transport versionné → helper révocation épinglé → portail épinglé → profil RLS → invitations R4C.
+2. `R4D-CAPTURE-NON-APPLIQUEE.sql` (nouveau RPC uniquement; dépend du journal et enqueue existants).
+3. `R4D-REVOCATION-NON-APPLIQUEE.sql` (colonnes nullable mission, helpers, policies, guards, `driver_tracking_start`).
+4. `R4D-RPC-MISSIONS-NON-APPLIQUE.sql` (trois définitions existantes épinglées MD5; refus dérive, ACL conservée). Empreintes originales point `e90183e81735e443e71592342390fc8b`, end `ae368118fab9b950755e58a157fdb744`, batch `d2298bdec54e224e506b3f66e0557e34`.
+5. `R4D-DOCUMENTS-NON-APPLIQUE.sql` (helper + policies entreprise/asr Storage). Vérifier toutes policies permissives effectives et définition asr complète.
+6. Composer **uniquement le seam capture R4D** dans worker réellement hébergé archivé; ne pas copier aveuglément la copie EXEC01b contenant d’autres changements non activés. Déployer worker seulement après autorisation; aucune autre fonction nouvelle requise. Garder capture-only.
+7. Écrans raccordés mais flags `DRIVER_INVITATIONS_INSTALLED=false`, `REQUEST_WORKBENCH_INSTALLED=false`, `EXEC06_HOSTED_ENABLED=false`. Aucun flag client par URL. Après tests complets distincts, décision activation et publication séparées.
+
+## Impact et retour
+Resserrement immédiat : profils/membres révoqués perdent portail, missions, points, notifications/documents. Anciennes missions non rattachées restent visibles à admin autorisé, pas utilisables comme droit chauffeur. Historiques et livraisons réalisés conservés. Worker n’envoie aucun message TEST.
+Retour sûr : flags false/écrans précédents; `R4D-RETOUR-NON-APPLIQUE.sql`, puis retours R4C/R3-R4 ferment nouveaux RPCs; guards/colonnes/archives gardés. Worker retourne à archive effective ciblée. Ne pas restaurer policies/RPC vulnérables, supprimer objets ou restaurer globalement.
+
+## Décision finale concrète (pas nouveau sous-lot de raccordement)
+Développement/lectures/tests fictifs déjà autorisés, aucun accord à redemander. Pour terminer la **preuve intégrée**, rendre accessible une cible complète indépendante autorisée, avec comptes fictifs confirmés et courrier capturé, puis y installer uniquement le paquet ci-dessus et tester vraie connexion/API/documents/session encore ouverte/anciens liens/concurrence.
+Installation partagée R3–R4D, durcissement accès existants et déploiement worker : **nouvelle autorisation nécessaire**, non exécutés et non recommandés avant ces preuves et résolution des liens signés. Autorisation EXEC-01 antérieure conservée sans extension. Publication/activation/envois réels exclus. Ce dossier n’affirme pas que l’installation partagée est la seule étape restante : le blocage liens signés/services est nommé précisément.
+
+## Suite indépendante du prompt maître
+Communications/hiver : garde TEST et worker préparés renforcés; aucun contact/campagne lancé. Formation Jonathan : utiliser scénario ci-dessus et noter les parties Auth/Storage non observées. Coordination/partenaires/finances transversales, SEO administrateur (188 villes, refus entrepreneur normal), appareils GPS verrouillés et matériel commercial restent dans le registre, pas déclarés terminés.

@@ -3,6 +3,8 @@ import {punchDb as db} from '@/lib/punch/runtime';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {toast} from '@/hooks/use-toast';
+import {DRIVER_INVITATIONS_INSTALLED,driverInvitationCall} from '@/lib/auth/driver-invitations';
+import {DriverInvitationPanel} from '../../../prepared/reprise-r3-r4/DriverInvitationPanel';
 export default function EmployeeAccess({companyId,role}:{companyId:string;role:string}){
  const [members,setMembers]=useState<any[]>([]),[invites,setInvites]=useState<any[]>([]),[email,setEmail]=useState(''),[job,setJob]=useState('operateur'),[busy,setBusy]=useState(false),[link,setLink]=useState('');
  const admin=['support','proprietaire'].includes(role);
@@ -13,5 +15,6 @@ export default function EmployeeAccess({companyId,role}:{companyId:string;role:s
  {link&&<div><label className="text-sm">Lien personnel préparé — aucun courriel envoyé<Input aria-label="Lien d’invitation" readOnly value={link}/></label><Button variant="outline" size="sm" onClick={()=>navigator.clipboard.writeText(link)}>Copier le lien</Button></div>}
  {members.map(m=><div className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-2" key={m.user_id}><span className="min-w-0 break-all text-sm">{m.email} · {m.role} · {m.is_active?'Actif':'Accès retiré'}</span>{admin&&<Button size="sm" variant="outline" disabled={busy} onClick={()=>run(()=>db.rpc('entcrm_set_member',{_company_id:companyId,_email:m.email,_role:m.role,_active:!m.is_active}))}>{m.is_active?'Retirer l’accès':'Rétablir l’accès'}</Button>}</div>)}
  {invites.filter(i=>!i.accepted_at&&!i.revoked_at).map(i=><div key={i.id} className="flex flex-wrap items-center justify-between gap-2 text-sm"><span className="break-all">{i.email} · Invitation en attente</span><Button size="sm" variant="outline" disabled={busy} onClick={()=>run(()=>db.rpc('pun_invite_revoke',{_id:i.id}))}>Annuler l’invitation</Button></div>)}
+ {admin&&DRIVER_INVITATIONS_INSTALLED&&<DriverInvitationPanel key={companyId} company={companyId} call={driverInvitationCall}/>}
  </div></details>;
 }

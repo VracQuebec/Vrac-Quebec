@@ -64,4 +64,10 @@ describe("mission chauffeur — aucune localisation ni écriture réelle", () =>
     expect(screen.queryByRole("button", { name: "Démarrer la mission" })).not.toBeInTheDocument();
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
+  it("une position refusée arrête le suivi et ne conserve aucun nouveau point local",async()=>{
+    render(<DriverMission/>);fireEvent.click(await screen.findByRole('button',{name:'Autoriser et reprendre le suivi'}));
+    mocks.rpc.mockResolvedValue({data:null,error:{message:'Accès retiré'}});
+    await act(async()=>{await mocks.watch.mock.calls[0][0]({timestamp:Date.now(),coords:{latitude:0,longitude:0,accuracy:10}});});
+    await waitFor(()=>expect(mocks.clear).toHaveBeenCalledWith(42));expect(screen.getByRole('status')).toHaveTextContent('0 position');
+  });
 });

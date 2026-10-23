@@ -6,7 +6,7 @@ import { toast } from "@/hooks/use-toast";
 
 export default function DriverProofs({ companyId }: { companyId: string }) {
   const [rows, setRows] = useState<any[] | null>(null);
-  useEffect(() => { (supabase as any).rpc("asr_driver_proofs", { _company: companyId }).then(({ data }: any) => setRows(data ?? [])); }, [companyId]);
+  useEffect(() => {let active=true;setRows(null);const load=()=>{(supabase as any).rpc("asr_driver_proofs",{_company:companyId}).then(({data,error}:any)=>{if(active)setRows(error?[]:data??[]);});};load();window.addEventListener('focus',load);return()=>{active=false;window.removeEventListener('focus',load);};}, [companyId]);
   const open = async (r: any) => {
     const { data, error } = await supabase.storage.from("asr-files").download(r.storage_path);
     if (error || !data) return toast({ title: "Accès refusé", variant: "destructive" });

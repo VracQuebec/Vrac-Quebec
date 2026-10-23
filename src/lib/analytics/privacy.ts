@@ -6,5 +6,5 @@ export function privateTelemetryBlocked(): boolean {
   if (typeof window === 'undefined') return true;
   return Boolean((window as unknown as Record<string, unknown>).__vqPersonalDocument)
     || isPersonalPath(window.location.pathname)
-    || /(?:[?#&])(secret|linkId|requestId|code)=/i.test(window.location.search + window.location.hash);
+    || /(?:[?#&])(secret|linkId|requestId|code|invitation)=/i.test(window.location.search + window.location.hash);
 }

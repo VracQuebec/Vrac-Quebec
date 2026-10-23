@@ -1,0 +1,4 @@
+import {it,expect,vi} from 'vitest';
+import {captureDriverTestMessage} from '../../prepared/reprise-r3-r4/capture-worker';
+it('capture exige marqueurs TEST et ne retire jamais une entrée sans reçu durable',async()=>{const receipt=vi.fn().mockRejectedValue(Error('indisponible')),remove=vi.fn();await expect(captureDriverTestMessage({label:'driver-invitation-test',to:'x@test.invalid',capture_only:true,mode:'TEST_CAPTURE_ONLY'},{receipt,remove})).rejects.toThrow('indisponible');expect(remove).not.toHaveBeenCalled();});
+it('aucun message réel ne peut emprunter capture chauffeur',async()=>{const receipt=vi.fn(),remove=vi.fn();await expect(captureDriverTestMessage({label:'driver-invitation-test',to:'real@domain.fr',capture_only:true,mode:'TEST_CAPTURE_ONLY'},{receipt,remove})).rejects.toThrow('refusée');expect(receipt).not.toHaveBeenCalled();expect(remove).not.toHaveBeenCalled();});

@@ -1,5 +1,8 @@
 # Visite Jonathan — checklist réutilisable préparée
 
+## Complément R4D — séance non exécutée
+Connexion/Retour conserve maintenant le fragment personnel dans le document privé; capture file existante atomique raccordée en préparation. Tester vraie confirmation Auth, ouverture document avec session puis révocation (session toujours ouverte), ancien lien signé, lot GPS vide et point refusé. SQL local déjà testé ne valide ni compte hébergé ni téléchargement Storage. Inscrire résultat distinct pour chaque service; aucun lien/token dans capture. Paquet : `prepared/reprise-r3-r4/INSTALLATION-R4D.md`.
+
 ## Scénario R4C à observer dans la cible complète
 Gestionnaire autorisé → choisir explicitement profil chauffeur et entreprise → invitation TEST capturée → compte personnel confirmé → activation → camion/destination autorisés → réquisition → accepter ou refuser → étapes à l’arrêt → clôture → retrait d’accès. Rejouer avec entreprise B, courriel incorrect, invitation expirée/renouvelée, membre révoqué et acceptation concurrente à modification.
 

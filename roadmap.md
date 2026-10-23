@@ -1,4 +1,14 @@
+- [x] R4D : raccordements Auth client/invitation et capture queue existante préparés; révocation SQL transversale et régressions, 112 tests + navigateur Connexion/Retour.
+- [ ] R4D preuve complète : cible indépendante Auth/API/Storage/PGMQ indisponible; anciens liens Storage signés et téléchargement après révocation non certifiés. INSTALLATION-R4D.md décrit décision/ordre/impact/retour; aucun serveur partagé modifié.
+- [ ] R5 communications/partenaires : gardes TEST/hiver/formation actualisés; preuve services/oppositions/horaires/attribution et décisions métier restent séparées, jamais envois réels.
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
+
+## R4D — reprise du 23 octobre 18:54 UTC
+- [x] Raccorder les invitations aux écrans employés et à la connexion privée existante, sans activer le serveur partagé.
+- [x] Composer capture atomique dans les objets d’envoi existants, sans nouvel émetteur ni nouvelle simulation.
+- [x] Préparer et tester révocation sur portail, notifications, écritures, missions/points et documents; préciser limites des URL signées existantes.
+- [x] Démontrer la chaîne SQL intégrée avec identités fictives et classer séparément Auth simulée / Auth réelle indisponible.
+- [x] Actualiser paquet, registre et décision finale précise; poursuivre les travaux indépendants sans publication ni activation.
 
 ## R4C — reprise du 23 octobre 18:34 UTC
 - [x] Composer les invitations employés avec les identités chauffeurs JSC : activation personnelle, expiration, renouvellement et révocation, sans envoi réel; panneaux préparés non raccordés.

@@ -37,6 +37,39 @@ export async function createR4CLocal() {
   await db.unsafe(portalBase.slice(portalBase.indexOf('CREATE OR REPLACE FUNCTION public.jsc_driver_portal')));
   await db.unsafe(await readFile('prepared/reprise-r3-r4/R4C-PORTAIL-NON-APPLIQUE.sql','utf8'));
   await db.unsafe(await readFile('prepared/reprise-r3-r4/R4C-PROFIL-RLS-NON-APPLIQUE.sql','utf8'));
+  // Existing queue/capture contract, disposable fixture only (not PGMQ/Auth/Storage service).
+  await db.unsafe(`CREATE TABLE email_send_log(id uuid DEFAULT gen_random_uuid(),message_id text,template_name text,recipient_email text,status text,metadata jsonb,created_at timestamptz DEFAULT now());
+   CREATE TABLE local_email_capture(id bigserial PRIMARY KEY,queue_name text,payload jsonb);
+   CREATE TABLE local_queue_failure(enabled boolean);INSERT INTO local_queue_failure VALUES(false);
+   CREATE FUNCTION enqueue_email(queue_name text,payload jsonb) RETURNS bigint LANGUAGE plpgsql AS $$DECLARE i bigint;BEGIN IF (SELECT enabled FROM local_queue_failure) THEN RAISE EXCEPTION 'capture indisponible';END IF;INSERT INTO local_email_capture(queue_name,payload)VALUES(queue_name,payload)RETURNING id INTO i;RETURN i;END$$;
+   CREATE FUNCTION jsc_can_manage(u uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$SELECT has_role(u,'admin')$$;
+   CREATE FUNCTION cpn_my_entrepreneur() RETURNS uuid LANGUAGE sql STABLE AS $$SELECT NULL::uuid$$;
+   CREATE TABLE entrepreneurs(id uuid PRIMARY KEY);
+   GRANT SELECT,UPDATE ON jsc_deliveries TO authenticated;ALTER TABLE jsc_deliveries ENABLE ROW LEVEL SECURITY;
+   CREATE POLICY delivery_read ON jsc_deliveries FOR SELECT TO authenticated USING(driver_id IN(SELECT jsc_my_driver_ids()));
+   CREATE POLICY delivery_update ON jsc_deliveries FOR UPDATE TO authenticated USING(driver_id IN(SELECT jsc_my_driver_ids())) WITH CHECK(driver_id IN(SELECT jsc_my_driver_ids()));
+   GRANT SELECT,UPDATE ON jsc_notifications TO authenticated;
+   CREATE POLICY "Admins manage notifications" ON jsc_notifications FOR ALL TO authenticated USING(jsc_can_manage(auth.uid()) OR user_id=auth.uid()) WITH CHECK(jsc_can_manage(auth.uid()));
+   CREATE POLICY "portal reads own notifications" ON jsc_notifications FOR SELECT TO authenticated USING(user_id=auth.uid());
+   CREATE POLICY "portal updates own notifications" ON jsc_notifications FOR UPDATE TO authenticated USING(user_id=auth.uid()) WITH CHECK(user_id=auth.uid());
+   GRANT SELECT ON jsc_company_members TO authenticated;CREATE POLICY local_member ON jsc_company_members FOR SELECT TO authenticated USING(user_id=auth.uid());`);
+  const tracking=await readFile('drizzle/migrations/0150_ops02_trips_services_tracking.sql','utf8');
+  await db.unsafe(tracking.slice(tracking.indexOf('CREATE TABLE public.drv_missions')));
+  await db.unsafe(await readFile('drizzle/migrations/0171_drv_points_natif.sql','utf8'));
+  await db.unsafe(await readFile('prepared/reprise-r3-r4/R4D-CAPTURE-NON-APPLIQUEE.sql','utf8'));
+  await db.unsafe(await readFile('prepared/reprise-r3-r4/R4D-REVOCATION-NON-APPLIQUEE.sql','utf8'));
+  await db.unsafe(await readFile('prepared/reprise-r3-r4/R4D-RPC-MISSIONS-NON-APPLIQUE.sql','utf8'));
+  // Storage policy fixture only: metadata authorization, NOT a running Storage service.
+  await db.unsafe(`CREATE SCHEMA storage;CREATE TABLE storage.objects(id uuid DEFAULT gen_random_uuid(),bucket_id text,name text);
+   CREATE FUNCTION storage.foldername(name text) RETURNS text[] LANGUAGE sql IMMUTABLE AS $$SELECT string_to_array(name,'/')$$;
+   GRANT USAGE ON SCHEMA storage TO authenticated;GRANT SELECT ON storage.objects TO authenticated;ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+   CREATE FUNCTION entcrm_can_read(c uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$SELECT EXISTS(SELECT 1 FROM jsc_company_members WHERE company_id=c AND user_id=auth.uid() AND is_active AND archived_at IS NULL)$$;
+   CREATE FUNCTION asr_can_read(c uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$SELECT false$$;
+   CREATE TABLE asr_documents(id uuid,storage_path text,company_id uuid);GRANT SELECT ON asr_documents TO authenticated;
+   CREATE FUNCTION asr_driver_doc_ok(did uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$SELECT EXISTS(SELECT 1 FROM asr_documents d WHERE d.id=did AND driver_company_active(d.company_id))$$;
+   CREATE POLICY asr_files_read ON storage.objects FOR SELECT TO authenticated USING(bucket_id='asr-files' AND EXISTS(SELECT 1 FROM asr_documents d WHERE d.storage_path=objects.name AND asr_driver_doc_ok(d.id)));`);
+  await db.unsafe(await readFile('drizzle/migrations/0175_company_documents.sql','utf8'));
+  await db.unsafe(await readFile('prepared/reprise-r3-r4/R4D-DOCUMENTS-NON-APPLIQUE.sql','utf8'));
   const as=<T>(user:string,fn:(tx:postgres.TransactionSql)=>Promise<T>)=>db.begin(async tx=>{await tx`select set_config('request.jwt.claim.sub',${user},true)`;await tx.unsafe('SET LOCAL ROLE authenticated');return fn(tx);});
   // No network/sender: internal DB capture only. Never exported as a hosted mail adapter.
   const capture=async(invitation:string,token:string)=>{await db`insert into local_invitation_capture values(${invitation},${db.json({mode:'TEST_CAPTURE_ONLY',token})}) on conflict(invitation_id) do update set payload=excluded.payload`;};

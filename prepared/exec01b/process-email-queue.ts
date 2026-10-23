@@ -1,6 +1,7 @@
 // PREPARED COPY ONLY; install after isolated validation and explicit deployment authorization.
 import {receptionMessageAllowed} from './queue-reception-guard.ts';
 import {targetedMessageAllowed} from '../exec04/queue-guard.ts';
+import {captureDriverTestMessage} from '../reprise-r3-r4/capture-worker.ts';
 import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 
@@ -252,6 +253,10 @@ Deno.serve(async (req) => {
         }
       }
 
+      if(await captureDriverTestMessage(payload,{
+        receipt:async value=>{const r=await supabase.from('email_send_log').insert(value);if(r.error)throw Error('Capture journal indisponible');},
+        remove:async()=>{const r=await supabase.rpc('delete_email',{queue_name:queue,message_id:msg.msg_id});if(r.error)throw Error('Capture retrait indisponible');},
+      }))continue;
       // Adresses réservées aux essais : retirées de la file sans envoi réel.
       if (/@([^@]+\.)?(invalid|test|example|localhost)$|@example\.(com|org|net)$/i.test(String(payload.to ?? '').trim())) {
         await supabase.from('email_send_log').insert({
