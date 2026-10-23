@@ -1,0 +1,7 @@
+import {render,screen,fireEvent,waitFor,cleanup} from '@testing-library/react';
+import {afterEach,it,expect,vi} from 'vitest';
+import {DriverInvitationActivation,DriverInvitationPanel} from '../../prepared/reprise-r3-r4/DriverInvitationPanel';
+afterEach(cleanup);
+it('activation refusée ne navigue ni ne confirme accès',async()=>{const done=vi.fn();render(<DriverInvitationActivation token={'a'.repeat(64)} onActivated={done}/>);fireEvent.click(screen.getByRole('button',{name:'Activer mon accès chauffeur'}));await screen.findByRole('alert');expect(done).not.toHaveBeenCalled();});
+it('double clic ne déclenche qu’une activation et attend la confirmation',async()=>{let finish:(value:unknown)=>void=()=>{};const call=vi.fn(()=>new Promise(resolve=>{finish=resolve;}));const done=vi.fn();render(<DriverInvitationActivation token={'a'.repeat(64)} onActivated={done} call={call as never}/>);const b=screen.getByRole('button',{name:'Activer mon accès chauffeur'});fireEvent.click(b);fireEvent.click(b);expect(call).toHaveBeenCalledTimes(1);expect(done).not.toHaveBeenCalled();finish({company_id:'a',driver_id:'d',user_id:'u'});await waitFor(()=>expect(done).toHaveBeenCalledWith('a'));});
+it('le catalogue d’invitations est demandé pour la seule entreprise explicite',async()=>{const call=vi.fn().mockResolvedValue({drivers:[],invites:[]});render(<DriverInvitationPanel company="company-a" call={call}/>);await waitFor(()=>expect(call).toHaveBeenCalledWith('driver_invite_options',{_company:'company-a'}));});

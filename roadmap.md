@@ -1,12 +1,21 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## R4C — reprise du 23 octobre 18:34 UTC
+- [x] Composer les invitations employés avec les identités chauffeurs JSC : activation personnelle, expiration, renouvellement et révocation, sans envoi réel; panneaux préparés non raccordés.
+- [x] Tester chaîne SQL fictive invitation capturée→activation→réquisition→réponse→clôture et R4B concurrence/capacité/historique; 154 tests verts, vraie Auth/API non certifiée.
+- [x] Consolider paquet R3/R4/R4B/R4C, empreintes, ordre, autorisations et retour non destructif dans INSTALLATION-R4C.md.
+- [x] Corriger libellés ambigus, actualiser registre et garde communications/hiver TEST avec tests; formation enrichie.
+- [ ] R4D : branchement/reprise login sûre et writer invitation atomique file capture-only; notifications/documents et policies alternatives après révocation à composer.
+- [ ] Validation complète R4C : bloquée par cible indépendante réelle Auth/API/Storage/file indisponible; session admin approuvée absente pour SEO. Installation partagée non autorisée.
+- Installation partagée, publication et activation nouvelles restent non autorisées; session admin approuvée distincte requise pour SEO.
+
 ## R4B — reprise du 23 octobre 18:19 UTC
 - [x] Composition locale accord→exception, snapshots/mesures préservés; acceptation EXEC02 concurrente testée.
 - [x] Réquisition/transport versionnés, guards legacy, notifications persistantes et camion actif préparés/testés; nouveau service non installé.
 - [x] Libellé historique non retrouvé; défaut navigation approved/cache admin corrigé, contrôles serveur approuvés confirmés en SELECT.
 - [x] Ordre exact et autorisations dans prepared/reprise-r3-r4/INSTALLATION-R4B.md; inverse helper non prêt et non exécuté.
 - [x] Registre suite unique communications/hiver/coordination/partenaires/flotte/chauffeurs/localisation/formation actualisé.
-- [ ] R4C : invitations→profil/membership JSC et vraie chaîne Auth/API/Storage/triggers, cible complète indépendante + session admin approuvée manquantes.
+- [x] R4C : composition invitations/profil JSC développée et SQL testé; branchement/transport et vraie chaîne reportés explicitement en R4D ci-dessus.
 
 ## Reprise suivante — R3/R4, 23 octobre 17:58 UTC
 - [x] Éditeur et SQL préparés : même dossier/version/historique, notification capturée, décisions à revalider; serveur non installé.

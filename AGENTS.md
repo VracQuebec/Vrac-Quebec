@@ -14,6 +14,7 @@
 - City generation acquires its local admission lock before awaiting the existing server run-start RPC; interruption recovery re-reads individual task dates and activity, and quota errors stop the batch to avoid duplicate or untracked work.
 - Driver mission tracking is explicitly resumed per page session and stops on visibility/auth changes; mission completion requires a successful RPC and authorized readback, never a local success assumption.
 - Request editing and requisitions reuse submissions/transport_requests with explicit company bindings and existing history/notifications; prepared RPCs must stay disabled until installation is authorized and full-stack identity/trigger compatibility is verified.
+- Driver invitation preparation reuses employee identities and explicitly chosen JSC profiles; all prepared entrypoints remain inactive, and local SQL/capture evidence never certifies hosted Auth/API/Storage.
 - Admin navigation hints require approved server-read roles and never restore admin from browser cache; only server has_role/RLS/RPC checks authorize data access.
 - EXEC-01 uses submissions and shared domain handlers; SQL/adapters in prepared/exec01b run against empty loopback fixtures only, with hosted activation separately authorized.
 - Prepared durable submission subdirectories have their own AGENTS.md; read them before changes to preserve fail-closed retries and additive rollback compatibility.

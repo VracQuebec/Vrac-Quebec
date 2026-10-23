@@ -1,0 +1,23 @@
+
+ RUN  v3.2.4 /dev-server
+
+ ✓ src/test/request-workbench-sql.test.ts (27 tests) 978ms
+ ✓ src/test/driver-invitation-r4c.test.ts (19 tests) 909ms
+ ✓ src/test/exec03-exec04-corrections.test.ts (28 tests) 1012ms
+ ✓ src/test/remblai-exec02.test.ts (32 tests) 1925ms
+ ✓ src/test/seo-city-plan.test.ts (15 tests) 23ms
+ ✓ src/test/approved-roles.test.ts (3 tests) 16ms
+ ✓ src/test/driver-invitation-client.test.ts (4 tests) 43ms
+ ✓ src/test/winter-capture-guard.test.ts (8 tests) 23ms
+ ✓ src/test/seo-city-generation-launch.test.tsx (6 tests) 431ms
+ ✓ src/test/driver-invitation-panel.test.tsx (3 tests) 295ms
+ ✓ src/test/transport-edit-readback.test.tsx (2 tests) 815ms
+   ✓ transport — succès seulement après relecture > annonce une édition uniquement si les valeurs et la version se relisent  537ms
+ ✓ src/test/request-workbench-ui.test.tsx (7 tests) 769ms
+   ✓ éditeurs sur dépendances injectées — sans requête réelle > préremplit les valeurs, confirme puis relit le même dossier  444ms
+
+ Test Files  12 passed (12)
+      Tests  154 passed (154)
+   Start at  18:43:30
+   Duration  9.42s (transform 1.87s, setup 8.51s, collect 7.74s, tests 7.24s, environment 30.71s, prepare 13.35s)
+

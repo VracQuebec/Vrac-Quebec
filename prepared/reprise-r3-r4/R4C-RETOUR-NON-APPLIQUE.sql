@@ -1,0 +1,3 @@
+-- Close the new entrypoints, preserve identity/revocation guards and all existing records.
+REVOKE ALL ON FUNCTION public.driver_invite_prepare(uuid,uuid,text,text,text),public.driver_invite_accept(text),public.driver_invite_renew(uuid,uuid,text),public.driver_invite_revoke(uuid),public.driver_invite_options(uuid) FROM PUBLIC,anon,authenticated;
+-- No rollback to the vulnerable driver helper or portal; keep revoked identities denied.
