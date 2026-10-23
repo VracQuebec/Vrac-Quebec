@@ -128,7 +128,7 @@ REVOKE ALL ON FUNCTION public.requisition_assign(uuid,uuid,integer,jsonb,uuid,bo
 GRANT EXECUTE ON FUNCTION public.requisition_assign(uuid,uuid,integer,jsonb,uuid,boolean) TO authenticated,service_role;
 
 CREATE FUNCTION public.requisition_action(_id uuid,_company uuid,_version integer,_action text,_reason text,_operation uuid,_confirmed boolean) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE t public.transport_requests; role_name text; next_state text; prior jsonb; response jsonb; d public.jsc_drivers;
+DECLARE t public.transport_requests; role_name text; next_state text; prior jsonb; response jsonb; assigned_driver public.jsc_drivers;
 BEGIN
  PERFORM set_config('vq.workbench','on',true);
  SELECT * INTO t FROM public.transport_requests WHERE id=_id FOR UPDATE;
@@ -154,8 +154,8 @@ BEGIN
  response:=jsonb_build_object('id',t.id,'version',t.requisition_version+1,'state',next_state);
  INSERT INTO public.transport_request_events(request_id,action,version,reason,details,actor_id,actor_role,origin) VALUES(t.id,'requisition_'||_action,t.requisition_version+1,_reason,jsonb_build_object('id',t.id,'action',_action,'reason',coalesce(_reason,''),'operation',_operation,'result',response,'accepted_snapshot',t.requisition_accepted_snapshot),auth.uid(),role_name,'entreprise');
  IF _action='transmit' THEN
-   SELECT * INTO d FROM public.jsc_drivers WHERE id=t.requisition_driver_id;
-   INSERT INTO public.jsc_notifications(company_id,audience,user_id,channel,title,body,entity_type,entity_id,status) VALUES(_company,'driver',d.user_id,'in_app','Réquisition à examiner',t.request_number,'transport_request',t.id,'pending');
+   SELECT * INTO assigned_driver FROM public.jsc_drivers WHERE id=t.requisition_driver_id;
+   INSERT INTO public.jsc_notifications(company_id,audience,user_id,channel,title,body,entity_type,entity_id,status) VALUES(_company,'driver',assigned_driver.user_id,'in_app','Réquisition à examiner',t.request_number,'transport_request',t.id,'pending');
  END IF;
  IF _action IN ('refuse','incident','cancel') THEN PERFORM public.crm_notify('requisition:'||t.id||':'||_operation,'demandes','requisition_exception','haute','Réquisition à vérifier',_reason,'transport_request',t.id,'/admin/demandes-acces',NULL,t.request_number,NULL,jsonb_build_object('company_id',_company,'state',next_state),false);END IF;
  RETURN response;
@@ -165,8 +165,11 @@ GRANT EXECUTE ON FUNCTION public.requisition_action(uuid,uuid,integer,text,text,
 CREATE FUNCTION public.workbench_write_guard() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$
 BEGIN
  IF coalesce(current_setting('vq.workbench',true),'')<>'on' THEN
-  IF TG_TABLE_NAME='submissions' AND (NEW.edit_company_id IS DISTINCT FROM OLD.edit_company_id OR NEW.edit_version IS DISTINCT FROM OLD.edit_version OR NEW.edit_details IS DISTINCT FROM OLD.edit_details) THEN RAISE EXCEPTION 'Écriture par RPC obligatoire'; END IF;
-  IF TG_TABLE_NAME='transport_requests' AND (NEW.requisition_company_id IS DISTINCT FROM OLD.requisition_company_id OR NEW.requisition_driver_id IS DISTINCT FROM OLD.requisition_driver_id OR NEW.requisition_truck_id IS DISTINCT FROM OLD.requisition_truck_id OR NEW.requisition_state IS DISTINCT FROM OLD.requisition_state OR NEW.requisition_version IS DISTINCT FROM OLD.requisition_version OR NEW.requisition_details IS DISTINCT FROM OLD.requisition_details OR NEW.requisition_accepted_snapshot IS DISTINCT FROM OLD.requisition_accepted_snapshot) THEN RAISE EXCEPTION 'Écriture par RPC obligatoire'; END IF;
+  IF TG_TABLE_NAME='submissions' THEN
+   IF NEW.edit_company_id IS DISTINCT FROM OLD.edit_company_id OR NEW.edit_version IS DISTINCT FROM OLD.edit_version OR NEW.edit_details IS DISTINCT FROM OLD.edit_details THEN RAISE EXCEPTION 'Écriture par RPC obligatoire'; END IF;
+  ELSIF TG_TABLE_NAME='transport_requests' THEN
+   IF NEW.requisition_company_id IS DISTINCT FROM OLD.requisition_company_id OR NEW.requisition_driver_id IS DISTINCT FROM OLD.requisition_driver_id OR NEW.requisition_truck_id IS DISTINCT FROM OLD.requisition_truck_id OR NEW.requisition_state IS DISTINCT FROM OLD.requisition_state OR NEW.requisition_version IS DISTINCT FROM OLD.requisition_version OR NEW.requisition_details IS DISTINCT FROM OLD.requisition_details OR NEW.requisition_accepted_snapshot IS DISTINCT FROM OLD.requisition_accepted_snapshot THEN RAISE EXCEPTION 'Écriture par RPC obligatoire'; END IF;
+  END IF;
  END IF;
  RETURN NEW;
 END $$;
