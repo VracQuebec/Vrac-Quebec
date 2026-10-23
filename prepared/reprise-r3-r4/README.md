@@ -1,5 +1,8 @@
 # R3/R4 — édition et réquisitions préparées, non installées
 
+## Actualisation R4C — 23 octobre, après 18:43 UTC
+Invitations chauffeurs composées avec le mécanisme employés : profil explicite, activation d’identité confirmée, expiration/rotation, révocation couvrant aussi les anciennes RPCs, catalogue protégé et panneaux préparés. Correction préparée supplémentaire du portail chauffeur et lecture directe du profil. **154 tests ciblés réussis**, serveur partagé inchangé; vraie Auth/API/Storage et raccordement des écrans/transport restent R4D. Le fichier `INSTALLATION-R4C.md` et son manifeste remplacent l’ordre historique ci-dessous pour la prochaine décision. « Fixed admin SEO » n’est pas un correctif revendiqué; seuls les changements de navigation approved/cache décrits en R4B sont démontrés.
+
 ## Actualisation R4B — 23 octobre 18:19 UTC
 Composition réservations et transport réalisée/testée localement; détail et ordre exact dans `INSTALLATION-R4B.md`. Les limites R3/R4 ci-dessous sont historiques : la modification ne bloque plus toute réservation locale, mais invalide les accords affectés vers exception et préserve snapshots/mesures. Invitation JSC, vraie chaîne Auth/API/Storage et mise en service restent non livrées. Aucun serveur partagé modifié.
 
