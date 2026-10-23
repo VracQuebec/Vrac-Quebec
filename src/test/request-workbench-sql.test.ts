@@ -39,7 +39,32 @@ describe.skipIf(!enabled)('SQL préparé exécuté uniquement dans PostgreSQL je
  it('révocation retire immédiatement lecture et actions',async()=>{await db`update jsc_company_members set is_active=false where user_id=${ids.driverUser}`;expect(await as(ids.driverUser,async tx=>(await tx`select requisition_read(${ids.company}::uuid) r`)[0].r)).toEqual([]);await expect(action(ids.driverUser,'start',4)).rejects.toMatchObject({code:'42501'});await db`update jsc_company_members set is_active=true where user_id=${ids.driverUser}`;});
  it('quantité modifiée : même dossier, historique unique, accord à revalider',async()=>{const key=crypto.randomUUID();const r=await edit(ids.owner,{quantity_value:120},1,key);expect(r).toEqual({id:ids.submission,version:2,revalidation:true});await edit(ids.owner,{quantity_value:120},1,key);expect((await db`select quantity_value,submission_number from submissions`)[0]).toEqual({quantity_value:'120',submission_number:77});expect(Number((await db`select count(*) n from ent_crm_history where entity='submission_edit'`)[0].n)).toBe(1);expect((await db`select status from submission_site_decisions`)[0].status).toBe('en_attente');expect((await db`select lifecycle_status,requisition_state from transport_requests`)[0]).toEqual({lifecycle_status:'revalidation_requise',requisition_state:'revalidation'});});
  it('accord accepté jamais silencieusement remplacé',async()=>{const s=(await db`select requisition_accepted_snapshot s from transport_requests`)[0].s;expect(s.quantity).toBe(20);await expect(action(ids.driverUser,'start',4)).rejects.toThrow();});
+ it('refus, nouvelle transmission, incident et annulation conservent les événements',async()=>{
+  await db.begin(async tx=>{await tx`select set_config('vq.workbench','on',true)`;await tx`update submissions set revalidation_requested_at=NULL`;await tx`update submission_site_decisions set status='approuvee'`;await tx`update transport_requests set requisition_state='transmitted',requisition_version=5`;});
+  expect((await action(ids.driverUser,'refuse',5)).state).toBe('refused');
+  await db.begin(async tx=>{await tx`select set_config('vq.workbench','on',true)`;await tx`update transport_requests set requisition_state='transmitted'`;});
+  expect((await action(ids.driverUser,'accept',6)).state).toBe('accepted');
+  expect((await action(ids.driverUser,'start',7)).state).toBe('running');
+  expect((await action(ids.driverUser,'loading',8)).state).toBe('running');
+  expect((await action(ids.driverUser,'arrival',9)).state).toBe('running');
+  expect((await action(ids.driverUser,'incident',10)).state).toBe('incident');
+  expect((await action(ids.owner,'cancel',11)).state).toBe('cancelled');
+  expect((await db`select action from transport_request_events where action='requisition_incident'`)).toHaveLength(1);
+ });
+ it('la fin ne crée ni voyage ni débit financier et le rejeu est unique',async()=>{
+  await db.begin(async tx=>{await tx`select set_config('vq.workbench','on',true)`;await tx`update transport_requests set requisition_state='running',requisition_version=13`;});
+  const key=crypto.randomUUID();expect((await action(ids.driverUser,'complete',13,key)).state).toBe('completed');await action(ids.driverUser,'complete',13,key);
+  expect((await db`select action from transport_request_events where action='requisition_complete'`)).toHaveLength(1);
+  expect(Number((await db`select count(*) n from trips`)[0].n)).toBe(0);
+ });
+ it('une mise à jour directe ne contourne pas la garde des états',async()=>{await expect(db`update transport_requests set requisition_state='accepted'`).rejects.toThrow('RPC obligatoire');});
+ it('deux modifications concurrentes de la même version ne sont pas écrasées',async()=>{
+  await db.begin(async tx=>{await tx`select set_config('vq.workbench','on',true)`;await tx`update transport_requests set requisition_state=NULL,lifecycle_status='a_valider'`;});
+  const outcome=await Promise.allSettled([edit(ids.owner,{quantity_value:130},2),edit(ids.owner,{quantity_value:140},2)]);
+  expect(outcome.filter(r=>r.status==='fulfilled')).toHaveLength(1);expect(outcome.filter(r=>r.status==='rejected')).toHaveLength(1);
+  expect((await db`select edit_version from submissions`)[0].edit_version).toBe(3);
+ });
  it('version périmée et clé rejouée avec contenu différent sont refusées',async()=>{await expect(edit(ids.owner,{quantity_value:130},1)).rejects.toMatchObject({code:'P0409'});});
  it('le super admin relit le même dossier et la notification exacte',async()=>{const r=await as(ids.admin,async tx=>(await tx`select submission_edit_read(${ids.submission}::uuid) r`)[0].r);expect(r.id).toBe(ids.submission);expect(r.values.quantity_value).toBe(120);expect((await db`select entity_id from crm_notifications where entity_type='submission'`)[0].entity_id).toBe(ids.submission);});
- it('une demande close et une entreprise révoquée refusent toute édition',async()=>{await db`update submissions set status='terminee'`;await expect(edit(ids.owner,{quantity_value:140},2)).rejects.toThrow('non modifiable');await db`update submissions set status='nouveau'`;await db`update jsc_company_members set is_active=false where user_id=${ids.owner}`;await expect(edit(ids.owner,{quantity_value:140},2)).rejects.toMatchObject({code:'42501'});});
+ it('une demande close et une entreprise révoquée refusent toute édition',async()=>{await db`update submissions set status='terminee'`;await expect(edit(ids.owner,{quantity_value:140},3)).rejects.toThrow('non modifiable');await db`update submissions set status='nouveau'`;await db`update jsc_company_members set is_active=false where user_id=${ids.owner}`;await expect(edit(ids.owner,{quantity_value:140},3)).rejects.toMatchObject({code:'42501'});});
 });
