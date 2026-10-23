@@ -1,5 +1,8 @@
 # Actualisation hivernale — préparation uniquement
 
+## Complément R4D — transport TEST réutilisé
+Le worker préparé `prepared/exec01b/process-email-queue.ts` compose désormais la capture chauffeur atomique avec la file existante; reçu durable avant retrait, aucun token journalisé. Tests de garde capture passent, aucune invitation/campagne réelle. Ce seam chauffeur ne prouve pas les relances hiver/horaires/rebonds : R5 doit les contrôler sur la vraie chaîne indépendante, avec exclusions déjà préparées. Aucun CRM privé entrepreneur prélevé.
+
 ## Reprise R4C — garde TEST supplémentaire
 `prepared/exec04/queue-guard.ts` refuse désormais `mode=TEST_CAPTURE_ONLY` et les destinataires réservés même sans marqueur de campagne. Huit tests ciblés couvrent adresse/liste TEST, opposition et contrôle indisponible. Ce garde reste préparé : aucune copie dans le worker actif, aucune campagne lancée. Les tests de segmentation/file existants sont conservés; une capture ne prouve toujours ni remise prestataire ni réception.
 

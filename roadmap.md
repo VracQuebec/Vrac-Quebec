@@ -1,3 +1,6 @@
+- [x] R4D : raccordements Auth client/invitation et capture queue existante préparés; révocation SQL transversale et régressions, 112 tests + navigateur Connexion/Retour.
+- [ ] R4D preuve complète : cible indépendante Auth/API/Storage/PGMQ indisponible; anciens liens Storage signés et téléchargement après révocation non certifiés. INSTALLATION-R4D.md décrit décision/ordre/impact/retour; aucun serveur partagé modifié.
+- [ ] R5 communications/partenaires : gardes TEST/hiver/formation actualisés; preuve services/oppositions/horaires/attribution et décisions métier restent séparées, jamais envois réels.
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## R4D — reprise du 23 octobre 18:54 UTC
