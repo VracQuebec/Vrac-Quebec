@@ -1,5 +1,12 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## R4B — reprise du 23 octobre 18:19 UTC
+- [ ] Composer modification/réservations sans accord implicite, préserver mesures et snapshots, tester concurrence/rejeu/annulation transactionnelle.
+- [ ] Renforcer réquisition : version, accès actif, notification persistante, reprise après incident avec nouvel accord.
+- [ ] Clarifier « Fixed admin role check » et préparer contrôle admin approuvé sans élévation.
+- [ ] Livrer ordre exact d’installation/inverse et distinction autorisation historique/nouvelle.
+- [ ] Actualiser suite unique : communications/hiver, coordination, partenaires, flotte/chauffeurs/localisation, formation.
+
 ## Reprise suivante — R3/R4, 23 octobre 17:58 UTC
 - [x] Éditeur et SQL préparés : même dossier/version/historique, notification capturée, décisions à revalider; serveur non installé.
 - [x] Réquisition sur transport_requests, affectation/réponse/avancement/annulation/incident et accès chauffeur personnels testés localement.
