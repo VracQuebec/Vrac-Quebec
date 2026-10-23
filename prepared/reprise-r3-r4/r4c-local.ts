@@ -19,7 +19,7 @@ export async function createR4CLocal() {
    CREATE FUNCTION pun_can_read(c uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$SELECT EXISTS(SELECT 1 FROM jsc_company_members WHERE company_id=c AND user_id=auth.uid() AND is_active AND archived_at IS NULL)$$;
    CREATE FUNCTION jsc_my_driver_ids() RETURNS SETOF uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$SELECT d.id FROM jsc_drivers d JOIN jsc_company_members m ON m.company_id=d.company_id AND m.user_id=d.user_id WHERE d.user_id=auth.uid() AND d.is_active AND d.archived_at IS NULL AND m.is_active AND m.archived_at IS NULL AND m.role='chauffeur'$$;
    REVOKE ALL ON FUNCTION jsc_my_driver_ids() FROM PUBLIC;GRANT EXECUTE ON FUNCTION jsc_my_driver_ids() TO authenticated;
-   CREATE TABLE local_invitation_capture(invitation_id uuid PRIMARY KEY REFERENCES ent_crm_history(id),payload jsonb);` .replace(' REFERENCES ent_crm_history(id)',''));
+   CREATE TABLE local_invitation_capture(invitation_id uuid PRIMARY KEY,payload jsonb);`);
   const employee=await readFile('prepared/exec06/schema.sql','utf8');
   await db.unsafe(employee.slice(employee.indexOf('CREATE TABLE public.ent_employee_invites'),employee.indexOf('-- Preserve canonical mechanisms')));
   await db.unsafe('REVOKE ALL ON FUNCTION pun_invite_prepare(uuid,text,text,text,text),pun_invite_accept(text),pun_invite_revoke(uuid) FROM PUBLIC,anon;GRANT EXECUTE ON FUNCTION pun_invite_prepare(uuid,text,text,text,text),pun_invite_accept(text),pun_invite_revoke(uuid) TO authenticated;');
@@ -31,7 +31,7 @@ export async function createR4CLocal() {
   for(const path of ['R4B-COMPOSITION-NON-APPLIQUEE.sql','INSTALLATION-NON-APPLIQUEE.sql','R4C-INVITATIONS-NON-APPLIQUEES.sql']) await db.unsafe(await readFile('prepared/reprise-r3-r4/'+path,'utf8'));
   const as=<T>(user:string,fn:(tx:postgres.TransactionSql)=>Promise<T>)=>db.begin(async tx=>{await tx`select set_config('request.jwt.claim.sub',${user},true)`;await tx.unsafe('SET LOCAL ROLE authenticated');return fn(tx);});
   // No network/sender: internal DB capture only. Never exported as a hosted mail adapter.
-  const capture=async(invitation:string,token:string)=>{await db`insert into local_invitation_capture values(${invitation},${db.json({mode:'TEST_CAPTURE_ONLY',token})}) on conflict do nothing`;};
+  const capture=async(invitation:string,token:string)=>{await db`insert into local_invitation_capture values(${invitation},${db.json({mode:'TEST_CAPTURE_ONLY',token})}) on conflict(invitation_id) do update set payload=excluded.payload`;};
   return {db,as,capture,cleanup};
  }catch(error){await cleanup();throw error;}
 }
