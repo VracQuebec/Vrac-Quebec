@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), read: vi.fn(), watch: vi.fn(), clear: vi.fn(), user: { id: "driver-test" } as { id: string } | null, success: vi.fn(), error: vi.fn() }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ isReady: true, user: mocks.user }) }));
 vi.mock("@/components/layout/PageHeader", () => ({ default: () => null }));
@@ -50,10 +51,10 @@ describe("mission chauffeur — aucune localisation ni écriture réelle", () =>
     expect(mocks.success).not.toHaveBeenCalled();
   });
   it("la déconnexion arrête la collecte locale", async () => {
-    const view = render(<DriverMission />);
+    const view = render(<MemoryRouter><DriverMission /></MemoryRouter>);
     fireEvent.click(await screen.findByRole("button", { name: "Autoriser et reprendre le suivi" }));
     mocks.user = null;
-    view.rerender(<DriverMission />);
+    view.rerender(<MemoryRouter><DriverMission /></MemoryRouter>);
     expect(mocks.clear).toHaveBeenCalledWith(42);
   });
   it("une lecture échouée ne propose pas de démarrer une nouvelle mission", async () => {
