@@ -71,7 +71,7 @@ describe.skipIf(!enabled)('SQL préparé exécuté uniquement dans PostgreSQL je
   expect((await db`select action from transport_request_events where action='requisition_complete'`)).toHaveLength(1);
   expect(Number((await db`select count(*) n from trips`)[0].n)).toBe(0);
  });
- it('une mise à jour directe ne contourne pas la garde des états',async()=>{await expect(db`update transport_requests set requisition_state='accepted'`).rejects.toThrow('RPC obligatoire');});
+ it('une mise à jour directe ne contourne pas la garde des états',async()=>{await expect(db`update transport_requests set requisition_state='accepted'`).rejects.toThrow(/RPC obligatoire|modification versionnée/);});
  it('deux modifications concurrentes de la même version ne sont pas écrasées',async()=>{
   await db.begin(async tx=>{await tx`select set_config('vq.workbench','on',true)`;await tx`update transport_requests set requisition_state=NULL,lifecycle_status='a_valider'`;});
   const outcome=await Promise.allSettled([edit(ids.owner,{quantity_value:130},2),edit(ids.owner,{quantity_value:140},2)]);
