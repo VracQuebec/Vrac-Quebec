@@ -1,5 +1,8 @@
 # Actualisation hivernale — préparation uniquement
 
+## Reprise R4C — garde TEST supplémentaire
+`prepared/exec04/queue-guard.ts` refuse désormais `mode=TEST_CAPTURE_ONLY` et les destinataires réservés même sans marqueur de campagne. Huit tests ciblés couvrent adresse/liste TEST, opposition et contrôle indisponible. Ce garde reste préparé : aucune copie dans le worker actif, aucune campagne lancée. Les tests de segmentation/file existants sont conservés; une capture ne prouve toujours ni remise prestataire ni réception.
+
 ## Reprise R4B — ordre de validation
 - Contenu et segmentation déjà préparés ci-dessous, pas campagne absente. Responsable de validation métier à désigner; aucune date d’envoi fixée.
 - Avant campagne : installer uniquement après autorisation la chaîne portail/file, puis tester en cible indépendante les liens révoqués, revalidation après réponse et exclusion du CRM privé.

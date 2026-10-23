@@ -1,5 +1,10 @@
 # Visite Jonathan — checklist réutilisable préparée
 
+## Scénario R4C à observer dans la cible complète
+Gestionnaire autorisé → choisir explicitement profil chauffeur et entreprise → invitation TEST capturée → compte personnel confirmé → activation → camion/destination autorisés → réquisition → accepter ou refuser → étapes à l’arrêt → clôture → retrait d’accès. Rejouer avec entreprise B, courriel incorrect, invitation expirée/renouvelée, membre révoqué et acceptation concurrente à modification.
+
+Les essais PostgreSQL de R4C constituent une preuve locale des transactions, pas cette visite : vraie connexion, API, documents privés et accès après révocation doivent être observés séparément. Reprendre le lien après connexion sans le recopier dans un outil analytique; aucun secret dans les captures. Validations Jonathan et appareils restent non effectuées.
+
 ## Fiche de séance R4B
 Date réelle : non fixée. Validation métier : Jonathan. Entreprises A/B et chauffeur : fictifs uniquement, comptes à provisionner dans la cible indépendante; aucun compte réel partagé.
 
