@@ -1,12 +1,16 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
-## Reprise maître — 23 octobre 2026
-- [ ] SEO prioritaire : comparer couverture réelle, corriger les défauts démontrés et tester reprise/échec/doublon sans génération réelle.
-- [ ] Accueil : clarifier les soumissions selon les catégories ouvertes et vérifier le parcours sans écriture réelle.
-- [ ] EXEC-01–08 : actualiser le registre avec preuves actuelles et dépendances, sans confondre développement et activation.
-- [ ] Chauffeurs/réquisitions/localisation/installation : vérifier les modules existants, compléter les parties indépendantes et signaler les appareils manquants.
-- [ ] Communications/formation/commercial : inventorier et préparer les compléments factuels, sans envoi ni achat.
-- [ ] Livrer résultats ciblés, chemins et copie consultable du bilan; enregistrer le prochain sous-lot exact.
+## Reprise maître — 23 octobre 2026 (R1 livré, mandat partiel)
+- [x] SEO R1 : 188 villes/28 possibilités théoriques, sept villes comparées en lecture seule; reprises/date, lancement, quota et suivi corrigés/testés sans IA réelle.
+- [x] Accueil : soumissions factuelles, numéro confirmé, double clic et photo refusée; parcours fictif 360/768/1280 vérifié.
+- [x] EXEC-01–08 : registre docs/audit/reprise-maitre-2026-10-23.md; 0225–0230 confirmées installées par empreintes du journal, paramètres inchangés.
+- [x] Chauffeur R1 : reprise explicite, arrêt visibilité/compte, clôture relue; PWA acceptation distincte d'installation. 3 largeurs fictives, aucun GPS réel.
+- [x] Aide/progression corrompue réparée; campagne hiver et visite Jonathan préparées sans envoi ni tarif.
+- [x] Preuves : 178 tests réussis, 5 SQL ignorés, captures sans données réelles; copie consultable livrée.
+- [ ] R2 prochain : catalogue/file/disponibilité SEO et plafond/délais/reprise serveur; lecture du rapport admin refusée à la session personnelle, aucune élévation de droits.
+- [ ] R3–R4 : édition entrepreneur avec revalidation, notifications, accès chauffeurs et réquisitions versionnées restent à développer; reprise exacte dans le registre, limite de cette exécution.
+- [ ] R5 : chaîne complète A–E exige cible indépendante Auth/PostgREST/Storage/capture accessible; aucune simulation remplaçante.
+- [ ] R6 : validation Jonathan/appareils physiques et matériel commercial extérieur non fourni/non retrouvé.
 - Activation serveur partagée, publication, messages réels et opérations payantes non autorisés.
 
 ## Suivi client — refonte visuelle, 22 octobre 23:23 UTC

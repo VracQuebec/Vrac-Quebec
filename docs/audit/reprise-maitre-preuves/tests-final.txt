@@ -1,0 +1,39 @@
+
+ RUN  v3.2.4 /dev-server
+
+ ✓ src/test/exec07-help.test.ts (9 tests) 37ms
+ ✓ src/test/seo-city-coverage.test.ts (20 tests) 31ms
+ ✓ src/test/seo-city-plan.test.ts (14 tests) 24ms
+ ✓ src/test/help-progress-recovery.test.ts (3 tests) 14ms
+ ✓ src/test/seo-global-generation.test.ts (17 tests) 43ms
+ ✓ src/test/ops-volet.test.ts (8 tests) 30ms
+ ✓ src/test/remblai-presentation.test.ts (10 tests) 46ms
+ ✓ src/test/install-app.test.ts (5 tests) 62ms
+ ✓ src/test/seo-autopilot.test.ts (18 tests) 14ms
+ ✓ src/test/seo-catalog-status.test.ts (20 tests) 209ms
+ ✓ src/test/platform-subscription.test.ts (10 tests) 105ms
+ ✓ src/test/seo-city-generation-launch.test.tsx (6 tests) 551ms
+stderr | src/test/driver-mission-safety.test.tsx > mission chauffeur — aucune localisation ni écriture réelle > la déconnexion arrête la collecte locale
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/test/driver-mission-safety.test.tsx (6 tests) 2167ms
+   ✓ mission chauffeur — aucune localisation ni écriture réelle > ne reprend pas la géolocalisation par la seule ouverture  1440ms
+ ✓ src/test/entrepreneur-exec03.test.ts (17 tests | 5 skipped) 43ms
+stderr | src/test/marketplace-submit-safety.test.tsx > soumission existante — envoi entièrement simulé > ne finalise pas un brouillon sans numéro confirmé
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ src/test/marketplace-submit-safety.test.tsx (3 tests) 2764ms
+   ✓ soumission existante — envoi entièrement simulé > ne finalise pas un brouillon sans numéro confirmé  1807ms
+   ✓ soumission existante — envoi entièrement simulé > un double clic produit une seule requête et conserve le numéro renvoyé  583ms
+   ✓ soumission existante — envoi entièrement simulé > une photo refusée empêche l’envoi silencieux sans pièce  362ms
+ ✓ src/test/exec05-rules.test.ts (4 tests) 81ms
+ ✓ src/test/seo-city-buttons.test.ts (10 tests) 26ms
+ ✓ src/test/seo-city-repair-direct.test.ts (3 tests) 7ms
+
+ Test Files  18 passed (18)
+      Tests  178 passed | 5 skipped (183)
+   Start at  17:47:25
+   Duration  18.50s (transform 8.67s, setup 18.92s, collect 27.97s, tests 6.25s, environment 110.09s, prepare 20.21s)
+
