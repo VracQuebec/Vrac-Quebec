@@ -17,7 +17,7 @@
 - [x] Aide/progression corrompue réparée; campagne hiver et visite Jonathan préparées sans envoi ni tarif.
 - [x] Preuves : 179 tests réussis, 5 SQL ignorés, captures sans données réelles; copie consultable livrée.
 - [ ] R2 prochain : catalogue/file/disponibilité SEO et plafond/délais/reprise serveur; lecture du rapport admin refusée à la session personnelle, aucune élévation de droits.
-- [ ] R3–R4 : édition entrepreneur avec revalidation, notifications, accès chauffeurs et réquisitions versionnées restent à développer; reprise exacte dans le registre, limite de cette exécution.
+- [x] R3–R4 : édition et réquisitions préparées et testées localement; activation interdite, compléments R4B listés ci-dessus.
 - [ ] R5 : chaîne complète A–E exige cible indépendante Auth/PostgREST/Storage/capture accessible; aucune simulation remplaçante.
 - [ ] R6 : validation Jonathan/appareils physiques et matériel commercial extérieur non fourni/non retrouvé.
 - Activation serveur partagée, publication, messages réels et opérations payantes non autorisés.
