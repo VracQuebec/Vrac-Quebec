@@ -24,7 +24,7 @@ beforeAll(async()=>{
  await db`insert into submission_site_decisions(submission_id,site_id,status)values(${ids.submission},${ids.site},'approuvee')`;
 },30000);
 afterAll(async()=>{await db.end();if(enabled)await root.unsafe(`DROP DATABASE ${name}`);await root.end();});
-const as=<T>(user:string,fn:(tx:postgres.TransactionSql)=>Promise<T>)=>db.begin(async tx=>{await tx`select set_config('request.jwt.claim.sub',${user},true)`;return fn(tx);});
+const as=<T>(user:string,fn:(tx:postgres.TransactionSql)=>Promise<T>)=>db.begin(async tx=>{await tx`select set_config('request.jwt.claim.sub',${user},true)`;await tx.unsafe('SET LOCAL ROLE authenticated');return fn(tx);});
 const values=()=>({company_id:ids.company,request_id:ids.request,driver_id:ids.driver,truck_id:ids.truck,destination_id:ids.site,material:'Terre',quantity:20,unit:'m3',starts_at:'2026-11-01T13:00:00Z',instructions:'Essai fictif'});
 const edit=(user:string,changes:Record<string,unknown>,version=1,key=crypto.randomUUID())=>as(user,async tx=>(await tx`select submission_edit_save(${ids.submission}::uuid,${ids.company}::uuid,${version},${tx.json(changes as postgres.JSONValue)},${key}::uuid,true) r`)[0].r);
 const assign=()=>as(ids.owner,async tx=>(await tx`select requisition_assign(${ids.request}::uuid,${ids.company}::uuid,1,${tx.json(values())},${crypto.randomUUID()}::uuid,true) r`)[0].r);

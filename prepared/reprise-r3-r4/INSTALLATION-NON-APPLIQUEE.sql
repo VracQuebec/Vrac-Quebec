@@ -106,8 +106,9 @@ DECLARE t public.transport_requests; s public.submissions; prior jsonb; response
 BEGIN
  IF NOT public.workbench_manager(_company) OR NOT coalesce(_confirmed,false) OR _operation IS NULL THEN RAISE EXCEPTION 'Affectation non autorisée' USING ERRCODE='42501'; END IF;
  PERFORM set_config('vq.workbench','on',true);
- SELECT * INTO t FROM public.transport_requests WHERE id=_id FOR UPDATE;
+ SELECT * INTO t FROM public.transport_requests WHERE id=_id;
  SELECT * INTO s FROM public.submissions WHERE id=t.origin_submission_id FOR UPDATE;
+ SELECT * INTO t FROM public.transport_requests WHERE id=_id AND origin_submission_id=s.id FOR UPDATE;
  IF t.id IS NULL OR s.edit_company_id IS DISTINCT FROM _company OR t.requisition_company_id IS NOT NULL AND t.requisition_company_id<>_company THEN RAISE EXCEPTION 'Dossier non rattaché explicitement à cette entreprise' USING ERRCODE='42501'; END IF;
  SELECT details INTO prior FROM public.transport_request_events WHERE actor_id=auth.uid() AND details->>'operation'=_operation::text AND action='requisition_assign';
  IF FOUND THEN IF prior->>'id'<>t.id::text OR prior->'values' IS DISTINCT FROM _values THEN RAISE EXCEPTION 'Rejeu incompatible'; END IF;RETURN prior->'result';END IF;
@@ -128,10 +129,12 @@ REVOKE ALL ON FUNCTION public.requisition_assign(uuid,uuid,integer,jsonb,uuid,bo
 GRANT EXECUTE ON FUNCTION public.requisition_assign(uuid,uuid,integer,jsonb,uuid,boolean) TO authenticated,service_role;
 
 CREATE FUNCTION public.requisition_action(_id uuid,_company uuid,_version integer,_action text,_reason text,_operation uuid,_confirmed boolean) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE t public.transport_requests; role_name text; next_state text; prior jsonb; response jsonb; assigned_driver public.jsc_drivers;
+DECLARE t public.transport_requests; role_name text; next_state text; prior jsonb; response jsonb; assigned_driver public.jsc_drivers; origin_id uuid;
 BEGIN
  PERFORM set_config('vq.workbench','on',true);
- SELECT * INTO t FROM public.transport_requests WHERE id=_id FOR UPDATE;
+ SELECT origin_submission_id INTO origin_id FROM public.transport_requests WHERE id=_id;
+ PERFORM 1 FROM public.submissions WHERE id=origin_id FOR UPDATE;
+ SELECT * INTO t FROM public.transport_requests WHERE id=_id AND origin_submission_id=origin_id FOR UPDATE;
  role_name:=public.requisition_access(t);
  IF t.id IS NULL OR t.requisition_company_id IS DISTINCT FROM _company OR role_name IS NULL OR NOT coalesce(_confirmed,false) OR _operation IS NULL THEN RAISE EXCEPTION 'Mission non autorisée' USING ERRCODE='42501'; END IF;
  SELECT details INTO prior FROM public.transport_request_events WHERE actor_id=auth.uid() AND details->>'operation'=_operation::text AND action LIKE 'requisition_%';
@@ -150,6 +153,7 @@ BEGIN
  IF next_state IS NULL THEN RAISE EXCEPTION 'Transition interdite';END IF;
  IF _action IN ('transmit','accept','start') AND NOT EXISTS(SELECT 1 FROM public.jsc_drivers d JOIN public.jsc_company_members m ON m.company_id=d.company_id AND m.user_id=d.user_id WHERE d.id=t.requisition_driver_id AND d.is_active AND d.archived_at IS NULL AND m.is_active AND m.archived_at IS NULL AND m.role='chauffeur') THEN RAISE EXCEPTION 'Accès chauffeur révoqué' USING ERRCODE='42501';END IF;
  IF _action IN ('transmit','accept','start') AND NOT EXISTS(SELECT 1 FROM public.submission_site_decisions sd JOIN public.submissions s ON s.id=sd.submission_id WHERE sd.submission_id=t.origin_submission_id AND sd.site_id=(t.requisition_details->>'destination_id')::uuid AND sd.status='approuvee' AND s.revalidation_requested_at IS NULL) THEN RAISE EXCEPTION 'Destination à revalider' USING ERRCODE='42501';END IF;
+ IF _action IN ('start','complete') AND (t.requisition_accepted_snapshot IS NULL OR (t.requisition_accepted_snapshot-'accepted_by'-'accepted_at'-'version') IS DISTINCT FROM t.requisition_details) THEN RAISE EXCEPTION 'Conditions acceptées périmées';END IF;
  UPDATE public.transport_requests SET requisition_state=next_state,requisition_version=requisition_version+1,requisition_accepted_snapshot=CASE WHEN _action='accept' THEN requisition_details||jsonb_build_object('accepted_by',auth.uid(),'accepted_at',now(),'version',requisition_version) ELSE requisition_accepted_snapshot END,updated_at=now() WHERE id=t.id;
  response:=jsonb_build_object('id',t.id,'version',t.requisition_version+1,'state',next_state);
  INSERT INTO public.transport_request_events(request_id,action,version,reason,details,actor_id,actor_role,origin) VALUES(t.id,'requisition_'||_action,t.requisition_version+1,_reason,jsonb_build_object('id',t.id,'action',_action,'reason',coalesce(_reason,''),'operation',_operation,'result',response,'accepted_snapshot',t.requisition_accepted_snapshot),auth.uid(),role_name,'entreprise');
