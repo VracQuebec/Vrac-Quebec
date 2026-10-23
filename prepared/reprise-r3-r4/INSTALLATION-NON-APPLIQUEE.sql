@@ -192,3 +192,19 @@ BEGIN
 END$$;
 REVOKE ALL ON FUNCTION public.requisition_options(uuid) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.requisition_options(uuid) TO authenticated,service_role;
+
+-- Explicit one-dossier association only; never guessed from address/email/company name.
+CREATE FUNCTION public.submission_edit_bind(_id uuid,_company uuid,_confirmed boolean,_reason text) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE s public.submissions;
+BEGIN
+ IF NOT public.has_role(auth.uid(),'admin') OR NOT coalesce(_confirmed,false) OR length(trim(coalesce(_reason,'')))<3 THEN RAISE EXCEPTION 'Association administrateur confirmée requise' USING ERRCODE='42501';END IF;
+ SELECT * INTO s FROM public.submissions WHERE id=_id FOR UPDATE;
+ IF s.id IS NULL OR s.created_by IS NULL OR s.edit_company_id IS NOT NULL THEN RAISE EXCEPTION 'Dossier absent, sans propriétaire explicite ou déjà rattaché';END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.jsc_company_members WHERE company_id=_company AND user_id=s.created_by AND is_active AND archived_at IS NULL AND role IN ('proprietaire','gestionnaire')) THEN RAISE EXCEPTION 'Propriétaire non membre de cette entreprise' USING ERRCODE='42501';END IF;
+ PERFORM set_config('vq.workbench','on',true);
+ UPDATE public.submissions SET edit_company_id=_company WHERE id=s.id;
+ INSERT INTO public.ent_crm_history(company_id,entity,entity_id,action,before,after,actor_id,origin)VALUES(_company,'submission_edit_binding',s.id,'association_confirmee',jsonb_build_object('company',NULL),jsonb_build_object('company',_company,'reason',_reason),auth.uid(),'support_vrac_quebec');
+ RETURN jsonb_build_object('id',s.id,'company_id',_company);
+END$$;
+REVOKE ALL ON FUNCTION public.submission_edit_bind(uuid,uuid,boolean,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.submission_edit_bind(uuid,uuid,boolean,text) TO authenticated,service_role;
