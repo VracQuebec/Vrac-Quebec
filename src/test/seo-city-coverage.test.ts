@@ -43,6 +43,12 @@ describe("couverture SEO réelle d'une ville", () => {
     expect(d.plannedDrafts).toBe(1);
     expect(d.items.find((i) => i.kind === "hub")?.status).toBe("to_develop");
   });
+  it("une ancienne date de publication ne transforme pas un brouillon en page publiée", () => {
+    const c = computeCoverage({ ...disraeli, pages: [{ ...page("sable-disraeli", "sable", null, false), published_at: "2026-01-01" }] });
+    expect(c.published).toBe(0);
+    expect(c.plannedDrafts).toBe(1);
+    expect(c.items.find((i) => i.slug === "sable")?.published).toBe(false);
+  });
   it("Disraeli : 3 publiées, 1 brouillon", () => {
     expect(c.published).toBe(3);
     expect(c.drafts).toBe(1);

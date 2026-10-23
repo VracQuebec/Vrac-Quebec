@@ -82,7 +82,7 @@ export function matchTerm(slug: string, materials: CoverageRaw["materials"]): { 
   return best ? { match: "equiv", material: best } : { match: "none", material: null };
 }
 
-const isPublished = (p: CoverageRaw["pages"][number]) => p.status === "published" || !!p.published_at;
+const isPublished = (p: CoverageRaw["pages"][number]) => p.status === "published";
 
 export function computeCoverage(raw: CoverageRaw) {
   const baseTerms = [...raw.terms];
