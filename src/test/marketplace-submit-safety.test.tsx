@@ -8,8 +8,8 @@ vi.mock("@/lib/drafts/useDraft", () => ({ useDraft: () => ({ ready: true, status
 vi.mock("@/components/drafts/DraftStatusBar", () => ({ default: () => null }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { auth: { getUser: async () => ({ data: { user: null } }), getSession: async () => ({ data: { session: null } }) }, storage: { from: () => ({ upload: m.upload }) } } }));
 import ObtenirSoumissions from "@/pages/ObtenirSoumissions";
-beforeEach(() => { m.fetch.mockReset();m.error.mockReset();m.finalize.mockReset();m.upload.mockReset(); vi.stubGlobal("fetch", m.fetch); });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+beforeEach(() => { m.fetch.mockReset();m.error.mockReset();m.finalize.mockReset();m.upload.mockReset(); vi.stubGlobal("fetch", m.fetch); vi.spyOn(window, "scrollTo").mockImplementation(() => {}); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 async function prepare(withPhoto = false) {
   render(<MemoryRouter><HelmetProvider><ObtenirSoumissions /></HelmetProvider></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: /Excavation Fondation/ }));
