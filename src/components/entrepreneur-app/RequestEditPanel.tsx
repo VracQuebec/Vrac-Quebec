@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,15 +13,18 @@ export default function RequestEditPanel({ id, onChanged, load = (id: string) =>
   const [open, setOpen] = useState(false); const [row, setRow] = useState<EditableRequest | null>(null);
   const [form, setForm] = useState<RequestEdit | null>(null); const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false); const [confirm, setConfirm] = useState(false); const lock = useRef(false); const key = useRef(crypto.randomUUID());
+  const generation = useRef(0);
+  useEffect(()=>{generation.current+=1;setRow(null);setForm(null);setOpen(false);return()=>{generation.current+=1;};},[id]);
   const begin = async () => {
     setOpen(true); setRow(null); setForm(null); setError(null); setConfirm(false);setBusy(true);
-    try { const r = await load(id); if (r.id !== id) throw new Error("Dossier incorrect. Accès refusé."); setRow(r); setForm(r.values); }
+    const current=generation.current;
+    try { const r = await load(id); if(current!==generation.current)return; if (r.id !== id) throw new Error("Dossier incorrect. Accès refusé."); setRow(r); setForm(r.values); }
     catch(e) {setError(e instanceof Error ? e.message : "Dossier indisponible.");} finally {setBusy(false);}
   };
   const submit = async () => {
     if (!row || !form || !row.editable || lock.current || !confirm) return;
     lock.current=true;setBusy(true);setError(null);
-    try {await save(row,form,key.current); const r=await load(id); if(r.id!==id || r.version<=row.version)throw new Error("Sauvegarde non relue. Vos modifications restent ouvertes.");setRow(r);setForm(r.values);key.current=crypto.randomUUID();setOpen(false);onChanged();}
+    try {if(!Object.keys(changedRequestFields(row.values,form)).length){setOpen(false);return;}await save(row,form,key.current); const r=await load(id); if(r.id!==id || r.version<=row.version)throw new Error("Sauvegarde non relue. Vos modifications restent ouvertes.");setRow(r);setForm(r.values);key.current=crypto.randomUUID();setOpen(false);onChanged();}
     catch(e){setError(e instanceof Error?e.message:"Enregistrement impossible.");}finally{lock.current=false;setBusy(false);}
   };
   return <section className="space-y-3">
