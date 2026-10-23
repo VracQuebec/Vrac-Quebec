@@ -11,6 +11,8 @@
 - Ronde de sécurité : référentiel rds_categories/rds_codes (lecture seule, listes 1-3); rds_reports/rds_defects écrits seulement par les RPC rds_* (rapport figé, correction = nouvelle version liée); classement mineur/majeur séparé du statut de circulation (48 h depuis le premier constat, jamais remis à zéro); chaque défaut crée une fleet_repairs — blocage levé seulement après validation.
 - Règles par dossier : supabase/AGENTS.md (agenda, obligations, assurances) ; supabase/functions/AGENTS.md ; src/lib/{logbook,seo (dont SEO START),parcours,ops (voyages, OPS-02, CPN-01)}/AGENTS.md.
 - PWA : `push-sw.js` unique, enregistré au chargement, sans cache métier.
+- City generation acquires its local admission lock before awaiting the existing server run-start RPC; interruption recovery re-reads individual task dates and activity, and quota errors stop the batch to avoid duplicate or untracked work.
+- Driver mission tracking is explicitly resumed per page session and stops on visibility/auth changes; mission completion requires a successful RPC and authorized readback, never a local success assumption.
 - EXEC-01 uses submissions and shared domain handlers; SQL/adapters in prepared/exec01b run against empty loopback fixtures only, with hosted activation separately authorized.
 - Prepared durable submission subdirectories have their own AGENTS.md; read them before changes to preserve fail-closed retries and additive rollback compatibility.
 - EXEC-01 personal-link corrections and inverses pin the exact pg_get_functiondef signature, text and fingerprint; refuse drift instead of adapting, and discriminate consumed-code cooldowns through existing failure state to keep prepared changes schema-neutral.
