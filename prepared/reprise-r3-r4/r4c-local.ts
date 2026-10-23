@@ -29,6 +29,14 @@ export async function createR4CLocal() {
   await db.unsafe(base.slice(base.indexOf('CREATE TABLE request_followups'),base.indexOf('CREATE TABLE crm_notifications')));
   await db.unsafe(coord.slice(coord.indexOf('CREATE FUNCTION public.exec02_exception'),coord.indexOf('-- One service RPC')));
   for(const path of ['R4B-COMPOSITION-NON-APPLIQUEE.sql','INSTALLATION-NON-APPLIQUEE.sql','R4C-INVITATIONS-NON-APPLIQUEES.sql']) await db.unsafe(await readFile('prepared/reprise-r3-r4/'+path,'utf8'));
+  await db.unsafe(`CREATE TABLE jsc_deliveries(id uuid PRIMARY KEY,company_id uuid,driver_id uuid,delivery_number text,status text,scheduled_date date,scheduled_time time,delivery_address text,city text,postal_code text,latitude float8,longitude float8,quantity numeric,quantity_unit text,distance_km numeric,notes text,driver_notes text,signature_name text,proof_photos text[],material_id uuid,pickup_location_id uuid,client_id uuid,archived_at timestamptz);
+   CREATE TABLE jsc_materials(id uuid PRIMARY KEY,name text);CREATE TABLE jsc_pickup_locations(id uuid PRIMARY KEY,name text);CREATE TABLE jsc_clients(id uuid PRIMARY KEY,name text);
+   GRANT SELECT ON jsc_drivers TO authenticated;
+   CREATE POLICY "portal driver reads own file" ON jsc_drivers FOR SELECT TO authenticated USING(user_id=auth.uid());`);
+  const portalBase=await readFile('supabase/migrations/20260731164309_78da7c5b-c06c-49e6-b219-4b19699eff86.sql','utf8');
+  await db.unsafe(portalBase.slice(portalBase.indexOf('CREATE OR REPLACE FUNCTION public.jsc_driver_portal')));
+  await db.unsafe(await readFile('prepared/reprise-r3-r4/R4C-PORTAIL-NON-APPLIQUE.sql','utf8'));
+  await db.unsafe(await readFile('prepared/reprise-r3-r4/R4C-PROFIL-RLS-NON-APPLIQUE.sql','utf8'));
   const as=<T>(user:string,fn:(tx:postgres.TransactionSql)=>Promise<T>)=>db.begin(async tx=>{await tx`select set_config('request.jwt.claim.sub',${user},true)`;await tx.unsafe('SET LOCAL ROLE authenticated');return fn(tx);});
   // No network/sender: internal DB capture only. Never exported as a hosted mail adapter.
   const capture=async(invitation:string,token:string)=>{await db`insert into local_invitation_capture values(${invitation},${db.json({mode:'TEST_CAPTURE_ONLY',token})}) on conflict(invitation_id) do update set payload=excluded.payload`;};
