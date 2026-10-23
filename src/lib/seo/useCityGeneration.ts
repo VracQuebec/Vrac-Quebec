@@ -166,7 +166,7 @@ export function useCityGeneration() {
       const service = slot.service_slug ? services.find((x) => x.slug === slot.service_slug) : undefined;
       let providerUnavailable = false;
       try {
-        const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { created?: boolean; skipped?: boolean; error?: string }>(
+        const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { created?: boolean; updated?: boolean; skipped?: boolean; error?: string }>(
           "seo-generate-page",
           {
             city: { slug: city.slug, name: city.name, region: city.region },
@@ -181,7 +181,7 @@ export function useCityGeneration() {
         );
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
-        if (!data?.created && !data?.skipped) throw new Error("Résultat de génération non confirmé — relire le rapport avant de reprendre.");
+        if (!data?.created && !data?.updated && !data?.skipped) throw new Error("Résultat de génération non confirmé — relire le rapport avant de reprendre.");
         if (data?.skipped) state.log = [`⏭️ ${slot.label} — déjà existante`, ...state.log].slice(0, 80);
         else { state.created += 1; state.log = [`✅ ${slot.label}`, ...state.log].slice(0, 80); }
         details.push({ label: slot.label, ok: true });

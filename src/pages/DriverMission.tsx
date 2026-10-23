@@ -32,27 +32,32 @@ export default function DriverMission() {
   const watch = useRef<number | null>(null);
   const last = useRef(0);
   const operation = useRef(false);
+  const requestVersion = useRef(0);
   const userId = user?.id;
 
   const loadActive = useCallback(async () => {
     if (!userId) return;
+    const version = ++requestVersion.current;
     setLoading(true); setLoadError(null);
     try {
       const { data, error } = await supabase.from("drv_missions").select("id").eq("user_id", userId).is("ended_at", null).maybeSingle();
+      if (version !== requestVersion.current) return;
       if (error) throw new Error(error.message);
       setMission(data?.id ?? null);
       if (data?.id) {
         const { data: pts, error: pointsError } = await supabase.from("drv_points").select("lat,lng,recorded_at").eq("mission_id", data.id).order("recorded_at");
+        if (version !== requestVersion.current) return;
         if (pointsError) throw new Error(pointsError.message);
         setPoints(pts ?? []);
       }
-    } catch (e) { setLoadError(e instanceof Error ? e.message : "Mission indisponible. Réessayez."); }
-    finally { setLoading(false); }
+    } catch (e) { if (version === requestVersion.current) setLoadError(e instanceof Error ? e.message : "Mission indisponible. Réessayez."); }
+    finally { if (version === requestVersion.current) setLoading(false); }
   }, [userId]);
   useEffect(() => {
     setTracking(false); setConsent(false); setMission(null); setPoints([]); setLastPosition(null);
     if (userId) void loadActive();
     return () => {
+      requestVersion.current += 1;
       if (watch.current !== null) navigator.geolocation?.clearWatch(watch.current);
       watch.current = null;
     };

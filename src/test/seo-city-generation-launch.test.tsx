@@ -58,4 +58,11 @@ describe("lancement SEO — réseau entièrement simulé", () => {
     await act(async () => { await result.current.generate(city, slots.slice(0, 1), "missing"); });
     expect(mocks.rpc.mock.calls.find(([n]) => n === "seo_city_run_finish")?.[1]).toMatchObject({ _created: 0, _errors: 1 });
   });
+  it("une régénération confirmée par updated reste un succès", async () => {
+    const { result } = renderHook(() => useCityGeneration());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    mocks.invoke.mockResolvedValue({ data: { created: false, updated: true }, error: null });
+    await act(async () => { await result.current.generate(city, slots.slice(0, 1), "repair"); });
+    expect(mocks.rpc.mock.calls.find(([n]) => n === "seo_city_run_finish")?.[1]).toMatchObject({ _created: 1, _errors: 0 });
+  });
 });
