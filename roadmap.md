@@ -1,5 +1,14 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## Reprise suivante — R3/R4, 23 octobre 17:58 UTC
+- [x] Éditeur et SQL préparés : même dossier/version/historique, notification capturée, décisions à revalider; serveur non installé.
+- [x] Réquisition sur transport_requests, affectation/réponse/avancement/annulation/incident et accès chauffeur personnels testés localement.
+- [x] PostgreSQL vide prouvé, rôle authenticated, révocation/isolation/concurrence testées; aucune migration partagée.
+- [x] Refus SEO = entrepreneur approuvé sans admin; 21 tests SEO conservés. Les cinq tests SQL EXEC-03 désormais exécutés et réussis.
+- [x] Bilan préparé/reprise-r3-r4/README.md et registre actualisés; aucune installation/publication/activation réelle.
+- [ ] R4B : composer EXEC-02 engagé + request_update versionné, invitations/contexte entreprise et vraie chaîne Auth/PostgREST/triggers/notifications capturées; base complète indépendante requise.
+- [ ] Corriger helper chauffeur hébergé seulement après autorisation : ignore actuellement is_active/membership; correctif et inverse préparés, empreinte finale inverse à vérifier.
+
 ## Reprise maître — 23 octobre 2026 (R1 livré, mandat partiel)
 - [x] SEO R1 : 188 villes/28 possibilités théoriques, sept villes comparées en lecture seule; reprises/date, lancement, quota et suivi corrigés/testés sans IA réelle.
 - [x] Accueil : soumissions factuelles, numéro confirmé, double clic et photo refusée; parcours fictif 360/768/1280 vérifié.
@@ -8,7 +17,7 @@
 - [x] Aide/progression corrompue réparée; campagne hiver et visite Jonathan préparées sans envoi ni tarif.
 - [x] Preuves : 179 tests réussis, 5 SQL ignorés, captures sans données réelles; copie consultable livrée.
 - [ ] R2 prochain : catalogue/file/disponibilité SEO et plafond/délais/reprise serveur; lecture du rapport admin refusée à la session personnelle, aucune élévation de droits.
-- [ ] R3–R4 : édition entrepreneur avec revalidation, notifications, accès chauffeurs et réquisitions versionnées restent à développer; reprise exacte dans le registre, limite de cette exécution.
+- [x] R3–R4 : édition et réquisitions préparées et testées localement; activation interdite, compléments R4B listés ci-dessus.
 - [ ] R5 : chaîne complète A–E exige cible indépendante Auth/PostgREST/Storage/capture accessible; aucune simulation remplaçante.
 - [ ] R6 : validation Jonathan/appareils physiques et matériel commercial extérieur non fourni/non retrouvé.
 - Activation serveur partagée, publication, messages réels et opérations payantes non autorisés.

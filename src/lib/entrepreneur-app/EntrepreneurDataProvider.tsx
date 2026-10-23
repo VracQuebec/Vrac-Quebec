@@ -60,6 +60,8 @@ export function EntrepreneurDataProvider({ children }: { children: ReactNode }) 
       return;
     }
     let active = true;
+    // Never retain the previous account's dossier while the new read is pending.
+    setSubmissions([]); setAccessRequests([]); setTrips([]);setLoading(true);
     (async () => {
       setLoading(true);
       setError(null);
@@ -104,6 +106,7 @@ export function EntrepreneurDataProvider({ children }: { children: ReactNode }) 
     const ch = supabase
       .channel(`entr-requests-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "transport_requests", filter: `user_id=eq.${user.id}` }, () => refresh())
+      .on("postgres_changes", { event: "*", schema: "public", table: "submissions", filter: `created_by=eq.${user.id}` }, () => refresh())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, refresh]);

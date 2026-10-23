@@ -17,6 +17,7 @@ import TransportLifecyclePanel from "@/components/entrepreneur-app/TransportLife
 import { deriveJourneyStage } from "@/lib/parcours/submission-display";
 import { mapLinkedTransport } from "@/lib/parcours/validation";
 import { buildDemandeParcours, isTransportLinked } from "@/lib/parcours/demande-parcours";
+import RequestEditPanel from "@/components/entrepreneur-app/RequestEditPanel";
 
 const DetailLine = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
   <div className="flex gap-3 border-b border-border py-3 last:border-0">
@@ -145,6 +146,7 @@ export default function EntrepreneurDemandeDetail() {
 
             <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
               <SectionHeader title="Actions" />
+              {request.submission && <RequestEditPanel id={request.submission.id} onChanged={refresh} />}
               {(request.kind === "transport" || request.dumpSearch) && (
                 <Button asChild className="h-12 w-full font-display font-bold">
                   <Link to={request.kind === "transport" ? "/acces-dompe" : "/entrepreneur/carte"}>

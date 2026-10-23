@@ -18,7 +18,7 @@ import {
 } from "@/lib/entrepreneur-app/lifecycle";
 
 type Row = Record<string, unknown>;
-const EDITABLE = ["site_address", "loading_point", "material_type", "quantity", "quantity_unit", "estimated_trips", "truck_type", "trailer_type", "truck_config", "desired_date", "access_conditions", "client_notes"] as const;
+const EDITABLE = ["site_address", "loading_point", "material_type", "material_other", "quantity", "quantity_unit", "estimated_trips", "truck_type", "trailer_type", "truck_config", "desired_date", "desired_time", "access_conditions", "client_notes"] as const;
 const NUMERIC = new Set(["quantity", "estimated_trips"]);
 const REASONS = ["Chantier reporté", "Besoin annulé", "Erreur dans la demande", "Autre solution trouvée"];
 
@@ -167,7 +167,7 @@ export default function TransportLifecyclePanel({ id, onChanged }: { id: string;
                   {k === "access_conditions" || k === "client_notes" ? (
                     <Textarea id={`f-${k}`} maxLength={1000} value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
                   ) : (
-                    <Input id={`f-${k}`} type={k === "desired_date" ? "date" : NUMERIC.has(k) ? "number" : "text"} maxLength={200} value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
+                    <Input id={`f-${k}`} type={k === "desired_date" ? "date" : k === "desired_time" ? "time" : NUMERIC.has(k) ? "number" : "text"} maxLength={200} value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
                   )}
                 </div>
               ))}

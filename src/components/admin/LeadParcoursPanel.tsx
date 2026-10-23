@@ -64,6 +64,8 @@ export interface ParcoursLead {
   utm_campaign?: string | null;
   landing_referrer?: string | null;
   description?: string | null;
+  edit_details?: { material_description?: string; desired_time?: string; access_instructions?: string } | null;
+  edit_version?: number | null;
 }
 
 const NA = "Non renseigné";
@@ -141,6 +143,7 @@ export default function LeadParcoursPanel({ lead }: { lead: ParcoursLead }) {
         <Grid>
           <Row label="Matériaux sélectionnés" value={(lead.materials ?? []).join(", ") || NA} />
           <Row label="Précision" value={txt(lead.other_material)} />
+          {lead.edit_details?.material_description && <Row label="Composition modifiée" value={lead.edit_details.material_description} />}
           {(lead.material_selections ?? []).map((m, i) => (
             <Row key={i} label={m.stance === "accepted" ? "Catalogue — accepté" : m.stance === "refused" ? "Catalogue — refusé" : "Catalogue — à confirmer"}
               value={[m.name, m.variant_label, m.conditions].filter(Boolean).join(" · ")} />
@@ -166,6 +169,7 @@ export default function LeadParcoursPanel({ lead }: { lead: ParcoursLead }) {
       </Section>
 
       <Section title="Accessibilité" icon={ShieldCheck}>
+        {lead.edit_details?.access_instructions && <Row label="Consignes modifiées" value={lead.edit_details.access_instructions} />}
         {criteria.length === 0 ? (
           <p className="font-body text-xs text-muted-foreground">Aucun critère d'accès recueilli.</p>
         ) : (
@@ -238,6 +242,8 @@ export default function LeadParcoursPanel({ lead }: { lead: ParcoursLead }) {
         <Grid>
           <Row label="Numéro" value={lead.submission_number != null ? `#${lead.submission_number}` : NA} />
           <Row label="Identifiant" value={lead.id} />
+          {lead.edit_version != null && <Row label="Version de modification" value={String(lead.edit_version)} />}
+          {lead.edit_details?.desired_time && <Row label="Heure demandée" value={lead.edit_details.desired_time} />}
           <Row label="Source" value={txt(lead.lead_source)} />
           <Row label="UTM source" value={txt(lead.utm_source)} />
           <Row label="UTM medium" value={txt(lead.utm_medium)} />
