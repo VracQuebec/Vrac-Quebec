@@ -64,6 +64,17 @@ BEGIN
     RETURN jsonb_build_object('group_id', g_id, 'request_number', g_num, 'replay', true,
       'locations', (SELECT jsonb_agg(jsonb_build_object('id', id, 'dompe_number', dompe_number, 'index', location_index) ORDER BY location_index) FROM submissions WHERE request_group_id = g_id));
   END IF;
+  -- Validation complète AVANT toute insertion : un refus ne consomme aucun numéro.
+  FOR loc IN SELECT * FROM jsonb_array_elements(p_locations) LOOP
+    i := i + 1;
+    IF (loc->>'latitude') IS NULL OR (loc->>'longitude') IS NULL OR length(btrim(coalesce(loc->>'address',''))) < 5 THEN
+      RAISE EXCEPTION 'location_% invalid', i USING ERRCODE = '22023';
+    END IF;
+  END LOOP;
+  IF (SELECT count(DISTINCT round((l->>'latitude')::numeric,6)||','||round((l->>'longitude')::numeric,6)) FROM jsonb_array_elements(p_locations) l) <> jsonb_array_length(p_locations) THEN
+    RAISE EXCEPTION 'duplicate_location' USING ERRCODE = '22023';
+  END IF;
+  i := 0;
   INSERT INTO submission_request_groups(client_email, client_name, client_phone, location_count, idempotency_key)
   VALUES (p_group->>'email', p_group->>'name', p_group->>'phone', jsonb_array_length(p_locations), p_group->>'idempotency_key')
   RETURNING id, request_number INTO g_id, g_num;
