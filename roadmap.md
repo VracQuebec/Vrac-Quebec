@@ -1,5 +1,12 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## R4C — reprise du 23 octobre 18:34 UTC
+- [ ] Composer les invitations employés avec les identités chauffeurs JSC : activation personnelle, expiration, renouvellement et révocation, sans envoi réel.
+- [ ] Tester la chaîne fictive invitation capturée→activation→réquisition→réponse→clôture et R4B concurrence/capacité/historique; distinguer SQL local de vraie Auth/API.
+- [ ] Consolider le paquet R3/R4/R4B/R4C, les empreintes, l'ordre, les autorisations et le retour non destructif.
+- [ ] Corriger les libellés ambigus du bilan, actualiser les sous-lots ouverts et poursuivre une partie indépendante.
+- Installation partagée, publication et activation nouvelles restent non autorisées; session admin approuvée distincte requise pour SEO.
+
 ## R4B — reprise du 23 octobre 18:19 UTC
 - [x] Composition locale accord→exception, snapshots/mesures préservés; acceptation EXEC02 concurrente testée.
 - [x] Réquisition/transport versionnés, guards legacy, notifications persistantes et camion actif préparés/testés; nouveau service non installé.
