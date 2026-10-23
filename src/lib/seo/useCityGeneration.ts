@@ -191,7 +191,7 @@ export function useCityGeneration() {
         const msg = e instanceof Error ? e.message : "Erreur inconnue";
         state.log = [`❌ ${slot.label} — ${msg}`, ...state.log].slice(0, 80);
         details.push({ label: slot.label, ok: false, error: msg });
-        providerUnavailable = /\b(402|429)\b|quota|rate.limit/i.test(msg);
+        providerUnavailable = /\b(402|429|503)\b|quota|rate.limit/i.test(msg);
       }
       state.done += 1;
       setRun({ ...state });
@@ -224,6 +224,9 @@ export function useCityGeneration() {
     const result = `${city.name} : ${state.created} page(s) créée(s), ${state.errors} erreur(s), ${state.total - state.done} non traitée(s). Aucune publication automatique.`;
     if (trackingFailure) toast.error(`${result} Fin du suivi non confirmée : ${trackingFailure}`);
     else if (state.errors) toast.error(result); else toast.success(result);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Démarrage non confirmé. Aucune publication automatique.");
+      throw e;
     } finally {
       launchRef.current = false;
       runRef.current = null;

@@ -11,6 +11,7 @@ import ObtenirSoumissions from "@/pages/ObtenirSoumissions";
 beforeEach(() => { m.fetch.mockReset();m.error.mockReset();m.finalize.mockReset();m.upload.mockReset(); vi.stubGlobal("fetch", m.fetch); vi.spyOn(window, "scrollTo").mockImplementation(() => {}); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 async function prepare(withPhoto = false) {
+  window.scrollTo = () => {};
   render(<MemoryRouter><HelmetProvider><ObtenirSoumissions /></HelmetProvider></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: /Excavation Fondation/ }));
   fireEvent.change(screen.getByLabelText("Ville"), { target: { value: "Fictif" } });
