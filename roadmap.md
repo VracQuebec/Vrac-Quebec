@@ -6,7 +6,7 @@
 - [x] EXEC-01–08 : registre docs/audit/reprise-maitre-2026-10-23.md; 0225–0230 confirmées installées par empreintes du journal, paramètres inchangés.
 - [x] Chauffeur R1 : reprise explicite, arrêt visibilité/compte, clôture relue; PWA acceptation distincte d'installation. 3 largeurs fictives, aucun GPS réel.
 - [x] Aide/progression corrompue réparée; campagne hiver et visite Jonathan préparées sans envoi ni tarif.
-- [x] Preuves : 178 tests réussis, 5 SQL ignorés, captures sans données réelles; copie consultable livrée.
+- [x] Preuves : 179 tests réussis, 5 SQL ignorés, captures sans données réelles; copie consultable livrée.
 - [ ] R2 prochain : catalogue/file/disponibilité SEO et plafond/délais/reprise serveur; lecture du rapport admin refusée à la session personnelle, aucune élévation de droits.
 - [ ] R3–R4 : édition entrepreneur avec revalidation, notifications, accès chauffeurs et réquisitions versionnées restent à développer; reprise exacte dans le registre, limite de cette exécution.
 - [ ] R5 : chaîne complète A–E exige cible indépendante Auth/PostgREST/Storage/capture accessible; aucune simulation remplaçante.

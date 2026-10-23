@@ -59,7 +59,7 @@ Les lots manuels restent séquentiels par ville; plafond configurable, délais e
 | 18 Aide/formation | Aide existante, progression appareil | Progression corrompue réparée sans fausse complétion; checklist Jonathan préparée; hébergement support non raccordé |
 | 19 Validation Jonathan | Non vérifiée | Parcours courts et fiche de validation préparés; aucune validation métier attribuée à Cassandra ou Jonathan |
 | 20 Commercial/abonnement | `/entrepreneur/abonnement`, scripts EXEC-07 existants | Aucun tarif/paiement modifié; catalogue 6 pages/guide représentant/plan tournage commercial non retrouvés dans fichiers examinés |
-| 21 Vérifications | 178 tests réussis, 5 SQL ignorés; navigateur décrit ci-dessous | Pas certification A–E ni test fournisseur/appareil réel |
+| 21 Vérifications | 179 tests réussis, 5 SQL ignorés; navigateur décrit ci-dessous | Pas certification A–E ni test fournisseur/appareil réel |
 | 22 Livraison/reprise | Ce registre + copie consultable | Travail global non terminé; aucune activation proposée comme immédiatement prête |
 
 ## 3. Installation réelle, paramètres et structures
@@ -98,7 +98,7 @@ Tests : `src/test/seo-city-plan.test.ts`, `seo-city-coverage.test.ts`, `seo-city
 Documents : ce registre, `prepared/campagne-hiver-2027.md`, `prepared/reprise-formation-jonathan-2026-10-23.md`, `roadmap.md`, `AGENTS.md`, mémoire de contraintes du mandat. `communications.ts` a été inspecté; le nouveau type hivernal incompatible a été retiré, aucune modification fonctionnelle finale du catalogue de modèles.
 
 ## 6. Tests réellement exécutés et preuves
-- Vitest final : **18 fichiers, 178 réussis, 5 ignorés, 0 échec**. Fichier complet `docs/audit/reprise-maitre-preuves/tests-final.txt`.
+- Vitest final : **18 fichiers, 179 réussis, 5 ignorés, 0 échec**. Fichier complet `docs/audit/reprise-maitre-preuves/tests-final.txt`.
 - SEO : reprise partielle/date récente, lancement concurrent pendant RPC, démarrage refusé, quota, résultat absent, régénération `updated`, sauvegarde progression refusée, protection existante des pages publiées. Tous appels IA simulés.
 - Soumissions : numéro absent → brouillon conservé; double clic → un appel; upload refusé → pas d’envoi sans pièce.
 - Chauffeur : ouverture sans GPS, autorisation explicite, page cachée puis reprise non automatique, logout, lecture refusée, clôture refusée ou non relue. Aucun point réel.
