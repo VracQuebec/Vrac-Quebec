@@ -30,6 +30,12 @@ describe("plan d'action d'une ville", () => {
     expect(p.stalled).toBe(0);
     expect(p.generate.enabled).toBe(false);
   });
+  it("une date de tâche inconnue ne crée pas une reprise que le sélecteur refuse", () => {
+    const p = cityPlan({ ...base, problems: [row({ gen_state: "pending", task_updated_at: null })] });
+    expect(p.stalled).toBe(0);
+    expect(p.generate.count).toBe(0);
+    expect(p.generate.enabled).toBe(false);
+  });
   it("page publiée non indexée volontairement : ni erreur, ni régénération", () => {
     const p = cityPlan({ ...base, problems: [row({ gen_state: "invalid", issues: ["Publiée mais noindex"] })] });
     expect(p.noindex).toBe(1);

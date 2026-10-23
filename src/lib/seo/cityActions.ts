@@ -84,9 +84,10 @@ export function cityPlan(i: CityPlanInput) {
   const missing = rows.filter((p) => p.gen_state === "missing").length;
   const failed = rows.filter((p) => p.gen_state === "error").length;
   const pendingRows = rows.filter((p) => p.gen_state === "pending");
-  const stalled = pendingRows.filter((p) =>
-    !i.globalRunActive && !i.runningHere &&
-    (!p.task_updated_at || now - new Date(p.task_updated_at).getTime() > STALE_PENDING_MS)).length;
+  const stalled = pendingRows.filter((p) => {
+    const updated = p.task_updated_at ? Date.parse(p.task_updated_at) : NaN;
+    return !i.globalRunActive && !i.runningHere && Number.isFinite(updated) && now - updated > STALE_PENDING_MS;
+  }).length;
   const pending = pendingRows.length - stalled;
   const invalid = rows.filter((p) => p.gen_state === "invalid" && !isNoindexOnly(p));
   const invalidPublished = invalid.filter((p) => i.publishedKeys.has(slotKey(p.kind, p.material_slug, p.service_slug))).length;
