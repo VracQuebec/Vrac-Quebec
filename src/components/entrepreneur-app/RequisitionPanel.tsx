@@ -6,19 +6,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { requisitionAction, requisitionLabels, requisitionSchema, type Requisition, type RequisitionOptions } from "@/lib/ops/requisitions";
 import { requestWorkbenchCall, REQUEST_WORKBENCH_INSTALLED } from "@/lib/parcours/request-edit";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getActiveCompanyId } from "@/lib/fleet/tenant";
+import { getActiveCompanyId, fetchCompanies, setActiveCompanyId, type FleetCompany } from "@/lib/fleet/tenant";
 
 const actionLabels: Record<string,string>={transmit:"Transmettre",accept:"Accepter",refuse:"Refuser",start:"Commencer",loading:"Chargement",arrival:"Arrivée",unloading:"Déchargement",complete:"Terminer",cancel:"Annuler",incident:"Signaler un incident"};
 export default function RequisitionPanel({ company = getActiveCompanyId(), driver=false, read=(company:string)=>requestWorkbenchCall<Requisition[]>("requisition_read",{_company:company}), act=requisitionAction }: {company?:string|null;driver?:boolean;read?:(c:string)=>Promise<Requisition[]>;act?:typeof requisitionAction}){
+ const [companies,setCompanies]=useState<FleetCompany[]>([]);
+ const [selectedCompany,setSelectedCompany]=useState(company);
+ company=selectedCompany;
  const [rows,setRows]=useState<Requisition[]>([]);const [error,setError]=useState<string|null>(null);const [busy,setBusy]=useState(false);const [reason,setReason]=useState("");const lock=useRef(false);
  const [options,setOptions]=useState<RequisitionOptions>({requests:[],drivers:[],trucks:[],destinations:[]});
  const readGeneration=useRef(0);
+ useEffect(()=>{if(!REQUEST_WORKBENCH_INSTALLED)return;let active=true;void fetchCompanies().then(list=>{if(active)setCompanies(list.filter(c=>c.is_active));}).catch(()=>{if(active)setError("Entreprises autorisées indisponibles.");});return()=>{active=false;};},[]);
  const [assign,setAssign]=useState(false);const [values,setValues]=useState({request_id:"",driver_id:"",truck_id:"",destination_id:"",material:"",quantity:"",unit:"",starts_at:"",instructions:""});
  const load=async()=>{if(!company)return;const current=++readGeneration.current;setError(null);try{const next=await read(company);if(current!==readGeneration.current)return;setRows(next);if(!driver&&REQUEST_WORKBENCH_INSTALLED)setOptions(await requestWorkbenchCall<RequisitionOptions>("requisition_options",{_company:company}));}catch(e){if(current===readGeneration.current)setError(e instanceof Error?e.message:"Lecture impossible.");}};
  useEffect(()=>{setRows([]);setOptions({requests:[],drivers:[],trucks:[],destinations:[]});if(company)void load();return()=>{readGeneration.current+=1;};},[company]); // eslint-disable-line react-hooks/exhaustive-deps
  const perform=async(row:Requisition,action:string)=>{if(lock.current||!window.confirm(`${actionLabels[action]??action} cette réquisition ?`))return;lock.current=true;setBusy(true);setError(null);try{await act(row,action,reason,crypto.randomUUID());await load();}catch(e){setError(e instanceof Error?e.message:"Action non enregistrée.");}finally{lock.current=false;setBusy(false);}};
  const save=async()=>{if(!company||lock.current)return;lock.current=true;setBusy(true);try{const payload=requisitionSchema.parse({...values,company_id:company,quantity:Number(values.quantity),starts_at:new Date(values.starts_at).toISOString()});const result=await requestWorkbenchCall<{id:string;version:number}>("requisition_assign",{_id:payload.request_id,_company:company,_version:options.requests.find(r=>r.id===payload.request_id)?.version??0,_values:payload,_operation:crypto.randomUUID(),_confirmed:true});if(result.id!==payload.request_id)throw Error("Dossier non confirmé.");setAssign(false);await load();}catch(e){setError(e instanceof Error?e.message:"Affectation non enregistrée.");}finally{lock.current=false;setBusy(false);}};
  return <section className="space-y-4 border-t border-border py-4"><h2 className="font-display text-lg font-bold">Réquisitions</h2>
+ {REQUEST_WORKBENCH_INSTALLED&&<Select value={company??""} onValueChange={id=>{setSelectedCompany(id);setActiveCompanyId(id);setAssign(false);setReason("");}}><SelectTrigger aria-label="Entreprise de la réquisition"><SelectValue placeholder="Choisir votre entreprise"/></SelectTrigger><SelectContent>{companies.map(c=><SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>}
  {!REQUEST_WORKBENCH_INSTALLED&&<p className="text-sm text-muted-foreground">Service de réquisitions préparé, non installé. Aucun envoi ni affectation réels disponibles.</p>}
  {!company&&<p className="text-sm text-muted-foreground">Sélectionnez votre entreprise autorisée pour consulter les réquisitions.</p>}
  {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
