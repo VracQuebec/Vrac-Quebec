@@ -37,6 +37,7 @@ BEGIN
   UPDATE jsc_drivers SET user_id=NEW.accepted_by WHERE id=d.id;
   INSERT INTO ent_crm_history(company_id,entity,entity_id,action,actor_id,after,origin)
    VALUES(NEW.company_id,'chauffeur',d.id,'acces_personnel_active',NEW.accepted_by,jsonb_build_object('invitation',NEW.id,'user_id',NEW.accepted_by),'entreprise');
+  PERFORM crm_notify('driver-invite-accepted-'||NEW.id,'transport','driver_access','normale','Accès chauffeur activé',NULL,'chauffeur',d.id,'/admin/missions',NULL,NULL,NULL,jsonb_build_object('company_id',NEW.company_id),false);
  END IF;
  IF TG_OP='UPDATE' AND OLD.revoked_at IS NULL AND NEW.revoked_at IS NOT NULL AND OLD.accepted_by IS NOT NULL THEN
   PERFORM pg_advisory_xact_lock(hashtext('driver-access:'||NEW.company_id));
@@ -44,6 +45,7 @@ BEGIN
   UPDATE jsc_drivers SET is_active=false WHERE id=NEW.driver_id AND user_id=OLD.accepted_by AND company_id=NEW.company_id;
   INSERT INTO ent_crm_history(company_id,entity,entity_id,action,actor_id,after,origin)
    VALUES(NEW.company_id,'chauffeur',NEW.driver_id,'acces_personnel_revoque',auth.uid(),jsonb_build_object('invitation',NEW.id),'entreprise');
+  PERFORM crm_notify('driver-invite-revoked-'||NEW.id,'transport','driver_access','normale','Accès chauffeur retiré',NULL,'chauffeur',NEW.driver_id,'/admin/missions',NULL,NULL,NULL,jsonb_build_object('company_id',NEW.company_id),false);
  END IF;
  RETURN NEW;
 END $$;
@@ -69,6 +71,7 @@ BEGIN
  IF i.renewal_key=_key THEN IF i.token_hash<>h THEN RAISE EXCEPTION 'Clé réutilisée' USING ERRCODE='P0409'; END IF; RETURN i.id; END IF;
  IF i.token_hash=h OR EXISTS(SELECT 1 FROM ent_crm_history WHERE entity='chauffeur_invitation' AND entity_id=i.id AND after->>'operation'=_key::text) THEN RAISE EXCEPTION 'Nouveau lien requis' USING ERRCODE='P0409'; END IF;
  IF NOT EXISTS(SELECT 1 FROM jsc_drivers WHERE id=i.driver_id AND company_id=i.company_id AND user_id IS NULL AND is_active AND archived_at IS NULL) THEN RAISE EXCEPTION 'Profil indisponible' USING ERRCODE='42501'; END IF;
+ IF EXISTS(SELECT 1 FROM ent_employee_invites WHERE driver_id=i.driver_id AND id<>i.id AND revoked_at IS NULL AND accepted_at IS NULL AND expires_at>now()) THEN RAISE EXCEPTION 'Autre invitation en attente' USING ERRCODE='P0409'; END IF;
  UPDATE ent_employee_invites SET token_hash=h,renewal_key=_key,expires_at=now()+interval '7 days',created_by=auth.uid() WHERE id=i.id;
  INSERT INTO ent_crm_history(company_id,entity,entity_id,action,actor_id,after,origin) VALUES(i.company_id,'chauffeur_invitation',i.id,'lien_renouvele',auth.uid(),jsonb_build_object('operation',_key),'entreprise');
  RETURN i.id;
@@ -76,5 +79,12 @@ END $$;
 CREATE FUNCTION public.driver_invite_revoke(_id uuid) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 BEGIN PERFORM pun_invite_revoke(_id); END $$;
 
-REVOKE ALL ON FUNCTION public.driver_invite_prepare(uuid,uuid,text,text,text),public.driver_invite_accept(text),public.driver_invite_renew(uuid,uuid,text),public.driver_invite_revoke(uuid),public.driver_invite_identity_guard() FROM PUBLIC,anon;
-GRANT EXECUTE ON FUNCTION public.driver_invite_prepare(uuid,uuid,text,text,text),public.driver_invite_accept(text),public.driver_invite_renew(uuid,uuid,text),public.driver_invite_revoke(uuid) TO authenticated;
+CREATE FUNCTION public.driver_invite_options(_company uuid) RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+ IF NOT entcrm_can_admin(_company) THEN RAISE EXCEPTION 'Accès refusé' USING ERRCODE='42501'; END IF;
+ RETURN jsonb_build_object('drivers',coalesce((SELECT jsonb_agg(jsonb_build_object('id',id,'name',concat_ws(' ',first_name,last_name))) FROM jsc_drivers WHERE company_id=_company AND is_active AND archived_at IS NULL AND user_id IS NULL),'[]'),
+ 'invites',coalesce((SELECT jsonb_agg(jsonb_build_object('id',id,'driver_id',driver_id,'email',email,'expires_at',expires_at,'accepted_at',accepted_at,'revoked_at',revoked_at)) FROM ent_employee_invites WHERE company_id=_company AND driver_id IS NOT NULL),'[]'));
+END $$;
+
+REVOKE ALL ON FUNCTION public.driver_invite_prepare(uuid,uuid,text,text,text),public.driver_invite_accept(text),public.driver_invite_renew(uuid,uuid,text),public.driver_invite_revoke(uuid),public.driver_invite_options(uuid),public.driver_invite_identity_guard() FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.driver_invite_prepare(uuid,uuid,text,text,text),public.driver_invite_accept(text),public.driver_invite_renew(uuid,uuid,text),public.driver_invite_revoke(uuid),public.driver_invite_options(uuid) TO authenticated;
