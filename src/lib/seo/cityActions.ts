@@ -127,12 +127,14 @@ export function cityPlan(i: CityPlanInput) {
 }
 
 /** Cibles de génération d'une ville : manquantes, échouées et (si autorisé) interrompues — sans doublon. */
-export function generationTargets<T extends { state: string; kind: string; material_slug: string | null; service_slug: string | null }>(
-  slots: T[], includeStalled: boolean,
+export function generationTargets<T extends { state: string; kind: string; material_slug: string | null; service_slug: string | null; task_updated_at?: string | null }>(
+  slots: T[], includeStalled: boolean, now = Date.now(), activeRun = false,
 ): T[] {
   const seen = new Set<string>();
   return slots.filter((s) => {
-    if (!(s.state === "missing" || s.state === "error" || (includeStalled && s.state === "pending"))) return false;
+    const updated = s.task_updated_at ? Date.parse(s.task_updated_at) : NaN;
+    const stalled = includeStalled && !activeRun && s.state === "pending" && Number.isFinite(updated) && now - updated > STALE_PENDING_MS;
+    if (!(s.state === "missing" || s.state === "error" || stalled)) return false;
     const k = slotKey(s.kind, s.material_slug, s.service_slug);
     if (seen.has(k)) return false;
     seen.add(k); return true;

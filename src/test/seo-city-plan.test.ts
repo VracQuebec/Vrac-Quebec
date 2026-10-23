@@ -62,7 +62,20 @@ describe("cibles de génération", () => {
     expect(generationTargets([s("published", "sable"), s("draft", "gravier")], true)).toEqual([]);
   });
   it("reprise : tâches interrompues incluses seulement si autorisé", () => {
-    expect(generationTargets([s("pending", "sable")], false)).toEqual([]);
-    expect(generationTargets([s("pending", "sable")], true)).toHaveLength(1);
+    const old = { ...s("pending", "sable"), task_updated_at: new Date(NOW - STALE_PENDING_MS - 1).toISOString() };
+    expect(generationTargets([old], false, NOW)).toEqual([]);
+    expect(generationTargets([old], true, NOW)).toHaveLength(1);
+  });
+  it("une reprise partielle ne rejoue pas la tâche récente ni une date inconnue", () => {
+    const slots = [
+      { ...s("pending", "sable"), task_updated_at: new Date(NOW - STALE_PENDING_MS - 1).toISOString() },
+      { ...s("pending", "terre"), task_updated_at: new Date(NOW - 60_000).toISOString() },
+      s("pending", "roc"),
+    ];
+    expect(generationTargets(slots, true, NOW).map((x) => x.material_slug)).toEqual(["sable"]);
+  });
+  it("une exécution devenue active interdit la reprise des tâches interrompues", () => {
+    const old = { ...s("pending", "sable"), task_updated_at: new Date(NOW - STALE_PENDING_MS - 1).toISOString() };
+    expect(generationTargets([old], true, NOW, true)).toEqual([]);
   });
 });
