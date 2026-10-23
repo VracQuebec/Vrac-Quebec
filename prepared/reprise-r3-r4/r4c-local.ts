@@ -58,6 +58,7 @@ export async function createR4CLocal() {
   await db.unsafe(await readFile('drizzle/migrations/0171_drv_points_natif.sql','utf8'));
   await db.unsafe(await readFile('prepared/reprise-r3-r4/R4D-CAPTURE-NON-APPLIQUEE.sql','utf8'));
   await db.unsafe(await readFile('prepared/reprise-r3-r4/R4D-REVOCATION-NON-APPLIQUEE.sql','utf8'));
+  await db.unsafe(await readFile('prepared/reprise-r3-r4/R4D-RPC-MISSIONS-NON-APPLIQUE.sql','utf8'));
   const as=<T>(user:string,fn:(tx:postgres.TransactionSql)=>Promise<T>)=>db.begin(async tx=>{await tx`select set_config('request.jwt.claim.sub',${user},true)`;await tx.unsafe('SET LOCAL ROLE authenticated');return fn(tx);});
   // No network/sender: internal DB capture only. Never exported as a hosted mail adapter.
   const capture=async(invitation:string,token:string)=>{await db`insert into local_invitation_capture values(${invitation},${db.json({mode:'TEST_CAPTURE_ONLY',token})}) on conflict(invitation_id) do update set payload=excluded.payload`;};

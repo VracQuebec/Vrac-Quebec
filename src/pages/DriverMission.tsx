@@ -50,7 +50,7 @@ export default function DriverMission() {
         if (pointsError) throw new Error(pointsError.message);
         setPoints(pts ?? []);
       }
-    } catch (e) { if (version === requestVersion.current) setLoadError(e instanceof Error ? e.message : "Mission indisponible. Réessayez."); }
+    } catch (e) { if (version === requestVersion.current) {setTracking(false);setMission(null);setPoints([]);setLastPosition(null);setLoadError(e instanceof Error ? e.message : "Mission indisponible. Réessayez.");} }
     finally { if (version === requestVersion.current) setLoading(false); }
   }, [userId]);
   useEffect(() => {
@@ -89,7 +89,7 @@ export default function DriverMission() {
         setGeoError(null);
         setLastPosition({ at, accuracy: pos.coords.accuracy });
         setPoints((p) => [...p, { lat: pos.coords.latitude, lng: pos.coords.longitude, recorded_at: at }]);
-      } catch (e) { if (active) setGeoError(e instanceof Error ? e.message : "Position non enregistrée."); }
+      } catch (e) { if (active) {setTracking(false);setPoints([]);setLastPosition(null);setGeoError(e instanceof Error ? e.message : "Position non enregistrée.");} }
     }, (e) => {
       if (!active) return;
       setGeoError(e.code === 1 ? "Localisation refusée : autorisez-la dans les réglages du navigateur." : "Position indisponible pour le moment.");
@@ -104,7 +104,10 @@ export default function DriverMission() {
     operation.current = true;
     setBusy(true);
     try {
-      const { data, error } = await supabase.rpc("drv_mission_start", { _sub: null as never, _driver: f.driver, _truck: f.truck, _consent: true });
+      const rid=new URLSearchParams(window.location.search).get('requisition');
+      const { data, error } = rid
+        ? await supabase.rpc('driver_tracking_start' as never,{rid,consent:true} as never)
+        : await supabase.rpc("drv_mission_start", { _sub: null as never, _driver: f.driver, _truck: f.truck, _consent: true });
       if (error) throw new Error(error.message);
       if (typeof data !== "string" || !data) throw new Error("Démarrage non confirmé. Réessayez après relecture de la mission.");
       setMission(data); setPoints([]); setTracking(true);
