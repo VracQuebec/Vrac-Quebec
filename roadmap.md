@@ -1,5 +1,14 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## Reprise maître — 23 octobre 2026
+- [ ] SEO prioritaire : comparer couverture réelle, corriger les défauts démontrés et tester reprise/échec/doublon sans génération réelle.
+- [ ] Accueil : clarifier les soumissions selon les catégories ouvertes et vérifier le parcours sans écriture réelle.
+- [ ] EXEC-01–08 : actualiser le registre avec preuves actuelles et dépendances, sans confondre développement et activation.
+- [ ] Chauffeurs/réquisitions/localisation/installation : vérifier les modules existants, compléter les parties indépendantes et signaler les appareils manquants.
+- [ ] Communications/formation/commercial : inventorier et préparer les compléments factuels, sans envoi ni achat.
+- [ ] Livrer résultats ciblés, chemins et copie consultable du bilan; enregistrer le prochain sous-lot exact.
+- Activation serveur partagée, publication, messages réels et opérations payantes non autorisés.
+
 ## Suivi client — refonte visuelle, 22 octobre 23:23 UTC
 - [x] États/données/actions analysés; présentation personnelle refaite, protections et handlers conservés.
 - [x] 33 combinaisons fictives à 360/768/1280 px et parcours des actions réussis; 58 tests réussis, 22 SQL ignorés; compilation OK.
