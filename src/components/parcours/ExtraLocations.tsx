@@ -40,7 +40,7 @@ export default function ExtraLocations({ items, onChange, errors }: Props) {
                 <input type="checkbox" checked={l.materials.includes(m)} onChange={() => upd(l.key, { materials: toggle(l.materials, m) })} />{m}
               </label>))}</div>
           </fieldset>
-          <div className="grid grid-cols-[1fr_auto] gap-2">
+          <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
             <input inputMode="decimal" aria-label={`Quantité emplacement ${locationLetter(i + 1)}`} placeholder="Quantité (facultatif)" className={field}
               value={l.quantityValue} onChange={(e) => upd(l.key, { quantityValue: e.target.value })} />
             <select aria-label="Unité" className={field} value={l.quantityUnit} onChange={(e) => upd(l.key, { quantityUnit: e.target.value })}>
