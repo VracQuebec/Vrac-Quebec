@@ -65,7 +65,7 @@ export async function createR4CLocal() {
    GRANT USAGE ON SCHEMA storage TO authenticated;GRANT SELECT ON storage.objects TO authenticated;ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
    CREATE FUNCTION entcrm_can_read(c uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$SELECT EXISTS(SELECT 1 FROM jsc_company_members WHERE company_id=c AND user_id=auth.uid() AND is_active AND archived_at IS NULL)$$;
    CREATE FUNCTION asr_can_read(c uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$SELECT false$$;
-   CREATE TABLE asr_documents(id uuid,storage_path text,company_id uuid);
+   CREATE TABLE asr_documents(id uuid,storage_path text,company_id uuid);GRANT SELECT ON asr_documents TO authenticated;
    CREATE FUNCTION asr_driver_doc_ok(did uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$SELECT EXISTS(SELECT 1 FROM asr_documents d WHERE d.id=did AND driver_company_active(d.company_id))$$;
    CREATE POLICY asr_files_read ON storage.objects FOR SELECT TO authenticated USING(bucket_id='asr-files' AND EXISTS(SELECT 1 FROM asr_documents d WHERE d.storage_path=objects.name AND asr_driver_doc_ok(d.id)));`);
   await db.unsafe(await readFile('drizzle/migrations/0175_company_documents.sql','utf8'));
