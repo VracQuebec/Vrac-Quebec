@@ -54,7 +54,7 @@ BEGIN
  IF length(coalesce(newvalues->>'quantity_unit','')) NOT BETWEEN 1 AND 40 OR length(coalesce(newvalues->>'material_description',''))>4000 OR length(coalesce(newvalues->>'access_instructions',''))>4000 THEN RAISE EXCEPTION 'Détails invalides'; END IF;
  IF newvalues->>'desired_date' IS NOT NULL THEN PERFORM (newvalues->>'desired_date')::date; END IF;
  IF newvalues->>'desired_time' IS NOT NULL THEN PERFORM (newvalues->>'desired_time')::time; END IF;
- SELECT array_agg(k) INTO changed FROM jsonb_object_keys(_changes) k WHERE oldvalues->k IS DISTINCT FROM newvalues->k;
+ SELECT array_agg(keys.field) INTO changed FROM jsonb_object_keys(_changes) AS keys(field) WHERE oldvalues->keys.field IS DISTINCT FROM newvalues->keys.field;
  IF changed IS NULL THEN RETURN jsonb_build_object('id',s.id,'version',s.edit_version,'revalidation',false); END IF;
  -- Agreements are never overwritten: unsafe operational execution blocks the edit.
  IF EXISTS(SELECT 1 FROM public.transport_requests t WHERE t.origin_submission_id=s.id AND (t.lifecycle_status IN ('prete_transport','en_cours','terminee') OR t.driver_id IS NOT NULL OR t.truck_id IS NOT NULL OR t.requisition_state IN ('running','completed'))) THEN RAISE EXCEPTION 'Transport affecté ou en cours : coordination requise'; END IF;

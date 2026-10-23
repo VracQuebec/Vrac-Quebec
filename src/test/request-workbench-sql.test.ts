@@ -26,7 +26,7 @@ beforeAll(async()=>{
 afterAll(async()=>{await db.end();if(enabled)await root.unsafe(`DROP DATABASE ${name}`);await root.end();});
 const as=<T>(user:string,fn:(tx:postgres.TransactionSql)=>Promise<T>)=>db.begin(async tx=>{await tx`select set_config('request.jwt.claim.sub',${user},true)`;return fn(tx);});
 const values=()=>({company_id:ids.company,request_id:ids.request,driver_id:ids.driver,truck_id:ids.truck,destination_id:ids.site,material:'Terre',quantity:20,unit:'m3',starts_at:'2026-11-01T13:00:00Z',instructions:'Essai fictif'});
-const edit=(user:string,changes:Record<string,unknown>,version=1,key=crypto.randomUUID())=>as(user,async tx=>(await tx`select submission_edit_save(${ids.submission}::uuid,${ids.company}::uuid,${version},${tx.json(changes)},${key}::uuid,true) r`)[0].r);
+const edit=(user:string,changes:Record<string,unknown>,version=1,key=crypto.randomUUID())=>as(user,async tx=>(await tx`select submission_edit_save(${ids.submission}::uuid,${ids.company}::uuid,${version},${tx.json(changes as postgres.JSONValue)},${key}::uuid,true) r`)[0].r);
 const assign=()=>as(ids.owner,async tx=>(await tx`select requisition_assign(${ids.request}::uuid,${ids.company}::uuid,1,${tx.json(values())},${crypto.randomUUID()}::uuid,true) r`)[0].r);
 const action=(user:string,a:string,version:number,key=crypto.randomUUID(),reason='Motif fictif')=>as(user,async tx=>(await tx`select requisition_action(${ids.request}::uuid,${ids.company}::uuid,${version},${a},${reason},${key}::uuid,true) r`)[0].r);
 describe.skipIf(!enabled)('SQL préparé exécuté uniquement dans PostgreSQL jetable',()=>{
