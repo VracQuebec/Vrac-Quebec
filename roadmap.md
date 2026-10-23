@@ -1,12 +1,20 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## R4B — reprise du 23 octobre 18:19 UTC
+- [x] Composition locale accord→exception, snapshots/mesures préservés; acceptation EXEC02 concurrente testée.
+- [x] Réquisition/transport versionnés, guards legacy, notifications persistantes et camion actif préparés/testés; nouveau service non installé.
+- [x] Libellé historique non retrouvé; défaut navigation approved/cache admin corrigé, contrôles serveur approuvés confirmés en SELECT.
+- [x] Ordre exact et autorisations dans prepared/reprise-r3-r4/INSTALLATION-R4B.md; inverse helper non prêt et non exécuté.
+- [x] Registre suite unique communications/hiver/coordination/partenaires/flotte/chauffeurs/localisation/formation actualisé.
+- [ ] R4C : invitations→profil/membership JSC et vraie chaîne Auth/API/Storage/triggers, cible complète indépendante + session admin approuvée manquantes.
+
 ## Reprise suivante — R3/R4, 23 octobre 17:58 UTC
 - [x] Éditeur et SQL préparés : même dossier/version/historique, notification capturée, décisions à revalider; serveur non installé.
 - [x] Réquisition sur transport_requests, affectation/réponse/avancement/annulation/incident et accès chauffeur personnels testés localement.
 - [x] PostgreSQL vide prouvé, rôle authenticated, révocation/isolation/concurrence testées; aucune migration partagée.
 - [x] Refus SEO = entrepreneur approuvé sans admin; 21 tests SEO conservés. Les cinq tests SQL EXEC-03 désormais exécutés et réussis.
 - [x] Bilan préparé/reprise-r3-r4/README.md et registre actualisés; aucune installation/publication/activation réelle.
-- [ ] R4B : composer EXEC-02 engagé + request_update versionné, invitations/contexte entreprise et vraie chaîne Auth/PostgREST/triggers/notifications capturées; base complète indépendante requise.
+- [x] R4B : composition locale réalisée; limites invitations et vraie chaîne déplacées explicitement à R4C, aucune activation.
 - [ ] Corriger helper chauffeur hébergé seulement après autorisation : ignore actuellement is_active/membership; correctif et inverse préparés, empreinte finale inverse à vérifier.
 
 ## Reprise maître — 23 octobre 2026 (R1 livré, mandat partiel)

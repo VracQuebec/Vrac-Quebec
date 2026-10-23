@@ -1,6 +1,7 @@
 // Étapes de suivi (Phase 1) — libellés exacts des valeurs `lifecycle_status`
 // enregistrées en base. Aucune règle métier ici : le serveur décide.
 import { supabase } from "@/integrations/supabase/client";
+import { REQUEST_WORKBENCH_INSTALLED } from "@/lib/parcours/request-edit";
 
 export type LifecycleTone = "pending" | "active" | "done" | "refused" | "neutral";
 
@@ -73,6 +74,8 @@ export const friendlyError = (m: string) => {
   return key ? ERRORS[key] : "L'opération n'a pas pu être enregistrée. Réessayez.";
 };
 
-export const updateRequest = (id: string, changes: Record<string, unknown>) => rpc("request_update", { _id: id, _changes: changes });
+export const updateRequest = (id: string, changes: Record<string, unknown>, version?: number, operation?: string) => REQUEST_WORKBENCH_INSTALLED
+  ? rpc("request_update_versioned", { _id: id, _changes: changes, _version: version, _operation: operation, _confirmed: true })
+  : rpc("request_update", { _id: id, _changes: changes });
 export const cancelRequest = (id: string, reason: string) => rpc("request_cancel", { _id: id, _reason: reason });
 export const askCancellation = (id: string, reason: string) => rpc("request_cancel_request", { _id: id, _reason: reason });

@@ -1,5 +1,12 @@
 # Visite Jonathan — checklist réutilisable préparée
 
+## Fiche de séance R4B
+Date réelle : non fixée. Validation métier : Jonathan. Entreprises A/B et chauffeur : fictifs uniquement, comptes à provisionner dans la cible indépendante; aucun compte réel partagé.
+
+Ordre d’essai : A modifie → admin approuvé relit → accord devient à revalider → chauffeur ne peut pas commencer → nouvelle proposition explicitement acceptée → départ/incident/annulation → relecture de l’historique. Inclure retrait d’accès entre deux actions, refus du compte B et refus de l’admin non approuvé.
+
+Flotte : consulter véhicule affecté et documents autorisés; un défaut majeur conserve son blocage de circulation; ne pas confondre acceptation de mission et signature documentaire. GPS : consentement/démarrage/arrêt d’abord; écran verrouillé/arrière-plan ensuite sur appareil réel. Résultat de séance : non exécuté, pas une formation livrée.
+
 Document de travail, pas une réservation ni une preuve de validation métier. Utiliser les modules existants et un environnement indépendant pour les actions TEST. Cocher seulement après observation; noter date, entreprise fictive, rôle, résultat et anomalie. Aucun contact réel, aucune invitation ou création dans la base publique.
 
 ## Mise en route

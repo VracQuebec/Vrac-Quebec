@@ -1,5 +1,8 @@
 # R3/R4 — édition et réquisitions préparées, non installées
 
+## Actualisation R4B — 23 octobre 18:19 UTC
+Composition réservations et transport réalisée/testée localement; détail et ordre exact dans `INSTALLATION-R4B.md`. Les limites R3/R4 ci-dessous sont historiques : la modification ne bloque plus toute réservation locale, mais invalide les accords affectés vers exception et préserve snapshots/mesures. Invitation JSC, vraie chaîne Auth/API/Storage et mise en service restent non livrées. Aucun serveur partagé modifié.
+
 ## Résultat exact
 Éditeur de demande ajouté au dossier entrepreneur; panneau réquisition ajouté aux transports entrepreneur, missions admin et portail chauffeur. Contrats de sauvegarde/relecture/version et serveur PostgreSQL préparés. `REQUEST_WORKBENCH_INSTALLED=false` : aucune sauvegarde étendue, affectation ou notification réelle exécutables depuis ces nouveaux contrôles sur le serveur partagé. Ce verrou n’est pas une simulation de réussite.
 

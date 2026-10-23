@@ -1,7 +1,7 @@
 // Dossier d'une demande de transport : informations, historique en lecture
 // seule, versions, et boutons Modifier / Annuler. Toutes les règles sont
 // appliquées par le serveur (request_update / request_cancel / request_cancel_request).
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { formatRequestLabel, formatDompeLabel, requestSearchText } from "@/lib/requests/labels";
 import { History, Pencil, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,7 @@ export default function TransportLifecyclePanel({ id, onChanged }: { id: string;
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const editLock = useRef(false);
 
   const load = useCallback(async () => {
     const [r, e, v] = await Promise.all([
@@ -42,11 +43,13 @@ export default function TransportLifecyclePanel({ id, onChanged }: { id: string;
       supabase.from("transport_request_events").select("*").eq("request_id", id).order("created_at", { ascending: false }),
       supabase.from("transport_request_versions").select("version, changed_fields, created_at").eq("request_id", id).order("version", { ascending: false }),
     ]);
+    if (r.error || e.error || v.error || !r.data) throw new Error("Relecture du dossier impossible.");
     setRow((r.data as Row | null) ?? null);
     setEvents((e.data as Row[] | null) ?? []);
     setVersions((v.data as Row[] | null) ?? []);
+    return r.data as Row;
   }, [id]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { setRow(null);void load().catch(() => setRow(null)); }, [load]);
 
   if (!row) return null;
   const meta = lifecycleMeta(String(row.lifecycle_status));
@@ -69,18 +72,24 @@ export default function TransportLifecyclePanel({ id, onChanged }: { id: string;
     return out;
   };
   const saveEdit = async () => {
+    if (editLock.current) return;
     const c = changes();
     if (!Object.keys(c).length) { setEditOpen(false); return; }
     if (Object.entries(c).some(([k, v]) => NUMERIC.has(k) && v != null && !Number.isFinite(v as number))) {
       toast({ title: "Valeur numérique invalide", variant: "destructive" }); return;
     }
-    setBusy(true);
-    const { data, error } = await updateRequest(id, c);
-    setBusy(false);
-    if (error) { toast({ title: friendlyError(error.message), variant: "destructive" }); return; }
-    const res = data as { critical?: string[]; status?: string } | null;
+    editLock.current=true;setBusy(true);
+    try {
+    const { data, error } = await updateRequest(id, c,Number(row.current_version),crypto.randomUUID());
+    if (error) throw new Error(error.message);
+    const res = data as { critical?: string[]; status?: string; version?: number } | null;
+    const saved = await load();
+    if (saved.id !== id || (res?.version != null && Number(saved.current_version) < res.version)) throw new Error("Relecture non confirmée.");
+    if (Object.entries(c).some(([key,value]) => value == null ? saved[key] != null : String(saved[key]) !== String(value))) throw new Error("Les valeurs enregistrées ne sont pas confirmées.");
     toast({ title: "Modification enregistrée", description: res?.critical?.length ? "Changement important : une nouvelle version a été créée et la demande sera revalidée." : "L'historique a été mis à jour." });
-    setEditOpen(false); await load(); onChanged();
+    setEditOpen(false); onChanged();
+    } catch (error) { toast({title:friendlyError(error instanceof Error?error.message:""),variant:"destructive"}); }
+    finally {editLock.current=false;setBusy(false);}
   };
   const doCancel = async () => {
     if (!reason.trim()) { toast({ title: "Le motif est obligatoire.", variant: "destructive" }); return; }

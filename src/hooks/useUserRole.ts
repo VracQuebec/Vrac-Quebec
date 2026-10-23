@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { approvedRoleHints } from "@/lib/auth/approved-roles";
 
 // Rôles de la plateforme. Vrac Québec coordonne plusieurs acteurs :
 // aucun transporteur ni propriétaire n'est codé en dur.
@@ -24,9 +25,9 @@ export const useUserRoles = (authUser?: User | null, authReady?: boolean, enable
     // Même compte déjà chargé : on rafraîchit en arrière-plan sans repasser en « chargement ».
     if (loadedFor.current !== user.id) setLoading(true);
     for (let attempt = 0; attempt < 3; attempt++) {
-      const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+      const { data, error } = await supabase.from("user_roles").select("role, approved").eq("user_id", user.id);
       if (!error) {
-        const next = (data || []).map((r) => r.role as AppRole);
+        const next = approvedRoleHints(data || []) as AppRole[];
         try { sessionStorage.setItem(cacheKey, JSON.stringify(next)); } catch { /* stockage indisponible */ }
         loadedFor.current = user.id;
         setRoles(next);
@@ -37,7 +38,8 @@ export const useUserRoles = (authUser?: User | null, authReady?: boolean, enable
     }
     let cached: AppRole[] = [];
     try { cached = JSON.parse(sessionStorage.getItem(cacheKey) ?? "[]"); } catch { cached = []; }
-    setRoles(cached);
+    // Never restore admin navigation from mutable browser storage after a failed read.
+    setRoles(cached.filter(role => role !== "admin"));
     setLoading(false);
   }, []);
 

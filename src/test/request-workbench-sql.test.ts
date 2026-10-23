@@ -13,13 +13,27 @@ beforeAll(async()=>{
  if(check.host!=='127.0.0.1'||check.port!==55439||!check.path.startsWith('/tmp/exec-correctifs/reprise-r3/'))throw Error('Isolation non prouvée');
  await root.unsafe(`CREATE DATABASE ${name} TEMPLATE template0`);
  await db.unsafe(await readFile('prepared/reprise-r3-r4/fixture.sql','utf8'));
+ // Exact existing EXEC-02 reservation table/function, not a second implementation.
+ const coord=await readFile('prepared/exec01b/coordination.sql','utf8');
+ await db.unsafe(coord.slice(coord.indexOf('CREATE TABLE public.submission_reception_reservations'),coord.indexOf('CREATE TABLE public.submission_reception_operations')));
+ const base=await readFile('src/test/fixtures/exec02-base.sql','utf8');
+ await db.unsafe(base.slice(base.indexOf('CREATE TABLE request_followups'),base.indexOf('CREATE TABLE crm_notifications')));
+ await db.unsafe(coord.slice(coord.indexOf('CREATE FUNCTION public.exec02_exception'),coord.indexOf('-- One service RPC')));
+ await db.unsafe(await readFile('prepared/reprise-r3-r4/R4B-COMPOSITION-NON-APPLIQUEE.sql','utf8'));
  await db.unsafe(await readFile('prepared/reprise-r3-r4/INSTALLATION-NON-APPLIQUEE.sql','utf8'));
+ const legacy=await readFile('drizzle/migrations/0052_request_lifecycle_phase1.sql','utf8');
+ await db.unsafe(`ALTER TABLE transport_requests ADD COLUMN user_id uuid, ADD COLUMN client_notes text;
+ ALTER TABLE transport_request_events ADD COLUMN from_status text, ADD COLUMN to_status text;
+ CREATE TABLE request_critical_fields(field text,is_active boolean);
+ CREATE TABLE transport_request_versions(request_id uuid,version integer,snapshot jsonb,changed_fields text[],created_by uuid,PRIMARY KEY(request_id,version));`);
+ await db.unsafe(legacy.slice(legacy.indexOf('CREATE OR REPLACE FUNCTION public.trq_actor_role'),legacy.indexOf('-- Annulation directe')));
+ await db.unsafe(await readFile('prepared/reprise-r3-r4/R4B-TRANSPORT-NON-APPLIQUE.sql','utf8'));
  await db`insert into jsc_companies values(${ids.company},'Fictif A'),(${ids.otherCompany},'Fictif B')`;
  await db`insert into jsc_company_members(company_id,user_id,role)values(${ids.company},${ids.owner},'proprietaire'),(${ids.otherCompany},${ids.other},'proprietaire'),(${ids.company},${ids.driverUser},'chauffeur')`;
  await db`insert into user_roles values(${ids.admin},'admin',true)`;
  await db`insert into jsc_drivers(id,company_id,user_id,is_active,archived_at) values(${ids.driver},${ids.company},${ids.driverUser},true,NULL)`;
  await db`insert into jsc_trucks(id,company_id,is_active,archived_at) values(${ids.truck},${ids.company},true,NULL)`;
- await db`insert into submissions(id,created_by,status,availability_status,materials,address,quantity_value,quantity_unit,quantity,edit_company_id,submission_number)values(${ids.submission},${ids.owner},'nouveau','available',ARRAY['Terre'],'Chantier fictif',100,'m3','100 m3',${ids.company},77)`;
+ await db.begin(async tx=>{await tx`select set_config('vq.workbench','on',true)`;await tx`insert into submissions(id,created_by,status,availability_status,materials,address,quantity_value,quantity_unit,quantity,edit_company_id,submission_number)values(${ids.submission},${ids.owner},'nouveau','available',ARRAY['Terre'],'Chantier fictif',100,'m3','100 m3',${ids.company},77)`;});
  await db`insert into transport_requests(id,request_number,origin_submission_id,lifecycle_status,dump_name)values(${ids.request},'DT-TEST',${ids.submission},'confirmee','Destination fictive')`;
  await db`insert into submission_site_decisions(submission_id,site_id,status)values(${ids.submission},${ids.site},'approuvee')`;
 },30000);
@@ -57,7 +71,7 @@ describe.skipIf(!enabled)('SQL préparé exécuté uniquement dans PostgreSQL je
   expect((await db`select action from transport_request_events where action='requisition_complete'`)).toHaveLength(1);
   expect(Number((await db`select count(*) n from trips`)[0].n)).toBe(0);
  });
- it('une mise à jour directe ne contourne pas la garde des états',async()=>{await expect(db`update transport_requests set requisition_state='accepted'`).rejects.toThrow('RPC obligatoire');});
+ it('une mise à jour directe ne contourne pas la garde des états',async()=>{await expect(db`update transport_requests set requisition_state='accepted'`).rejects.toThrow(/RPC obligatoire|modification versionnée/);});
  it('deux modifications concurrentes de la même version ne sont pas écrasées',async()=>{
   await db.begin(async tx=>{await tx`select set_config('vq.workbench','on',true)`;await tx`update transport_requests set requisition_state=NULL,lifecycle_status='a_valider'`;});
   const outcome=await Promise.allSettled([edit(ids.owner,{quantity_value:130},2),edit(ids.owner,{quantity_value:140},2)]);
@@ -69,4 +83,67 @@ describe.skipIf(!enabled)('SQL préparé exécuté uniquement dans PostgreSQL je
  it('une demande close et une entreprise révoquée refusent toute édition',async()=>{await db`update submissions set status='terminee'`;await expect(edit(ids.owner,{quantity_value:140},3)).rejects.toThrow('non modifiable');await db`update submissions set status='nouveau'`;await db`update jsc_company_members set is_active=false where user_id=${ids.owner}`;await expect(edit(ids.owner,{quantity_value:140},3)).rejects.toMatchObject({code:'42501'});});
  it('la nouvelle association ne peut pas être choisie par un entrepreneur',async()=>{await expect(as(ids.owner,async tx=>tx`select submission_edit_bind(${ids.submission}::uuid,${ids.otherCompany}::uuid,true,'Fictif')`)).rejects.toMatchObject({code:'42501'});});
  it('annulation ou refus ne valent ni livraison ni acceptation nouvelle',async()=>{await expect(action(ids.driverUser,'accept',14)).rejects.toThrow('Transition interdite');expect((await db`select requisition_accepted_snapshot from transport_requests`)[0].requisition_accepted_snapshot.quantity).toBe(20);});
+ it('R4B : accord réservé libéré, snapshot conservé et rejeu sans deuxième effet',async()=>{
+  await db`update jsc_company_members set is_active=true where user_id=${ids.owner}`;
+  const reservation=crypto.randomUUID();const offer=crypto.randomUUID();const snapshot={quantity:20,unit:'m3',acceptedBy:'proprietaire'};
+  await db`insert into material_offers values(${offer})`;
+  await db`insert into submission_reception_reservations(id,submission_id,origin_submission_id,offer_id,quantity,unit,starts_at,ends_at,expires_at,state,fingerprint,evaluation,offer_snapshot,conditions_snapshot,accepted_at)values(${reservation},${ids.submission},${ids.submission},${offer},20,'m3',now(),now()+interval '1 hour',now()+interval '2 hours','reserved','f','{}','{}',${db.json(snapshot)},now())`;
+  const key=crypto.randomUUID();await edit(ids.owner,{access_instructions:'Nouvelles consignes'},3,key);await edit(ids.owner,{access_instructions:'Nouvelles consignes'},3,key);
+  const r=(await db`select state,conditions_snapshot,accepted_history from submission_reception_reservations where id=${reservation}`)[0];
+  expect(r).toEqual({state:'exception',conditions_snapshot:null,accepted_history:[snapshot]});
+  expect(Number((await db`select coalesce(sum(quantity),0) n from submission_reception_reservations where state='reserved'`)[0].n)).toBe(0);
+  expect((await db`select action from ent_crm_history where entity='submission_reservation'`)).toHaveLength(1);
+  expect((await db`select next_action from request_followups where entity_id=${ids.submission}`)[0].next_action).toContain('nouvelle proposition explicite');
+ });
+ it('R4B : erreur notification annule atomiquement modification et invalidation',async()=>{
+  const reservation=crypto.randomUUID(),offer=crypto.randomUUID();await db`insert into material_offers values(${offer})`;await db`insert into submission_reception_reservations(id,submission_id,origin_submission_id,offer_id,quantity,unit,starts_at,ends_at,expires_at,state,fingerprint,evaluation,offer_snapshot)values(${reservation},${ids.submission},${ids.submission},${offer},30,'m3',now(),now()+interval '1 hour',now()+interval '2 hours','pending','f','{}','{}')`;
+  await db.unsafe(`CREATE FUNCTION local_notify_fail() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'capture indisponible';END$$;CREATE TRIGGER notify_failure BEFORE INSERT ON crm_notifications FOR EACH ROW EXECUTE FUNCTION local_notify_fail()`);
+  await expect(edit(ids.owner,{quantity_value:180},4)).rejects.toThrow('capture indisponible');
+  expect((await db`select state from submission_reception_reservations where id=${reservation}`)[0].state).toBe('pending');
+  expect((await db`select edit_version from submissions`)[0].edit_version).toBe(4);
+  await db.unsafe('DROP TRIGGER notify_failure ON crm_notifications');
+ });
+ it('admin non approuvé et chauffeur ne deviennent jamais gestionnaires',async()=>{
+  await db`update user_roles set approved=false where user_id=${ids.admin}`;
+  await expect(as(ids.admin,async tx=>tx`select submission_edit_read(${ids.submission}::uuid)`)).rejects.toMatchObject({code:'42501'});
+  expect(await as(ids.driverUser,async tx=>(await tx`select workbench_manager(${ids.company}::uuid) allowed`)[0].allowed)).toBe(false);
+  await db`update user_roles set approved=true where user_id=${ids.admin}`;
+ });
+ it('transport historique : notes versionnées persistantes et notification unique au rejeu',async()=>{
+  const id=crypto.randomUUID();await db`insert into transport_requests(id,user_id,current_version,lifecycle_status)values(${id},${ids.owner},1,'a_valider')`;
+  const key=crypto.randomUUID();const call=()=>as(ids.owner,async tx=>(await tx`select request_update_versioned(${id}::uuid,1,'{"client_notes":"Consigne fictive"}'::jsonb,${key}::uuid,true) r`)[0].r);
+  expect(await call()).toMatchObject({id,version:2});expect(await call()).toMatchObject({id,version:2});
+  expect((await db`select client_notes,current_version from transport_requests where id=${id}`)[0]).toEqual({client_notes:'Consigne fictive',current_version:2});
+  expect((await db`select snapshot from transport_request_versions where request_id=${id}`)).toHaveLength(1);
+  expect((await db`select entity_id from crm_notifications where entity_id=${id}`)).toHaveLength(1);
+  await expect(as(ids.owner,async tx=>tx`select request_update_versioned(${id}::uuid,1,'{"client_notes":"autre"}'::jsonb,${crypto.randomUUID()}::uuid,true)`)).rejects.toMatchObject({code:'P0409'});
+ });
+ it('legacy ne peut contourner la revalidation d’une réquisition',async()=>{
+  await db.begin(async tx=>{await tx`select set_config('vq.workbench','on',true)`;await tx`update transport_requests set requisition_state='accepted',user_id=${ids.owner} where id=${ids.request}`;});
+  await expect(as(ids.owner,async tx=>tx`select request_update(${ids.request}::uuid,'{"client_notes":"Interdit"}'::jsonb)`)).rejects.toThrow('modification versionnée');
+ });
+ it('une mesure livrée reste terminale après modification et aucun débit n’est réécrit',async()=>{
+  const offer=crypto.randomUUID(),reservation=crypto.randomUUID();await db`insert into material_offers values(${offer})`;
+  await db`insert into submission_reception_reservations(id,submission_id,origin_submission_id,offer_id,quantity,unit,starts_at,ends_at,expires_at,state,fingerprint,evaluation,offer_snapshot,conditions_snapshot)values(${reservation},${ids.submission},${ids.submission},${offer},10,'m3',now(),now()+interval '1 hour',now()+interval '2 hours','delivered','f','{}','{}','{"quantity":10}')`;
+  await db.begin(async tx=>{await tx`select set_config('vq.workbench','on',true)`;await tx`update transport_requests set requisition_state=NULL where id=${ids.request}`;});
+  await edit(ids.owner,{access_instructions:'Autre consigne'},4);
+  expect((await db`select state,conditions_snapshot from submission_reception_reservations where id=${reservation}`)[0]).toEqual({state:'delivered',conditions_snapshot:{quantity:10}});
+ });
+ it('deux modifications et invalidations concurrentes restent sérialisées sans double historique',async()=>{
+  const results=await Promise.allSettled([edit(ids.owner,{quantity_value:190},5),edit(ids.owner,{quantity_value:200},5)]);
+  expect(results.filter(r=>r.status==='fulfilled')).toHaveLength(1);
+  expect(results.filter(r=>r.status==='rejected')).toHaveLength(1);
+  expect((await db`select edit_version from submissions`)[0].edit_version).toBe(6);
+ });
+ it('retour non destructif ferme les nouveaux RPCs et conserve les dossiers et le legacy',async()=>{
+  const count=(await db`select count(*) n from submissions`)[0].n;
+  await db.unsafe(await readFile('prepared/reprise-r3-r4/RETOUR-NON-APPLIQUE.sql','utf8'));
+  await expect(as(ids.admin,async tx=>tx`select submission_edit_read(${ids.submission}::uuid)`)).rejects.toMatchObject({code:'42501'});
+  expect((await db`select count(*) n from submissions`)[0].n).toBe(count);
+  expect((await db`select to_regprocedure('public.request_update(uuid,jsonb)') is not null present`)[0].present).toBe(true);
+ });
+ it('insertion directe ne peut préattribuer entreprise ou accord accepté',async()=>{
+  await expect(db`insert into submissions(id,edit_company_id)values(${crypto.randomUUID()},${ids.company})`).rejects.toThrow('RPC obligatoire');
+  await expect(db`insert into transport_requests(id,requisition_state)values(${crypto.randomUUID()},'accepted')`).rejects.toThrow('RPC obligatoire');
+ });
 });
