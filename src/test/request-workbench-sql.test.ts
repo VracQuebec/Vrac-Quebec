@@ -21,6 +21,13 @@ beforeAll(async()=>{
  await db.unsafe(coord.slice(coord.indexOf('CREATE FUNCTION public.exec02_exception'),coord.indexOf('-- One service RPC')));
  await db.unsafe(await readFile('prepared/reprise-r3-r4/R4B-COMPOSITION-NON-APPLIQUEE.sql','utf8'));
  await db.unsafe(await readFile('prepared/reprise-r3-r4/INSTALLATION-NON-APPLIQUEE.sql','utf8'));
+ const legacy=await readFile('drizzle/migrations/0052_request_lifecycle_phase1.sql','utf8');
+ await db.unsafe(`ALTER TABLE transport_requests ADD COLUMN user_id uuid, ADD COLUMN client_notes text;
+ ALTER TABLE transport_request_events ADD COLUMN from_status text, ADD COLUMN to_status text;
+ CREATE TABLE request_critical_fields(field text,is_active boolean);
+ CREATE TABLE transport_request_versions(request_id uuid,version integer,snapshot jsonb,changed_fields text[],created_by uuid,PRIMARY KEY(request_id,version));`);
+ await db.unsafe(legacy.slice(legacy.indexOf('CREATE OR REPLACE FUNCTION public.trq_actor_role'),legacy.indexOf('-- Annulation directe')));
+ await db.unsafe(await readFile('prepared/reprise-r3-r4/R4B-TRANSPORT-NON-APPLIQUE.sql','utf8'));
  await db`insert into jsc_companies values(${ids.company},'Fictif A'),(${ids.otherCompany},'Fictif B')`;
  await db`insert into jsc_company_members(company_id,user_id,role)values(${ids.company},${ids.owner},'proprietaire'),(${ids.otherCompany},${ids.other},'proprietaire'),(${ids.company},${ids.driverUser},'chauffeur')`;
  await db`insert into user_roles values(${ids.admin},'admin',true)`;
@@ -101,5 +108,18 @@ describe.skipIf(!enabled)('SQL préparé exécuté uniquement dans PostgreSQL je
   await expect(as(ids.admin,async tx=>tx`select submission_edit_read(${ids.submission}::uuid)`)).rejects.toMatchObject({code:'42501'});
   expect(await as(ids.driverUser,async tx=>(await tx`select workbench_manager(${ids.company}::uuid) allowed`)[0].allowed)).toBe(false);
   await db`update user_roles set approved=true where user_id=${ids.admin}`;
+ });
+ it('transport historique : notes versionnées persistantes et notification unique au rejeu',async()=>{
+  const id=crypto.randomUUID();await db`insert into transport_requests(id,user_id,current_version,lifecycle_status)values(${id},${ids.owner},1,'a_valider')`;
+  const key=crypto.randomUUID();const call=()=>as(ids.owner,async tx=>(await tx`select request_update_versioned(${id}::uuid,1,'{"client_notes":"Consigne fictive"}'::jsonb,${key}::uuid,true) r`)[0].r);
+  expect(await call()).toMatchObject({id,version:2});expect(await call()).toMatchObject({id,version:2});
+  expect((await db`select client_notes,current_version from transport_requests where id=${id}`)[0]).toEqual({client_notes:'Consigne fictive',current_version:2});
+  expect((await db`select snapshot from transport_request_versions where request_id=${id}`)).toHaveLength(1);
+  expect((await db`select entity_id from crm_notifications where entity_id=${id}`)).toHaveLength(1);
+  await expect(as(ids.owner,async tx=>tx`select request_update_versioned(${id}::uuid,1,'{"client_notes":"autre"}'::jsonb,${crypto.randomUUID()}::uuid,true)`)).rejects.toMatchObject({code:'P0409'});
+ });
+ it('legacy ne peut contourner la revalidation d’une réquisition',async()=>{
+  await db.begin(async tx=>{await tx`select set_config('vq.workbench','on',true)`;await tx`update transport_requests set requisition_state='accepted',user_id=${ids.owner} where id=${ids.request}`;});
+  await expect(as(ids.owner,async tx=>tx`select request_update(${ids.request}::uuid,'{"client_notes":"Interdit"}'::jsonb)`)).rejects.toThrow('modification versionnée');
  });
 });
