@@ -1,5 +1,12 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
+## Reprise suivante — R3/R4, 23 octobre 17:58 UTC
+- [ ] Édition entrepreneur : même dossier, autorisation/version, historique et notification; accords affectés à revalider.
+- [ ] Réquisition : réutiliser l’exécution existante, affectation et accès chauffeur personnels, transitions et incidents.
+- [ ] Vérifier serveur/isolation/révocation en préparation isolée, sans migration partagée.
+- [ ] Diagnostiquer le refus SEO exact, revérifier reprise/doublon et lister les cinq SQL non exécutés.
+- [ ] Actualiser bilan et prochaine reprise; aucune installation, publication, activation ou communication réelle.
+
 ## Reprise maître — 23 octobre 2026 (R1 livré, mandat partiel)
 - [x] SEO R1 : 188 villes/28 possibilités théoriques, sept villes comparées en lecture seule; reprises/date, lancement, quota et suivi corrigés/testés sans IA réelle.
 - [x] Accueil : soumissions factuelles, numéro confirmé, double clic et photo refusée; parcours fictif 360/768/1280 vérifié.
