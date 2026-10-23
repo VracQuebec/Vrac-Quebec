@@ -78,8 +78,9 @@ describe.skipIf(!enabled)('SQL préparé exécuté uniquement dans PostgreSQL je
  it('annulation ou refus ne valent ni livraison ni acceptation nouvelle',async()=>{await expect(action(ids.driverUser,'accept',14)).rejects.toThrow('Transition interdite');expect((await db`select requisition_accepted_snapshot from transport_requests`)[0].requisition_accepted_snapshot.quantity).toBe(20);});
  it('R4B : accord réservé libéré, snapshot conservé et rejeu sans deuxième effet',async()=>{
   await db`update jsc_company_members set is_active=true where user_id=${ids.owner}`;
-  const reservation=crypto.randomUUID();const snapshot={quantity:20,unit:'m3',acceptedBy:'proprietaire'};
-  await db`insert into submission_reception_reservations(id,submission_id,origin_submission_id,offer_id,quantity,unit,starts_at,ends_at,expires_at,state,fingerprint,evaluation,offer_snapshot,conditions_snapshot,accepted_at)values(${reservation},${ids.submission},${ids.submission},${crypto.randomUUID()},20,'m3',now(),now()+interval '1 hour',now()+interval '2 hours','reserved','f','{}','{}',${db.json(snapshot)},now())`;
+  const reservation=crypto.randomUUID();const offer=crypto.randomUUID();const snapshot={quantity:20,unit:'m3',acceptedBy:'proprietaire'};
+  await db`insert into material_offers values(${offer})`;
+  await db`insert into submission_reception_reservations(id,submission_id,origin_submission_id,offer_id,quantity,unit,starts_at,ends_at,expires_at,state,fingerprint,evaluation,offer_snapshot,conditions_snapshot,accepted_at)values(${reservation},${ids.submission},${ids.submission},${offer},20,'m3',now(),now()+interval '1 hour',now()+interval '2 hours','reserved','f','{}','{}',${db.json(snapshot)},now())`;
   const key=crypto.randomUUID();await edit(ids.owner,{access_instructions:'Nouvelles consignes'},3,key);await edit(ids.owner,{access_instructions:'Nouvelles consignes'},3,key);
   const r=(await db`select state,conditions_snapshot,accepted_history from submission_reception_reservations where id=${reservation}`)[0];
   expect(r).toEqual({state:'exception',conditions_snapshot:null,accepted_history:[snapshot]});
@@ -88,7 +89,7 @@ describe.skipIf(!enabled)('SQL préparé exécuté uniquement dans PostgreSQL je
   expect((await db`select next_action from request_followups where entity_id=${ids.submission}`)[0].next_action).toContain('nouvelle proposition explicite');
  });
  it('R4B : erreur notification annule atomiquement modification et invalidation',async()=>{
-  const reservation=crypto.randomUUID();await db`insert into submission_reception_reservations(id,submission_id,origin_submission_id,offer_id,quantity,unit,starts_at,ends_at,expires_at,state,fingerprint,evaluation,offer_snapshot)values(${reservation},${ids.submission},${ids.submission},${crypto.randomUUID()},30,'m3',now(),now()+interval '1 hour',now()+interval '2 hours','pending','f','{}','{}')`;
+  const reservation=crypto.randomUUID(),offer=crypto.randomUUID();await db`insert into material_offers values(${offer})`;await db`insert into submission_reception_reservations(id,submission_id,origin_submission_id,offer_id,quantity,unit,starts_at,ends_at,expires_at,state,fingerprint,evaluation,offer_snapshot)values(${reservation},${ids.submission},${ids.submission},${offer},30,'m3',now(),now()+interval '1 hour',now()+interval '2 hours','pending','f','{}','{}')`;
   await db.unsafe(`CREATE FUNCTION local_notify_fail() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'capture indisponible';END$$;CREATE TRIGGER notify_failure BEFORE INSERT ON crm_notifications FOR EACH ROW EXECUTE FUNCTION local_notify_fail()`);
   await expect(edit(ids.owner,{quantity_value:180},4)).rejects.toThrow('capture indisponible');
   expect((await db`select state from submission_reception_reservations where id=${reservation}`)[0].state).toBe('pending');

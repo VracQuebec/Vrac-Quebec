@@ -11,6 +11,7 @@ CREATE TABLE public.submissions(id uuid PRIMARY KEY,created_by uuid,status text,
 CREATE TABLE public.transport_requests(id uuid PRIMARY KEY,request_number text,origin_submission_id uuid,driver_id uuid,truck_id uuid,lifecycle_status text,current_version integer DEFAULT 1,dump_name text,updated_at timestamptz);
 CREATE TABLE public.submission_site_decisions(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),submission_id uuid,site_id uuid,status text,decision_note text,updated_at timestamptz);
 CREATE TABLE public.trips(id uuid PRIMARY KEY,submission_id uuid,status text);
+CREATE TABLE public.material_offers(id uuid PRIMARY KEY);
 CREATE TABLE public.ent_crm_history(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),company_id uuid,entity text,entity_id uuid,action text,before jsonb,after jsonb,actor_id uuid,origin text,created_at timestamptz DEFAULT now());
 CREATE TABLE public.transport_request_events(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),request_id uuid,action text,version integer,reason text,details jsonb DEFAULT '{}',actor_id uuid,actor_role text,origin text,created_at timestamptz DEFAULT now());
 CREATE TABLE public.jsc_notifications(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),company_id uuid,audience text,user_id uuid,channel text,title text,body text,entity_type text,entity_id uuid,status text);
