@@ -158,6 +158,7 @@ export function useCityGeneration() {
     };
     setRun({ ...state });
     const details: Array<Record<string, unknown>> = [];
+    let trackingFailure: string | null = null;
 
     for (const slot of targets) {
       state.label = slot.label;
@@ -197,13 +198,15 @@ export function useCityGeneration() {
       // Persistance de la progression après CHAQUE page
       if (jobId) {
         try {
-          await supabase.rpc("seo_city_run_progress" as never, {
+          const progress = await supabase.rpc("seo_city_run_progress" as never, {
             _job_id: jobId, _done: state.done, _created: state.created,
             _errors: state.errors, _current_label: slot.label,
           } as never);
-        } catch { /* la page reste enregistrée même si le suivi échoue */ }
+          if (progress.error) throw new Error(progress.error.message);
+        } catch (e) { trackingFailure = e instanceof Error ? e.message : "Progression non enregistrée"; }
       }
       void load({ silent: true });
+      if (trackingFailure) { toast.error(`Suivi du lot non enregistré : ${trackingFailure}. Lot arrêté; relire les pages avant reprise.`); break; }
       if (providerUnavailable) {
         toast.error("Fournisseur IA indisponible ou quota atteint : lot arrêté. Les pages restantes ne sont pas lancées.");
         break;
@@ -211,13 +214,16 @@ export function useCityGeneration() {
     }
 
     if (jobId) {
-      try { await supabase.rpc("seo_city_run_finish" as never, { _job_id: jobId, _created: state.created, _errors: state.errors, _details: details } as never); }
-      catch { /* historique facultatif */ }
+      try {
+        const finish = await supabase.rpc("seo_city_run_finish" as never, { _job_id: jobId, _created: state.created, _errors: state.errors, _details: details } as never);
+        if (finish.error) throw new Error(finish.error.message);
+      } catch (e) { trackingFailure = e instanceof Error ? e.message : "Fin du lot non confirmée"; }
     }
     setRun(null);
     await load({ silent: true });
     const result = `${city.name} : ${state.created} page(s) créée(s), ${state.errors} erreur(s), ${state.total - state.done} non traitée(s). Aucune publication automatique.`;
-    if (state.errors) toast.error(result); else toast.success(result);
+    if (trackingFailure) toast.error(`${result} Fin du suivi non confirmée : ${trackingFailure}`);
+    else if (state.errors) toast.error(result); else toast.success(result);
     } finally {
       launchRef.current = false;
       runRef.current = null;

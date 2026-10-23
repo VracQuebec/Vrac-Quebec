@@ -65,4 +65,11 @@ describe("lancement SEO — réseau entièrement simulé", () => {
     await act(async () => { await result.current.generate(city, slots.slice(0, 1), "repair"); });
     expect(mocks.rpc.mock.calls.find(([n]) => n === "seo_city_run_finish")?.[1]).toMatchObject({ _created: 1, _errors: 0 });
   });
+  it("une progression refusée arrête le traitement avant la page suivante", async () => {
+    const { result } = renderHook(() => useCityGeneration());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    mocks.rpc.mockImplementation(async (n: string) => ({ data: n === "seo_city_run_start" ? "job-test" : { cities: [] }, error: n === "seo_city_run_progress" ? { message: "Écriture du suivi refusée" } : null }));
+    await act(async () => { await result.current.generate(city, slots, "missing"); });
+    expect(mocks.invoke).toHaveBeenCalledTimes(1);
+  });
 });

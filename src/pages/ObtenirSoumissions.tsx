@@ -143,7 +143,8 @@ export default function ObtenirSoumissions() {
       const safe = file.name.toLowerCase().replace(/[^a-z0-9._-]/g, "-").slice(-60);
       const path = `submissions/${folder}/${Date.now()}-${safe}`;
       const { error } = await supabase.storage.from("lead-photos").upload(path, file);
-      if (!error) paths.push(path);
+      if (error) throw new Error("Une photo n’a pas pu être enregistrée. Vos fichiers sont conservés; réessayez avant d’envoyer la demande.");
+      paths.push(path);
     }
     return paths;
   };
@@ -153,7 +154,7 @@ export default function ObtenirSoumissions() {
     sendLock.current = true;
     setSending(true);
     try {
-      const photos = await uploadFiles().catch(() => []);
+      const photos = await uploadFiles();
       const { data: session } = await supabase.auth.getSession();
       const token = session.session?.access_token;
       const res = await fetch(FUNCTIONS_URL, {
