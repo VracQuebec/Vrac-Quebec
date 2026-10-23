@@ -4,11 +4,11 @@
 # Feuille de route — Mission de correction de l'audit global (15 oct. 2026)
 
 ## R4D — reprise du 23 octobre 18:54 UTC
-- [ ] Raccorder les invitations aux écrans employés et à la connexion privée existante, sans activer le serveur partagé.
-- [ ] Composer capture atomique dans les objets d’envoi existants, sans nouvel émetteur ni nouvelle simulation.
-- [ ] Préparer et tester révocation sur portail, notifications, écritures, missions/points et documents; préciser limites des URL signées existantes.
-- [ ] Démontrer la chaîne SQL intégrée avec identités fictives et classer séparément Auth simulée / Auth réelle indisponible.
-- [ ] Actualiser paquet, registre et décision finale précise; poursuivre les travaux indépendants sans publication ni activation.
+- [x] Raccorder les invitations aux écrans employés et à la connexion privée existante, sans activer le serveur partagé.
+- [x] Composer capture atomique dans les objets d’envoi existants, sans nouvel émetteur ni nouvelle simulation.
+- [x] Préparer et tester révocation sur portail, notifications, écritures, missions/points et documents; préciser limites des URL signées existantes.
+- [x] Démontrer la chaîne SQL intégrée avec identités fictives et classer séparément Auth simulée / Auth réelle indisponible.
+- [x] Actualiser paquet, registre et décision finale précise; poursuivre les travaux indépendants sans publication ni activation.
 
 ## R4C — reprise du 23 octobre 18:34 UTC
 - [x] Composer les invitations employés avec les identités chauffeurs JSC : activation personnelle, expiration, renouvellement et révocation, sans envoi réel; panneaux préparés non raccordés.
