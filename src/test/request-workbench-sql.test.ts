@@ -122,4 +122,17 @@ describe.skipIf(!enabled)('SQL préparé exécuté uniquement dans PostgreSQL je
   await db.begin(async tx=>{await tx`select set_config('vq.workbench','on',true)`;await tx`update transport_requests set requisition_state='accepted',user_id=${ids.owner} where id=${ids.request}`;});
   await expect(as(ids.owner,async tx=>tx`select request_update(${ids.request}::uuid,'{"client_notes":"Interdit"}'::jsonb)`)).rejects.toThrow('modification versionnée');
  });
+ it('une mesure livrée reste terminale après modification et aucun débit n’est réécrit',async()=>{
+  const offer=crypto.randomUUID(),reservation=crypto.randomUUID();await db`insert into material_offers values(${offer})`;
+  await db`insert into submission_reception_reservations(id,submission_id,origin_submission_id,offer_id,quantity,unit,starts_at,ends_at,expires_at,state,fingerprint,evaluation,offer_snapshot,conditions_snapshot)values(${reservation},${ids.submission},${ids.submission},${offer},10,'m3',now(),now()+interval '1 hour',now()+interval '2 hours','delivered','f','{}','{}','{"quantity":10}')`;
+  await db.begin(async tx=>{await tx`select set_config('vq.workbench','on',true)`;await tx`update transport_requests set requisition_state=NULL where id=${ids.request}`;});
+  await edit(ids.owner,{access_instructions:'Autre consigne'},4);
+  expect((await db`select state,conditions_snapshot from submission_reception_reservations where id=${reservation}`)[0]).toEqual({state:'delivered',conditions_snapshot:{quantity:10}});
+ });
+ it('deux modifications et invalidations concurrentes restent sérialisées sans double historique',async()=>{
+  const results=await Promise.allSettled([edit(ids.owner,{quantity_value:190},5),edit(ids.owner,{quantity_value:200},5)]);
+  expect(results.filter(r=>r.status==='fulfilled')).toHaveLength(1);
+  expect(results.filter(r=>r.status==='rejected')).toHaveLength(1);
+  expect((await db`select edit_version from submissions`)[0].edit_version).toBe(6);
+ });
 });

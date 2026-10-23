@@ -1,5 +1,11 @@
 # Actualisation hivernale — préparation uniquement
 
+## Reprise R4B — ordre de validation
+- Contenu et segmentation déjà préparés ci-dessous, pas campagne absente. Responsable de validation métier à désigner; aucune date d’envoi fixée.
+- Avant campagne : installer uniquement après autorisation la chaîne portail/file, puis tester en cible indépendante les liens révoqués, revalidation après réponse et exclusion du CRM privé.
+- Après réponse modifiant un besoin : nouvel accord requis pour les réservations affectées; relance en attente réévaluée par le worker existant, jamais envoyée sur ancien contexte.
+- Résultats attendus séparés : demande actualisée relue; notification capturée; prestataire accepté; livraison prouvée. Les deux derniers ne sont pas essayés dans cette reprise.
+
 Utiliser le modèle existant `reconfirmation` et la file EXEC-04, sans nouveau type de campagne incompatible avec les validations serveur. Aucun envoi autorisé; remplacement éditorial et installation restent à valider ensemble.
 
 ## Texte proposé
