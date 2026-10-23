@@ -1,5 +1,12 @@
 # Registre de reprise Vrac Québec — 23 octobre 2026
 
+## Actualisation R3/R4 — 23 octobre après 17:58 UTC
+Édition et réquisitions développées en préparation, serveur non installé (`REQUEST_WORKBENCH_INSTALLED=false`), publication/activation inchangées. Même dossier/numéro, droits/version/historique, revalidation des décisions, chauffeur personnel et notification applicative capturée testés sur PostgreSQL jetable. 18 tests SQL + 17 EXEC-03 dont les cinq ignorés de R1 exécutés; 34 tests interface/SEO/GPS. Bilan actuel : `prepared/reprise-r3-r4/README.md`.
+
+Refus SEO expliqué : compte personnel entrepreneur approuvé, aucun rôle admin; RPC exige admin approuvé. Pas de droits contournés. Défaut indépendant observé : helper hébergé `jsc_my_driver_ids()` ignore `is_active` et membership révoqué; correction préparée, non appliquée.
+
+Pas terminé en hébergé : réservations engagées refusent la modification jusqu’à composition EXEC-02; adaptation `request_update`, contexte entreprise/invitations, vraie Auth/PostgREST et triggers complets restent R4B. Le bilan R1 ci-dessous demeure historique; ses cinq tests ignorés ne le sont plus à cette date.
+
 ## Verdict et périmètre de cette reprise
 **Sous-lot R1 corrigé dans l’aperçu; mandat maître partiellement exécuté.** Aucun nouveau périmètre activé, aucune fonction déployée, aucune migration appliquée, aucune publication, aucun contact réel, paiement ou donnée métier modifiés. Pas de génération IA réelle. Les fonctions existantes et leurs paramètres sont conservés.
 

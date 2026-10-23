@@ -1,0 +1,11 @@
+
+ RUN  v3.2.4 /dev-server
+
+ ✓ src/test/request-workbench-sql.test.ts (16 tests) 532ms
+ ✓ src/test/entrepreneur-exec03.test.ts (17 tests) 259ms
+
+ Test Files  2 passed (2)
+      Tests  33 passed (33)
+   Start at  18:12:41
+   Duration  2.84s (transform 254ms, setup 284ms, collect 339ms, tests 791ms, environment 0ms, prepare 484ms)
+
