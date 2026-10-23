@@ -42,6 +42,7 @@ it.skipIf(process.env.REQUEST_WORKBENCH_LOCAL!=='1')('chaîne intégrée SQL R4D
  expect(await as(user,tx=>tx`select * from jsc_notifications`)).toHaveLength(0);
  expect(await as(user,tx=>tx`select * from ent_company_documents`)).toHaveLength(0);expect(await as(user,tx=>tx`select * from storage.objects`)).toHaveLength(0);
  expect((await as(user,tx=>tx`select requisition_read(${company}::uuid) r`))[0].r).toEqual([]);
+ await db`update jsc_company_members set is_active=true where user_id=${user}`;expect(await as(user,tx=>tx`select * from jsc_notifications`)).toHaveLength(0);expect(await as(user,tx=>tx`select * from storage.objects`)).toHaveLength(0);
  await expect(as(user,tx=>tx`select drv_mission_end(${mid}::uuid)`)).rejects.toMatchObject({code:'42501'});
  await expect(as(user,tx=>tx`select drv_points_batch(${mid}::uuid,'[]'::jsonb,'web')`)).rejects.toMatchObject({code:'42501'});
  await expect(as(user,tx=>tx`select driver_invite_accept(${token})`)).rejects.toMatchObject({code:'42501'});

@@ -4,14 +4,18 @@ ALTER TABLE public.drv_missions ADD COLUMN requisition_id uuid REFERENCES public
 CREATE FUNCTION public.driver_company_active(c uuid,u uuid DEFAULT auth.uid()) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
  SELECT EXISTS(SELECT 1 FROM jsc_drivers d JOIN jsc_company_members m ON m.company_id=d.company_id AND m.user_id=d.user_id WHERE d.company_id=c AND d.user_id=u AND d.is_active AND d.archived_at IS NULL AND m.is_active AND m.archived_at IS NULL AND m.role='chauffeur');
 $$;
+CREATE FUNCTION public.driver_notification_access(c uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
+ SELECT EXISTS(SELECT 1 FROM jsc_company_members m WHERE m.company_id=c AND m.user_id=auth.uid() AND m.is_active AND m.archived_at IS NULL)
+ AND (NOT EXISTS(SELECT 1 FROM jsc_drivers d WHERE d.company_id=c AND d.user_id=auth.uid()) OR driver_company_active(c));
+$$;
 CREATE FUNCTION public.driver_mission_access(mid uuid,writing boolean DEFAULT false) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
  SELECT EXISTS(SELECT 1 FROM drv_missions m JOIN transport_requests t ON t.id=m.requisition_id WHERE m.id=mid AND m.company_id=t.requisition_company_id AND m.user_id=auth.uid() AND driver_company_active(m.company_id) AND requisition_access(t)='driver' AND (NOT writing OR (m.ended_at IS NULL AND t.requisition_state IN ('accepted','running'))));
 $$;
-REVOKE ALL ON FUNCTION public.driver_company_active(uuid,uuid),public.driver_mission_access(uuid,boolean) FROM PUBLIC,anon;
-GRANT EXECUTE ON FUNCTION public.driver_company_active(uuid,uuid),public.driver_mission_access(uuid,boolean) TO authenticated;
+REVOKE ALL ON FUNCTION public.driver_company_active(uuid,uuid),public.driver_mission_access(uuid,boolean),public.driver_notification_access(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.driver_company_active(uuid,uuid),public.driver_mission_access(uuid,boolean),public.driver_notification_access(uuid) TO authenticated;
 ALTER POLICY "Admins manage notifications" ON public.jsc_notifications USING(jsc_can_manage(auth.uid()) OR (user_id=auth.uid() AND driver_company_active(company_id))) WITH CHECK(jsc_can_manage(auth.uid()));
-ALTER POLICY "portal reads own notifications" ON public.jsc_notifications USING(user_id=auth.uid() AND EXISTS(SELECT 1 FROM jsc_company_members m WHERE m.company_id=jsc_notifications.company_id AND m.user_id=auth.uid() AND m.is_active AND m.archived_at IS NULL));
-ALTER POLICY "portal updates own notifications" ON public.jsc_notifications USING(user_id=auth.uid() AND EXISTS(SELECT 1 FROM jsc_company_members m WHERE m.company_id=jsc_notifications.company_id AND m.user_id=auth.uid() AND m.is_active AND m.archived_at IS NULL)) WITH CHECK(user_id=auth.uid() AND EXISTS(SELECT 1 FROM jsc_company_members m WHERE m.company_id=jsc_notifications.company_id AND m.user_id=auth.uid() AND m.is_active AND m.archived_at IS NULL));
+ALTER POLICY "portal reads own notifications" ON public.jsc_notifications USING(user_id=auth.uid() AND driver_notification_access(company_id));
+ALTER POLICY "portal updates own notifications" ON public.jsc_notifications USING(user_id=auth.uid() AND driver_notification_access(company_id)) WITH CHECK(user_id=auth.uid() AND driver_notification_access(company_id));
 ALTER POLICY "missions read" ON public.drv_missions USING(has_role(auth.uid(),'admin') OR (user_id=auth.uid() AND driver_mission_access(id)) OR (user_id<>auth.uid() AND entrepreneur_id=cpn_my_entrepreneur()));
 ALTER POLICY "points read" ON public.drv_points USING(EXISTS(SELECT 1 FROM drv_missions m WHERE m.id=mission_id AND (has_role(auth.uid(),'admin') OR (m.user_id=auth.uid() AND driver_mission_access(m.id)) OR (m.user_id<>auth.uid() AND m.entrepreneur_id=cpn_my_entrepreneur()))));
 
