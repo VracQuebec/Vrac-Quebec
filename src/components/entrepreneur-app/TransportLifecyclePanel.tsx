@@ -85,6 +85,7 @@ export default function TransportLifecyclePanel({ id, onChanged }: { id: string;
     const res = data as { critical?: string[]; status?: string; version?: number } | null;
     const saved = await load();
     if (saved.id !== id || (res?.version != null && Number(saved.current_version) < res.version)) throw new Error("Relecture non confirmée.");
+    if (Object.entries(c).some(([key,value]) => value == null ? saved[key] != null : String(saved[key]) !== String(value))) throw new Error("Les valeurs enregistrées ne sont pas confirmées.");
     toast({ title: "Modification enregistrée", description: res?.critical?.length ? "Changement important : une nouvelle version a été créée et la demande sera revalidée." : "L'historique a été mis à jour." });
     setEditOpen(false); onChanged();
     } catch (error) { toast({title:friendlyError(error instanceof Error?error.message:""),variant:"destructive"}); }

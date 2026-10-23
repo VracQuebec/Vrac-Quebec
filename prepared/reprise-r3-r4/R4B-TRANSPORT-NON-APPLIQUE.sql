@@ -4,7 +4,12 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE t public.transport_requests; result jsonb; prior jsonb; c uuid;
 BEGIN
  IF NOT coalesce(_confirmed,false) OR _operation IS NULL OR auth.uid() IS NULL THEN RAISE EXCEPTION 'Confirmation requise';END IF;
+ IF jsonb_typeof(_changes) IS DISTINCT FROM 'object' THEN RAISE EXCEPTION 'Changements invalides';END IF;
+ IF _changes ? 'quantity' AND _changes->'quantity'<>'null'::jsonb AND (jsonb_typeof(_changes->'quantity') IS DISTINCT FROM 'number' OR (_changes->>'quantity')::numeric<=0) THEN RAISE EXCEPTION 'Quantité invalide';END IF;
  SELECT origin_submission_id INTO c FROM public.transport_requests WHERE id=_id;
+ IF c IS NOT NULL AND to_regclass('public.submission_reception_reservations') IS NOT NULL THEN
+  EXECUTE 'SELECT 1 FROM public.submissions WHERE id=$1 OR id IN (SELECT submission_id FROM public.submission_reception_reservations WHERE origin_submission_id=$1) OR id IN (SELECT origin_submission_id FROM public.submission_reception_reservations WHERE submission_id=$1) ORDER BY id FOR UPDATE' USING c;
+ END IF;
  -- Dossier first, as in assignment/action; no inferred ownership.
  PERFORM 1 FROM public.submissions WHERE id=c FOR UPDATE;
  SELECT * INTO t FROM public.transport_requests WHERE id=_id FOR UPDATE;
