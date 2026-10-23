@@ -41,6 +41,8 @@ import { isFeatureEnabled } from "@/lib/flags";
 import { Button } from "@/components/ui/button";
 import { emptyParcoursDraft as emptyDraft, PUBLIC_RECEPTION_STEPS, publicStepError, type ParcoursDraft as Draft } from "@/lib/remblai/public-form";
 import MaterialAssistantStep from "@/components/parcours/MaterialAssistantStep";
+import ExtraLocations from "@/components/parcours/ExtraLocations";
+import { locationErrors, newLocation, MULTI_SITES_SERVER_READY, type LocationDraft } from "@/lib/parcours/multi-sites";
 import { assistantNotes, type EnvironmentAnswer } from "@/lib/parcours/assistant-materiaux";
 
 export type ParcoursVariant = "reception" | "evacuation";
@@ -137,8 +139,25 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
     return formatQuantity(data.quantityValue, data.quantityUnit);
   }, [data.quantityValue, data.quantityUnit, data.quantityUnknown]);
 
-  const canContinue = () => publicStepError(step, data) === null;
-  const blockedReason = () => publicStepError(step, data);
+  const [extraLocations, setExtraLocations] = useState<LocationDraft[]>([]);
+  const multiEnabled = variant === "reception" && !editor;
+  const extraErrors = useMemo(() => {
+    if (!multiEnabled || extraLocations.length === 0) return {} as Record<string, string>;
+    const a = { ...newLocation("A"), address: data.address, lat: data.lat, lng: data.lng, geocoded: data.lat != null, materials: ["-"] };
+    const e = locationErrors([a, ...extraLocations]);
+    delete e.A;
+    return e;
+  }, [multiEnabled, extraLocations, data.address, data.lat, data.lng]);
+  const blockedReason = () => {
+    const base = publicStepError(step, data);
+    if (base) return base;
+    if (!multiEnabled || extraLocations.length === 0) return null;
+    if (step === "address" && data.lat == null) return "Choisissez l'adresse A dans la liste pour la localiser avant d'ajouter d'autres adresses.";
+    if (step === "address" && Object.keys(extraErrors).length) return Object.values(extraErrors)[0];
+    if (step === "contact" && !MULTI_SITES_SERVER_READY) return "L'envoi d'une demande à plusieurs adresses n'est pas encore activé. Retirez les adresses supplémentaires pour envoyer, ou revenez bientôt.";
+    return null;
+  };
+  const canContinue = () => blockedReason() === null;
 
   const toggle = (key: "materials" | "accessDetails", value: string) => {
     const arr = data[key];
@@ -419,6 +438,7 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
               className={inputCls}
               autoComplete="postal-code"
             />
+            {multiEnabled && <ExtraLocations items={extraLocations} onChange={setExtraLocations} errors={extraErrors} />}
           </div>
         );
 
