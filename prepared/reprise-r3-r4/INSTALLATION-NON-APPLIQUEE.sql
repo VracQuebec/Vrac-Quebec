@@ -180,3 +180,15 @@ END $$;
 CREATE TRIGGER workbench_submission_guard BEFORE UPDATE ON public.submissions FOR EACH ROW EXECUTE FUNCTION public.workbench_write_guard();
 CREATE TRIGGER workbench_requisition_guard BEFORE UPDATE ON public.transport_requests FOR EACH ROW EXECUTE FUNCTION public.workbench_write_guard();
 REVOKE ALL ON FUNCTION public.workbench_write_guard() FROM PUBLIC,anon,authenticated;
+
+CREATE FUNCTION public.requisition_options(_company uuid) RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+ IF NOT public.workbench_manager(_company) THEN RAISE EXCEPTION 'Entreprise non autorisée' USING ERRCODE='42501';END IF;
+ RETURN jsonb_build_object(
+ 'requests',coalesce((SELECT jsonb_agg(jsonb_build_object('id',t.id,'label',t.request_number,'version',t.requisition_version)) FROM public.transport_requests t JOIN public.submissions s ON s.id=t.origin_submission_id WHERE s.edit_company_id=_company AND t.lifecycle_status NOT IN ('en_cours','terminee','annulee','refusee','expiree')),'[]'),
+ 'drivers',coalesce((SELECT jsonb_agg(jsonb_build_object('id',d.id,'label',concat(d.first_name,' ',d.last_name))) FROM public.jsc_drivers d JOIN public.jsc_company_members m ON m.company_id=d.company_id AND m.user_id=d.user_id WHERE d.company_id=_company AND d.is_active AND d.archived_at IS NULL AND m.is_active AND m.archived_at IS NULL AND m.role='chauffeur'),'[]'),
+ 'trucks',coalesce((SELECT jsonb_agg(jsonb_build_object('id',id,'label',name)) FROM public.jsc_trucks WHERE company_id=_company AND is_active AND archived_at IS NULL),'[]'),
+ 'destinations',coalesce((SELECT jsonb_agg(jsonb_build_object('id',sd.site_id,'request_id',t.id,'label',coalesce(site.formatted_address,site.address))) FROM public.transport_requests t JOIN public.submissions s ON s.id=t.origin_submission_id JOIN public.submission_site_decisions sd ON sd.submission_id=s.id JOIN public.submissions site ON site.id=sd.site_id WHERE s.edit_company_id=_company AND sd.status='approuvee' AND s.revalidation_requested_at IS NULL),'[]'));
+END$$;
+REVOKE ALL ON FUNCTION public.requisition_options(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.requisition_options(uuid) TO authenticated,service_role;
