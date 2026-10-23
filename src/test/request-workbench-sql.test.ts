@@ -13,6 +13,13 @@ beforeAll(async()=>{
  if(check.host!=='127.0.0.1'||check.port!==55439||!check.path.startsWith('/tmp/exec-correctifs/reprise-r3/'))throw Error('Isolation non prouvée');
  await root.unsafe(`CREATE DATABASE ${name} TEMPLATE template0`);
  await db.unsafe(await readFile('prepared/reprise-r3-r4/fixture.sql','utf8'));
+ // Exact existing EXEC-02 reservation table/function, not a second implementation.
+ const coord=await readFile('prepared/exec01b/coordination.sql','utf8');
+ await db.unsafe(coord.slice(coord.indexOf('CREATE TABLE public.submission_reception_reservations'),coord.indexOf('CREATE TABLE public.submission_reception_operations')));
+ const base=await readFile('src/test/fixtures/exec02-base.sql','utf8');
+ await db.unsafe(base.slice(base.indexOf('CREATE TABLE request_followups'),base.indexOf('CREATE TABLE crm_notifications')));
+ await db.unsafe(coord.slice(coord.indexOf('CREATE FUNCTION public.exec02_exception'),coord.indexOf('-- One service RPC')));
+ await db.unsafe(await readFile('prepared/reprise-r3-r4/R4B-COMPOSITION-NON-APPLIQUEE.sql','utf8'));
  await db.unsafe(await readFile('prepared/reprise-r3-r4/INSTALLATION-NON-APPLIQUEE.sql','utf8'));
  await db`insert into jsc_companies values(${ids.company},'Fictif A'),(${ids.otherCompany},'Fictif B')`;
  await db`insert into jsc_company_members(company_id,user_id,role)values(${ids.company},${ids.owner},'proprietaire'),(${ids.otherCompany},${ids.other},'proprietaire'),(${ids.company},${ids.driverUser},'chauffeur')`;
@@ -69,4 +76,29 @@ describe.skipIf(!enabled)('SQL préparé exécuté uniquement dans PostgreSQL je
  it('une demande close et une entreprise révoquée refusent toute édition',async()=>{await db`update submissions set status='terminee'`;await expect(edit(ids.owner,{quantity_value:140},3)).rejects.toThrow('non modifiable');await db`update submissions set status='nouveau'`;await db`update jsc_company_members set is_active=false where user_id=${ids.owner}`;await expect(edit(ids.owner,{quantity_value:140},3)).rejects.toMatchObject({code:'42501'});});
  it('la nouvelle association ne peut pas être choisie par un entrepreneur',async()=>{await expect(as(ids.owner,async tx=>tx`select submission_edit_bind(${ids.submission}::uuid,${ids.otherCompany}::uuid,true,'Fictif')`)).rejects.toMatchObject({code:'42501'});});
  it('annulation ou refus ne valent ni livraison ni acceptation nouvelle',async()=>{await expect(action(ids.driverUser,'accept',14)).rejects.toThrow('Transition interdite');expect((await db`select requisition_accepted_snapshot from transport_requests`)[0].requisition_accepted_snapshot.quantity).toBe(20);});
+ it('R4B : accord réservé libéré, snapshot conservé et rejeu sans deuxième effet',async()=>{
+  await db`update jsc_company_members set is_active=true where user_id=${ids.owner}`;
+  const reservation=crypto.randomUUID();const snapshot={quantity:20,unit:'m3',acceptedBy:'proprietaire'};
+  await db`insert into submission_reception_reservations(id,submission_id,origin_submission_id,offer_id,quantity,unit,starts_at,ends_at,expires_at,state,fingerprint,evaluation,offer_snapshot,conditions_snapshot,accepted_at)values(${reservation},${ids.submission},${ids.submission},${crypto.randomUUID()},20,'m3',now(),now()+interval '1 hour',now()+interval '2 hours','reserved','f','{}','{}',${db.json(snapshot)},now())`;
+  const key=crypto.randomUUID();await edit(ids.owner,{access_instructions:'Nouvelles consignes'},3,key);await edit(ids.owner,{access_instructions:'Nouvelles consignes'},3,key);
+  const r=(await db`select state,conditions_snapshot,accepted_history from submission_reception_reservations where id=${reservation}`)[0];
+  expect(r).toEqual({state:'exception',conditions_snapshot:null,accepted_history:[snapshot]});
+  expect(Number((await db`select coalesce(sum(quantity),0) n from submission_reception_reservations where state='reserved'`)[0].n)).toBe(0);
+  expect((await db`select action from ent_crm_history where entity='submission_reservation'`)).toHaveLength(1);
+  expect((await db`select next_action from request_followups where entity_id=${ids.submission}`)[0].next_action).toContain('nouvelle proposition explicite');
+ });
+ it('R4B : erreur notification annule atomiquement modification et invalidation',async()=>{
+  const reservation=crypto.randomUUID();await db`insert into submission_reception_reservations(id,submission_id,origin_submission_id,offer_id,quantity,unit,starts_at,ends_at,expires_at,state,fingerprint,evaluation,offer_snapshot)values(${reservation},${ids.submission},${ids.submission},${crypto.randomUUID()},30,'m3',now(),now()+interval '1 hour',now()+interval '2 hours','pending','f','{}','{}')`;
+  await db.unsafe(`CREATE FUNCTION local_notify_fail() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'capture indisponible';END$$;CREATE TRIGGER notify_failure BEFORE INSERT ON crm_notifications FOR EACH ROW EXECUTE FUNCTION local_notify_fail()`);
+  await expect(edit(ids.owner,{quantity_value:180},4)).rejects.toThrow('capture indisponible');
+  expect((await db`select state from submission_reception_reservations where id=${reservation}`)[0].state).toBe('pending');
+  expect((await db`select edit_version from submissions`)[0].edit_version).toBe(4);
+  await db.unsafe('DROP TRIGGER notify_failure ON crm_notifications');
+ });
+ it('admin non approuvé et chauffeur ne deviennent jamais gestionnaires',async()=>{
+  await db`update user_roles set approved=false where user_id=${ids.admin}`;
+  await expect(as(ids.admin,async tx=>tx`select submission_edit_read(${ids.submission}::uuid)`)).rejects.toMatchObject({code:'42501'});
+  expect(await as(ids.driverUser,async tx=>(await tx`select workbench_manager(${ids.company}::uuid) allowed`)[0].allowed)).toBe(false);
+  await db`update user_roles set approved=true where user_id=${ids.admin}`;
+ });
 });

@@ -40,6 +40,10 @@ DECLARE s public.submissions; oldvalues jsonb; newvalues jsonb; prior jsonb; cha
 BEGIN
  IF NOT coalesce(_confirmed,false) OR _operation IS NULL THEN RAISE EXCEPTION 'Confirmation requise'; END IF;
  PERFORM set_config('vq.workbench','on',true);
+ IF to_regclass('public.submission_reception_reservations') IS NOT NULL THEN
+   -- Same ordered endpoint locks for edits from either side; precedes the dossier lock.
+   EXECUTE 'SELECT 1 FROM public.submissions WHERE id=$1 OR id IN (SELECT submission_id FROM public.submission_reception_reservations WHERE origin_submission_id=$1) OR id IN (SELECT origin_submission_id FROM public.submission_reception_reservations WHERE submission_id=$1) ORDER BY id FOR UPDATE' USING _id;
+ END IF;
  SELECT * INTO s FROM public.submissions WHERE id=_id FOR UPDATE;
  IF s.id IS NULL OR s.edit_company_id IS DISTINCT FROM _company OR NOT public.workbench_manager(_company) OR (s.created_by IS DISTINCT FROM auth.uid() AND NOT public.has_role(auth.uid(),'admin')) THEN RAISE EXCEPTION 'Dossier ou entreprise non autorisés' USING ERRCODE='42501'; END IF;
  SELECT h.after INTO prior FROM public.ent_crm_history h WHERE h.entity='submission_edit' AND h.actor_id=auth.uid() AND h.after->>'operation'=_operation::text;
