@@ -47,7 +47,7 @@ export default function EntrepreneurDashboard() {
           <p className="mt-3 font-body text-[11px] font-medium text-muted-foreground">Aujourd’hui · {today}</p>
         </section>
 
-        {!loading && !error && <section aria-label="Activité" className="relative overflow-hidden bg-foreground px-5 pb-3 pt-2.5 text-background sm:px-8">
+        {!loading && !error && <section aria-label="Activité" className="relative overflow-hidden bg-foreground px-5 pb-2 pt-2 text-background sm:px-8">
           <div className="flex items-center gap-4">
             <h2 className="font-body text-[10px] font-bold uppercase text-background/60">Activité</h2>
             <div aria-hidden className="relative h-3 flex-1 border-b border-background/15">
@@ -59,8 +59,8 @@ export default function EntrepreneurDashboard() {
           </div>
           <div className="mt-2 grid grid-cols-3 gap-3">
             {activity.map(stat => <Button asChild variant="ghost" key={stat.label} className="h-auto min-w-0 items-start justify-start rounded-none p-0 text-background hover:bg-transparent hover:text-background"><Link to={stat.to} aria-label={`${stat.value} ${stat.label}`} className="flex flex-col">
-              <span className="flex items-start gap-1.5 font-display text-[52px] font-extrabold leading-none tabular-nums sm:text-[64px]">{pad(stat.value)}{stat.accent && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden />}</span>
-              <span className="mt-2 font-body text-[11px] font-medium text-background/70">{stat.label}</span>
+              <span className="flex items-start gap-1.5 font-display text-[44px] font-extrabold leading-none tabular-nums sm:text-[52px]">{pad(stat.value)}{stat.accent && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden />}</span>
+              <span className="mt-1.5 font-body text-[11px] font-medium text-background/70">{stat.label}</span>
             </Link></Button>)}
           </div>
         </section>}

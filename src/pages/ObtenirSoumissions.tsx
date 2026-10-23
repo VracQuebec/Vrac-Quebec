@@ -63,6 +63,7 @@ export default function ObtenirSoumissions() {
   const [contact, setContact] = useState<Contact>(EMPTY_CONTACT);
   const [honeypot, setHoneypot] = useState("");
   const [sending, setSending] = useState(false);
+  const sendLock = useRef(false);
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const startedAt = useRef(Date.now());
   const fileInput = useRef<HTMLInputElement>(null);
@@ -142,15 +143,18 @@ export default function ObtenirSoumissions() {
       const safe = file.name.toLowerCase().replace(/[^a-z0-9._-]/g, "-").slice(-60);
       const path = `submissions/${folder}/${Date.now()}-${safe}`;
       const { error } = await supabase.storage.from("lead-photos").upload(path, file);
-      if (!error) paths.push(path);
+      if (error) throw new Error("Une photo n’a pas pu être enregistrée. Vos fichiers sont conservés; réessayez avant d’envoyer la demande.");
+      paths.push(path);
     }
     return paths;
   };
 
   const submit = async () => {
+    if (sendLock.current || !slug || !(contact.contact_phone.trim() || contact.contact_email.trim())) return;
+    sendLock.current = true;
     setSending(true);
     try {
-      const photos = await uploadFiles().catch(() => []);
+      const photos = await uploadFiles();
       const { data: session } = await supabase.auth.getSession();
       const token = session.session?.access_token;
       const res = await fetch(FUNCTIONS_URL, {
@@ -174,12 +178,16 @@ export default function ObtenirSoumissions() {
       });
       const payload = await res.json();
       if (!res.ok) throw new Error(payload?.error ?? "Envoi impossible.");
+      if (payload?.ok !== true || typeof payload.request_number !== "string" || !payload.request_number.trim()) {
+        throw new Error("L’enregistrement n’a pas été confirmé. Vos réponses sont conservées; vérifiez votre demande avant une nouvelle tentative.");
+      }
       draft.finalize();
       setConfirmation(payload.request_number as string);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Envoi impossible.");
     } finally {
+      sendLock.current = false;
       setSending(false);
     }
   };

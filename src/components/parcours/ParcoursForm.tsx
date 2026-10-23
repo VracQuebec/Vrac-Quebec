@@ -547,6 +547,7 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
       case "date":
         return (
           <div className="space-y-3">
+            <p className="font-body text-sm text-muted-foreground">Communiquez vos besoins le plus tôt possible pour permettre la recherche et la qualification des receveurs. Les demandes urgentes restent possibles selon les disponibilités. Une date demandée n’est pas une date promise.</p>
             <label className="block font-display text-sm font-semibold text-foreground">
               Date souhaitée (optionnel)
             </label>

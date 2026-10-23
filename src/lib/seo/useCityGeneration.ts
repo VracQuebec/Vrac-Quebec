@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { toast } from "sonner";
-import { generationTargets } from "@/lib/seo/cityActions";
+import { generationTargets, slotKey } from "@/lib/seo/cityActions";
 
 /**
  * SOURCE UNIQUE de la génération SEO ville par ville.
@@ -37,6 +37,7 @@ export type Slot = {
   page_id: string | null; page_slug: string | null; status: string | null; noindex: boolean;
   seo_score: number | null; qa_score: number | null; word_count: number | null;
   internal_link_count: number | null; last_generated_at: string | null;
+  task_updated_at?: string | null;
   task_status: string | null; task_error: string | null; task_attempts: number | null;
   problems: string[] | null;
   state: "missing" | "pending" | "error" | "invalid" | "draft" | "published";
@@ -77,6 +78,7 @@ export function useCityGeneration() {
   const [verifying, setVerifying] = useState<string | null>(null);
   const runRef = useRef<LocalRun | null>(null);
   runRef.current = run;
+  const launchRef = useRef(false);
 
   /** Relecture pure des données réelles. Ne déclenche aucune génération. */
   const [overviewError, setOverviewError] = useState<string | null>(null);
@@ -134,7 +136,9 @@ export function useCityGeneration() {
    */
   const generate = useCallback(async (city: CityRow, targets: Slot[], mode: "missing" | "repair") => {
     if (targets.length === 0) return;
-    if (runRef.current) { toast.error("Une autre ville est en cours de génération."); return; }
+    if (launchRef.current || runRef.current) { toast.error("Une autre ville est en cours de génération."); return; }
+    launchRef.current = true;
+    try {
     const question = mode === "missing"
       ? `Générer ${targets.length} page(s) manquante(s) pour ${city.name} ? Les pages existantes ne seront pas touchées.`
       : `Régénérer ${targets.length} page(s) en défaut de ${city.name} ? Les pages valides ne seront pas touchées et aucune URL ne change.`;
@@ -142,9 +146,11 @@ export function useCityGeneration() {
 
     let jobId: string | null = null;
     try {
-      const { data } = await supabase.rpc("seo_city_run_start" as never, { _city_slug: city.slug, _total: targets.length } as never);
-      jobId = (data as unknown as string) ?? null;
-    } catch { /* l'historique reste facultatif */ }
+      const { data, error } = await supabase.rpc("seo_city_run_start" as never, { _city_slug: city.slug, _total: targets.length } as never);
+      if (error) throw new Error(error.message);
+      jobId = typeof data === "string" && data ? data : null;
+      if (!jobId) throw new Error("Le serveur n’a pas confirmé le démarrage. Aucune génération lancée.");
+    } catch (e) { throw e; }
 
     const state: LocalRun = {
       jobId, citySlug: city.slug, cityName: city.name,
@@ -152,14 +158,16 @@ export function useCityGeneration() {
     };
     setRun({ ...state });
     const details: Array<Record<string, unknown>> = [];
+    let trackingFailure: string | null = null;
 
     for (const slot of targets) {
       state.label = slot.label;
       setRun({ ...state });
       const material = slot.material_slug ? materials.find((m) => m.slug === slot.material_slug) : undefined;
       const service = slot.service_slug ? services.find((x) => x.slug === slot.service_slug) : undefined;
+      let providerUnavailable = false;
       try {
-        const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { created?: boolean; skipped?: boolean; error?: string }>(
+        const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { created?: boolean; updated?: boolean; skipped?: boolean; error?: string }>(
           "seo-generate-page",
           {
             city: { slug: city.slug, name: city.name, region: city.region },
@@ -174,6 +182,7 @@ export function useCityGeneration() {
         );
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
+        if (!data?.created && !data?.updated && !data?.skipped) throw new Error("Résultat de génération non confirmé — relire le rapport avant de reprendre.");
         if (data?.skipped) state.log = [`⏭️ ${slot.label} — déjà existante`, ...state.log].slice(0, 80);
         else { state.created += 1; state.log = [`✅ ${slot.label}`, ...state.log].slice(0, 80); }
         details.push({ label: slot.label, ok: true });
@@ -182,28 +191,47 @@ export function useCityGeneration() {
         const msg = e instanceof Error ? e.message : "Erreur inconnue";
         state.log = [`❌ ${slot.label} — ${msg}`, ...state.log].slice(0, 80);
         details.push({ label: slot.label, ok: false, error: msg });
+        providerUnavailable = /\b(402|429|503)\b|quota|rate.limit/i.test(msg);
       }
       state.done += 1;
       setRun({ ...state });
       // Persistance de la progression après CHAQUE page
       if (jobId) {
         try {
-          await supabase.rpc("seo_city_run_progress" as never, {
+          const progress = await supabase.rpc("seo_city_run_progress" as never, {
             _job_id: jobId, _done: state.done, _created: state.created,
             _errors: state.errors, _current_label: slot.label,
           } as never);
-        } catch { /* la page reste enregistrée même si le suivi échoue */ }
+          if (progress.error) throw new Error(progress.error.message);
+        } catch (e) { trackingFailure = e instanceof Error ? e.message : "Progression non enregistrée"; }
       }
       void load({ silent: true });
+      if (trackingFailure) { toast.error(`Suivi du lot non enregistré : ${trackingFailure}. Lot arrêté; relire les pages avant reprise.`); break; }
+      if (providerUnavailable) {
+        toast.error("Fournisseur IA indisponible ou quota atteint : lot arrêté. Les pages restantes ne sont pas lancées.");
+        break;
+      }
     }
 
     if (jobId) {
-      try { await supabase.rpc("seo_city_run_finish" as never, { _job_id: jobId, _created: state.created, _errors: state.errors, _details: details } as never); }
-      catch { /* historique facultatif */ }
+      try {
+        const finish = await supabase.rpc("seo_city_run_finish" as never, { _job_id: jobId, _created: state.created, _errors: state.errors, _details: details } as never);
+        if (finish.error) throw new Error(finish.error.message);
+      } catch (e) { trackingFailure = e instanceof Error ? e.message : "Fin du lot non confirmée"; }
     }
     setRun(null);
     await load({ silent: true });
-    toast.success(`${city.name} : ${state.created} page(s) créée(s), ${state.errors} erreur(s). Aucune publication automatique.`);
+    const result = `${city.name} : ${state.created} page(s) créée(s), ${state.errors} erreur(s), ${state.total - state.done} non traitée(s). Aucune publication automatique.`;
+    if (trackingFailure) toast.error(`${result} Fin du suivi non confirmée : ${trackingFailure}`);
+    else if (state.errors) toast.error(result); else toast.success(result);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Démarrage non confirmé. Aucune publication automatique.");
+      throw e;
+    } finally {
+      launchRef.current = false;
+      runRef.current = null;
+      setRun(null);
+    }
   }, [materials, services, load]);
 
   /**
@@ -214,7 +242,19 @@ export function useCityGeneration() {
   const generateCity = useCallback(async (city: CityRow, opts?: { includeStalled?: boolean }) => {
     try {
       const report = await fetchReport(city.slug);
-      const targets = generationTargets((report?.slots ?? []) as Slot[], !!opts?.includeStalled);
+      let slots = report?.slots ?? [];
+      if (opts?.includeStalled) {
+        // Relecture au clic : la date d’une tâche ne vient jamais d’un ancien résumé.
+        const [matrix, activity] = await Promise.all([
+          supabase.rpc("seo_city_matrix" as never, { _city_slug: city.slug } as never),
+          supabase.rpc("seo_city_generation_overview" as never),
+        ]);
+        if (matrix.error || activity.error) throw new Error("Reprise non lancée : les tâches ou l’activité n’ont pas pu être revérifiées.");
+        if ((activity.data as unknown as Overview | null)?.active_run) throw new Error("Une exécution est maintenant active. Attendez sa fin avant de reprendre.");
+        const dates = new Map(((matrix.data as unknown as { slots?: Array<{ kind: string; material_slug: string | null; service_slug: string | null; task_updated_at: string | null }> } | null)?.slots ?? []).map((s) => [slotKey(s.kind, s.material_slug, s.service_slug), s.task_updated_at]));
+        slots = slots.map((s) => ({ ...s, task_updated_at: dates.get(slotKey(s.kind, s.material_slug, s.service_slug)) ?? null }));
+      }
+      const targets = generationTargets(slots, !!opts?.includeStalled);
       if (targets.length === 0) { toast.info(`${city.name} : aucune page manquante.`); return; }
       await generate(city, targets, "missing");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Rapport indisponible"); }

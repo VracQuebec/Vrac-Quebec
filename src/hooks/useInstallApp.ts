@@ -75,10 +75,8 @@ export function useInstallApp() {
     await promptEvent.prompt();
     const { outcome } = await promptEvent.userChoice;
     setPromptEvent(null);
-    if (outcome === "accepted") {
-      setInstalled(true);
-      try { localStorage.setItem(INSTALLED_KEY, "1"); } catch { /* noop */ }
-    }
+    // L'acceptation de la fenêtre n'est pas une preuve d'installation.
+    // Seuls appinstalled / display-mode standalone confirment cet état.
     return outcome;
   }, [promptEvent]);
 

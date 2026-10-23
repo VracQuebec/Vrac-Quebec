@@ -99,7 +99,7 @@ export default function PipelineControlCenter() {
   const [covState, setCovState] = useState<"loading" | "error" | "ok">("loading");
   useEffect(() => {
     void supabase.rpc("seo_city_coverage_all" as never).then(({ data, error }) => {
-      if (error || !data) { setCovState((s) => (s === "ok" ? "ok" : "error")); return; }
+      if (error || !data) { setCovState("error"); return; }
       setCovState("ok");
       const m = new Map<string, Coverage>();
       for (const r of splitAll(data as unknown as CoverageAllRaw)) m.set(r.city_slug, computeCoverage(r));
@@ -112,7 +112,10 @@ export default function PipelineControlCenter() {
   const [lockKnown, setLockKnown] = useState(false);
   useEffect(() => {
     void supabase.from("seo_pipeline_guard" as never).select("global_disabled,reason").maybeSingle()
-      .then(({ data }) => { const g = data as { global_disabled: boolean; reason: string } | null; setGlobalLock(g?.global_disabled ? g.reason : null); setLockKnown(true); });
+      .then(({ data, error }) => { const g = data as { global_disabled: boolean; reason: string } | null;
+        if (error || !g) { setGlobalLock("État du verrou non vérifié : génération globale bloquée jusqu’à une lecture réussie."); setLockKnown(false); return; }
+        setGlobalLock(g.global_disabled ? g.reason : null); setLockKnown(true);
+      });
   }, []);
   // Exclusions temporaires (ex. Terre contaminée, Neige) : lecture admin seulement.
   const [exclusions, setExclusions] = useState<Set<string>>(new Set());
@@ -485,7 +488,7 @@ export default function PipelineControlCenter() {
               <Rocket className="w-4 h-4" /> START (génération automatique)
             </Button>
             {!run && (
-              <Button size="sm" className="gap-2" disabled={!!globalLock || !startable.allowed || global.starting || global.loading}
+              <Button size="sm" className="gap-2" disabled={!lockKnown || !!globalLock || !startable.allowed || global.starting || global.loading}
                 title={globalLock ?? (startable.allowed ? "Génère uniquement les pages pertinentes manquantes" : startable.reason)}
                 onClick={() => setConfirmOpen(true)}>
                 {global.starting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
@@ -496,7 +499,7 @@ export default function PipelineControlCenter() {
               <Button size="sm" variant="outline" onClick={() => act("pause", () => pause(run.id), "Pipeline en pause")} className="gap-2"><Pause className="w-4 h-4" /> Pause</Button>
             )}
             {run?.status === "paused" && (
-              <Button size="sm" disabled={!!globalLock} title={globalLock ?? undefined} onClick={() => window.confirm("Reprendre la génération globale ? Des appels IA payants peuvent être lancés.") && act("resume", () => resume(run.id), "Pipeline reprise")} className="gap-2"><Play className="w-4 h-4" /> Reprendre</Button>
+              <Button size="sm" disabled={!lockKnown || !!globalLock} title={globalLock ?? undefined} onClick={() => window.confirm("Reprendre la génération globale ? Des appels IA payants peuvent être lancés.") && act("resume", () => resume(run.id), "Pipeline reprise")} className="gap-2"><Play className="w-4 h-4" /> Reprendre</Button>
             )}
             {run && (
               <Button size="sm" variant="ghost" onClick={() => act("stop", () => stop(run.id), "Pipeline arrêtée")} className="gap-2"><Square className="w-4 h-4" /> Arrêter</Button>
@@ -653,13 +656,13 @@ export default function PipelineControlCenter() {
                 {globalLock && <div className="w-full text-xs text-destructive">Verrou serveur actif : {globalLock}</div>}
                 <div className="flex flex-wrap gap-2">
                   {(phase === "interrupted" || phase === "paused") && activeRun && (
-                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1" disabled={!!globalLock} title={globalLock ?? undefined}
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1" disabled={!lockKnown || !!globalLock} title={globalLock ?? undefined}
                       onClick={() => window.confirm("Reprendre la génération globale ? Des appels IA payants peuvent être lancés.") && act("resume-global", () => resume(activeRun.id), "Génération reprise")}>
                       <Play className="w-3 h-3" /> Reprendre la génération
                     </Button>
                   )}
                   {shouldOfferRetry(activeRun as never, global.preview) && activeRun && (
-                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1" disabled={!!globalLock} title={globalLock ?? undefined}
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1" disabled={!lockKnown || !!globalLock} title={globalLock ?? undefined}
                       onClick={() => window.confirm("Remettre en file les tâches en erreur de la génération globale ?") && act("retry-global", () => retryErrors(activeRun.id), "Erreurs remises en file")}>
                       <ListRestart className="w-3 h-3" /> Régénérer les erreurs
                     </Button>

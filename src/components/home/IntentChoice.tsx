@@ -11,8 +11,8 @@ const INTENTS = [
     key: "soumissions" as const,
     to: "/obtenir-des-soumissions",
     icon: ClipboardList,
-    title: "Obtenir des soumissions",
-    text: "Décrivez votre projet et recevez plusieurs prix d'entreprises vérifiées",
+    title: "Des soumissions pour vos travaux et vos besoins de chantier",
+    text: "Excavation, transport en vrac, pavage, déneigement, aménagement paysager, location de machinerie et autres services.",
     highlight: true,
   },
   {
@@ -105,6 +105,7 @@ const IntentChoice = ({ selected = null, onSelect }: Props) => (
               >
                 {text}
               </span>
+              {key === "soumissions" && <span className="mt-3 block font-body text-sm font-semibold text-foreground">Obtenir des soumissions</span>}
             </span>
             <ArrowRight className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-1" aria-hidden />
           </>

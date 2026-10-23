@@ -30,6 +30,12 @@ describe("plan d'action d'une ville", () => {
     expect(p.stalled).toBe(0);
     expect(p.generate.enabled).toBe(false);
   });
+  it("une date de tâche inconnue ne crée pas une reprise que le sélecteur refuse", () => {
+    const p = cityPlan({ ...base, problems: [row({ gen_state: "pending", task_updated_at: null })] });
+    expect(p.stalled).toBe(0);
+    expect(p.generate.count).toBe(0);
+    expect(p.generate.enabled).toBe(false);
+  });
   it("page publiée non indexée volontairement : ni erreur, ni régénération", () => {
     const p = cityPlan({ ...base, problems: [row({ gen_state: "invalid", issues: ["Publiée mais noindex"] })] });
     expect(p.noindex).toBe(1);
@@ -62,7 +68,20 @@ describe("cibles de génération", () => {
     expect(generationTargets([s("published", "sable"), s("draft", "gravier")], true)).toEqual([]);
   });
   it("reprise : tâches interrompues incluses seulement si autorisé", () => {
-    expect(generationTargets([s("pending", "sable")], false)).toEqual([]);
-    expect(generationTargets([s("pending", "sable")], true)).toHaveLength(1);
+    const old = { ...s("pending", "sable"), task_updated_at: new Date(NOW - STALE_PENDING_MS - 1).toISOString() };
+    expect(generationTargets([old], false, NOW)).toEqual([]);
+    expect(generationTargets([old], true, NOW)).toHaveLength(1);
+  });
+  it("une reprise partielle ne rejoue pas la tâche récente ni une date inconnue", () => {
+    const slots = [
+      { ...s("pending", "sable"), task_updated_at: new Date(NOW - STALE_PENDING_MS - 1).toISOString() },
+      { ...s("pending", "terre"), task_updated_at: new Date(NOW - 60_000).toISOString() },
+      s("pending", "roc"),
+    ];
+    expect(generationTargets(slots, true, NOW).map((x) => x.material_slug)).toEqual(["sable"]);
+  });
+  it("une exécution devenue active interdit la reprise des tâches interrompues", () => {
+    const old = { ...s("pending", "sable"), task_updated_at: new Date(NOW - STALE_PENDING_MS - 1).toISOString() };
+    expect(generationTargets([old], true, NOW, true)).toEqual([]);
   });
 });

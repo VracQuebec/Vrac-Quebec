@@ -84,9 +84,10 @@ export function cityPlan(i: CityPlanInput) {
   const missing = rows.filter((p) => p.gen_state === "missing").length;
   const failed = rows.filter((p) => p.gen_state === "error").length;
   const pendingRows = rows.filter((p) => p.gen_state === "pending");
-  const stalled = pendingRows.filter((p) =>
-    !i.globalRunActive && !i.runningHere &&
-    (!p.task_updated_at || now - new Date(p.task_updated_at).getTime() > STALE_PENDING_MS)).length;
+  const stalled = pendingRows.filter((p) => {
+    const updated = p.task_updated_at ? Date.parse(p.task_updated_at) : NaN;
+    return !i.globalRunActive && !i.runningHere && Number.isFinite(updated) && now - updated > STALE_PENDING_MS;
+  }).length;
   const pending = pendingRows.length - stalled;
   const invalid = rows.filter((p) => p.gen_state === "invalid" && !isNoindexOnly(p));
   const invalidPublished = invalid.filter((p) => i.publishedKeys.has(slotKey(p.kind, p.material_slug, p.service_slug))).length;
@@ -127,12 +128,14 @@ export function cityPlan(i: CityPlanInput) {
 }
 
 /** Cibles de génération d'une ville : manquantes, échouées et (si autorisé) interrompues — sans doublon. */
-export function generationTargets<T extends { state: string; kind: string; material_slug: string | null; service_slug: string | null }>(
-  slots: T[], includeStalled: boolean,
+export function generationTargets<T extends { state: string; kind: string; material_slug: string | null; service_slug: string | null; task_updated_at?: string | null }>(
+  slots: T[], includeStalled: boolean, now = Date.now(), activeRun = false,
 ): T[] {
   const seen = new Set<string>();
   return slots.filter((s) => {
-    if (!(s.state === "missing" || s.state === "error" || (includeStalled && s.state === "pending"))) return false;
+    const updated = s.task_updated_at ? Date.parse(s.task_updated_at) : NaN;
+    const stalled = includeStalled && !activeRun && s.state === "pending" && Number.isFinite(updated) && now - updated > STALE_PENDING_MS;
+    if (!(s.state === "missing" || s.state === "error" || stalled)) return false;
     const k = slotKey(s.kind, s.material_slug, s.service_slug);
     if (seen.has(k)) return false;
     seen.add(k); return true;

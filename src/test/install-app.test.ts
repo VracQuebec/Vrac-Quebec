@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { detectDevice } from "@/hooks/useInstallApp";
+import { act, renderHook } from "@testing-library/react";
+import { detectDevice, useInstallApp } from "@/hooks/useInstallApp";
 
 describe("détection de l'appareil pour l'installation", () => {
   it("reconnaît l'iPhone", () => {
@@ -10,6 +11,17 @@ describe("détection de l'appareil pour l'installation", () => {
   });
   it("reconnaît Android", () => {
     expect(detectDevice("Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome")).toBe("android");
+  });
+  it("accepter la fenêtre ne vaut pas une installation confirmée", async () => {
+    const { result, unmount } = renderHook(() => useInstallApp());
+    const event = new Event("beforeinstallprompt", { cancelable: true });
+    Object.assign(event, { prompt: async () => {}, userChoice: Promise.resolve({ outcome: "accepted" }) });
+    act(() => { window.dispatchEvent(event); });
+    await act(async () => { await result.current.install(); });
+    expect(result.current.installed).toBe(false);
+    act(() => { window.dispatchEvent(new Event("appinstalled")); });
+    expect(result.current.installed).toBe(true);
+    unmount();
   });
   it("classe l'ordinateur comme desktop", () => {
     expect(detectDevice("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome", 0)).toBe("desktop");

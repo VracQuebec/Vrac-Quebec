@@ -207,7 +207,7 @@ const Index = () => {
             <CircularEconomy />
           </div>
 
-          {/* Place de marché — obtenir plusieurs soumissions d'entreprises vérifiées */}
+          {/* Demandes de soumissions — sans promesse de nombre de réponses. */}
           <section
             aria-labelledby="soumissions-title"
             className="mx-auto mt-20 max-w-4xl rounded-2xl border-2 border-primary/40 bg-card p-6 text-center sm:mt-24 sm:p-10"
@@ -220,18 +220,17 @@ const Index = () => {
               id="soumissions-title"
               className="mt-4 font-display text-xl font-extrabold leading-tight text-foreground sm:text-2xl"
             >
-              Un seul formulaire, plusieurs prix d'entreprises vérifiées.
+              Des soumissions pour vos travaux et vos besoins de chantier
             </h2>
             <p className="mx-auto mt-3 max-w-2xl font-body text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Excavation, transport, pavage, aménagement, déneigement, location de machinerie&nbsp;: décrivez
-              votre projet en quelques questions simples. Nous transmettons votre demande aux bonnes
-              entreprises et vous comparez les soumissions au même endroit. Gratuit et sans engagement.
+              Excavation, transport en vrac, pavage, déneigement, aménagement paysager, location de machinerie et autres services.
+              Décrivez votre besoin; les possibilités et les conditions seront à confirmer selon votre projet.
             </p>
             <ul className="mx-auto mt-5 grid max-w-2xl gap-2 text-left sm:grid-cols-3">
               {[
-                "Aucune question inutile",
-                "Vos coordonnées restent privées",
-                "Réponses regroupées en ligne",
+                "Génie civil",
+                "Disposition de matériaux",
+                "Services de chantier, carrières et sablières",
               ].map((t) => (
                 <li key={t} className="rounded-xl bg-muted/60 px-3 py-2 font-body text-sm text-foreground">
                   {t}
