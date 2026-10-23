@@ -21,3 +21,8 @@
 - Section « Où souhaitez-vous recevoir du remblai ? » dans le formulaire, carte, CRM, suivi client, courriel.
 - Adaptation de `submit-parcours` (copie préparée), colonnes exactes de l'insertion, droits portail par groupe.
 - Tests isolés 1–14 sur base jetable; aucun n'a été joué sur le serveur.
+
+## Mise à jour 2026-10-23 14:20 UTC
+- Formulaire (aperçu) : section « Où souhaitez-vous recevoir du remblai ? » dans l'étape adresse de /remblai (`ExtraLocations.tsx`), emplacements B–E, retrait, erreurs par emplacement, doublon de position refusé; envoi bloqué si adresses supplémentaires tant que `MULTI_SITES_SERVER_READY = false`. Une seule adresse : parcours inchangé.
+- SQL préparé : validation complète avant toute insertion (aucun numéro de dompe consommé sur refus). Un échec en cours d'insertion annule tout mais laisse un trou dans `dompe_number_seq` (comportement existant des séquences).
+- CRM/carte : aucune modification d'affichage; chaque emplacement = fiche `submissions` existante. Indicateur discret « Demande DR-xxxx · n emplacements » à ajouter après migration.
