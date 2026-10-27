@@ -1695,6 +1695,20 @@
       "when": 1793111512971,
       "tag": "0241_invitations_chauffeurs",
       "breakpoints": true
+    },
+    {
+      "idx": 242,
+      "version": "7",
+      "when": 1793111657927,
+      "tag": "0242_invitations_capture",
+      "breakpoints": true
+    },
+    {
+      "idx": 243,
+      "version": "7",
+      "when": 1793111674996,
+      "tag": "0243_missions_revocation_adapte",
+      "breakpoints": true
     }
   ]
 }

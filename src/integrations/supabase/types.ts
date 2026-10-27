@@ -3283,36 +3283,42 @@ export type Database = {
       }
       drv_missions: {
         Row: {
+          company_id: string | null
           consent_at: string
           created_at: string
           driver_label: string | null
           ended_at: string | null
           entrepreneur_id: string | null
           id: string
+          requisition_id: string | null
           started_at: string
           submission_id: string | null
           truck_label: string | null
           user_id: string
         }
         Insert: {
+          company_id?: string | null
           consent_at: string
           created_at?: string
           driver_label?: string | null
           ended_at?: string | null
           entrepreneur_id?: string | null
           id?: string
+          requisition_id?: string | null
           started_at?: string
           submission_id?: string | null
           truck_label?: string | null
           user_id?: string
         }
         Update: {
+          company_id?: string | null
           consent_at?: string
           created_at?: string
           driver_label?: string | null
           ended_at?: string | null
           entrepreneur_id?: string | null
           id?: string
+          requisition_id?: string | null
           started_at?: string
           submission_id?: string | null
           truck_label?: string | null
@@ -3324,6 +3330,20 @@ export type Database = {
             columns: ["entrepreneur_id"]
             isOneToOne: false
             referencedRelation: "entrepreneurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drv_missions_requisition_id_fkey"
+            columns: ["requisition_id"]
+            isOneToOne: false
+            referencedRelation: "transport_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drv_missions_requisition_id_fkey"
+            columns: ["requisition_id"]
+            isOneToOne: false
+            referencedRelation: "transport_requests_a_identifier"
             referencedColumns: ["id"]
           },
           {
@@ -31883,6 +31903,18 @@ export type Database = {
       }
       driver_identity_current: { Args: { c: string }; Returns: boolean }
       driver_invite_accept: { Args: { _token: string }; Returns: Json }
+      driver_invite_capture: {
+        Args: {
+          _company: string
+          _driver: string
+          _email: string
+          _key: string
+          _origin: string
+          _renew?: string
+          _token: string
+        }
+        Returns: Json
+      }
       driver_invite_options: { Args: { _company: string }; Returns: Json }
       driver_invite_prepare: {
         Args: {
@@ -31899,6 +31931,14 @@ export type Database = {
         Returns: string
       }
       driver_invite_revoke: { Args: { _id: string }; Returns: undefined }
+      driver_mission_access: {
+        Args: { mid: string; writing?: boolean }
+        Returns: boolean
+      }
+      driver_tracking_start: {
+        Args: { consent: boolean; rid: string }
+        Returns: string
+      }
       driver_user_current: { Args: never; Returns: boolean }
       drv_mission_end: { Args: { _mission: string }; Returns: undefined }
       drv_mission_point: {
