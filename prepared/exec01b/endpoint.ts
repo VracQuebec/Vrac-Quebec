@@ -7,17 +7,17 @@ import { legacyReception } from '../../src/lib/remblai/cloud-contract';
 import { preparePhotos, signPhotos, type PhotoStorage } from './photos';
 import { digest, randomSecret } from '../../src/lib/remblai/service';
 import { renderConfirmationEmail, CONFIRMATION_SUBJECT } from './confirmation-email';
-const credentials = { requestId: z.string().uuid(), linkId: z.string().uuid(), secret: z.string().regex(/^[a-f0-9]{64}$/) };
+const credentials = { requestId: z.guid(), linkId: z.guid(), secret: z.string().regex(/^[a-f0-9]{64}$/) };
 const bodySchema = z.discriminatedUnion('kind', [
  z.object({kind:z.literal('read'),...credentials}).strict(),
  z.object({kind:z.literal('code'),...credentials}).strict(),
  z.object({kind:z.literal('verify'),...credentials,code:z.string().regex(/^\d{6}$/)}).strict(),
  z.object({kind:z.literal('renew'),...credentials}).strict(),
  z.object({kind:z.literal('revoke'),...credentials,confirmed:z.literal(true)}).strict(),
- z.object({kind:z.literal('act'),...credentials,confirmed:z.literal(true),operationId:z.string().uuid(),version:z.number().int().positive(),action:z.enum(['modifier','confirmer','pause','reprendre','fermer']),conditions:conditionsSchema.optional(),publicForm:publicEditSchema.optional()}).strict(),
- z.object({kind:z.literal('issue'),requestId:z.string().uuid()}).strict(),
- z.object({kind:z.literal('crm'),requestId:z.string().uuid()}).strict(),
- z.object({kind:z.literal('cleanup'),requestId:z.string().uuid(),paths:z.array(z.string().max(180)).max(20),confirmed:z.literal(true)}).strict(),
+ z.object({kind:z.literal('act'),...credentials,confirmed:z.literal(true),operationId:z.guid(),version:z.number().int().positive(),action:z.enum(['modifier','confirmer','pause','reprendre','fermer']),conditions:conditionsSchema.optional(),publicForm:publicEditSchema.optional()}).strict(),
+ z.object({kind:z.literal('issue'),requestId:z.guid()}).strict(),
+ z.object({kind:z.literal('crm'),requestId:z.guid()}).strict(),
+ z.object({kind:z.literal('cleanup'),requestId:z.guid(),paths:z.array(z.string().max(180)).max(20),confirmed:z.literal(true)}).strict(),
 ]);
 export type Message = { to:string; subject:string; html:string; text:string; purpose:'service'; tracking:false };
 export type Dependencies = { rpc:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>; isAdmin:(request:Request)=>Promise<boolean>; captureOrSend:(message:Message)=>Promise<'captured-test'|'sent'>; dispatchMail?:(input:Record<string,unknown>,message:Omit<Message,'to'>)=>Promise<Record<string,unknown>>; cleanup?:(id:string,paths:string[])=>Promise<{removed:number}>; portalOrigin:string; corsOrigin:string; localHarness?:boolean; storage?:PhotoStorage; enabled?:boolean; quota?:(request:Request)=>Promise<boolean> };

@@ -44,3 +44,4 @@
 - Personal request presentation uses display-only components over the existing protected projection; proposal transmission and explicit delivery confirmation must not be inferred from planning, and existing action handlers remain authoritative.
 - Parcours prioritaires : les destinations « Je cherche une dompe » / « Je veux du remblai » viennent de src/lib/navigation/priority-paths.ts ; pied de page public commun PublicContactFooter (numéro via src/lib/public-phone.ts) — une seule source pour éviter les entrées divergentes.
 
+- Driver revocation is enforced by jsc_my_driver_ids/driver_company_active/driver_identity_current/driver_user_current in RLS and portal RPCs; reuse them for any new driver-readable surface so a still-open session loses access immediately.

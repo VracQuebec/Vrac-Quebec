@@ -31403,6 +31403,12 @@ export type Database = {
         }
         Returns: Json
       }
+      driver_company_active: {
+        Args: { c: string; u?: string }
+        Returns: boolean
+      }
+      driver_identity_current: { Args: { c: string }; Returns: boolean }
+      driver_user_current: { Args: never; Returns: boolean }
       drv_mission_end: { Args: { _mission: string }; Returns: undefined }
       drv_mission_point: {
         Args: {

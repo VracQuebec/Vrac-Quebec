@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { campaignTemplates,filterSchema,matchesSegment,renderCampaign,type NetworkContact,type TemplateKey } from '../../src/lib/marketplace/communications';
 import { digest,randomSecret } from '../../src/lib/remblai/service';
-const uuid=z.string().uuid();
+const uuid=z.guid();
 const input=z.object({kind:z.enum(['network','campaign_list','campaign_save','prepare','capture','queue','commissions','agreement','commission','finance_link','services','preferences','permission','service_create','service_action','service_admin','partner_list','permission_list']),
  requestId:uuid.optional(),linkId:uuid.optional(),secret:z.string().regex(/^[a-f0-9]{64}$/).optional(),operationId:uuid.optional(),confirmed:z.boolean().optional(),
  campaignId:uuid.optional(),name:z.string().min(1).max(150).optional(),template:z.enum(['confirmation','reconfirmation','offer','appointment','welcome','features']).optional(),segment:filterSchema.optional(),frequencyHours:z.number().int().min(1).max(8760).optional(),
