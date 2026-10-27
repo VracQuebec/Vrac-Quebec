@@ -236,6 +236,10 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 
 ## Sécurité — correctifs (2026-10-27)
 - [x] dompurify 3.4.17, jspdf 4.2.1, lodash 4.18.1 (via override) — tests complets réussis sauf suite EXEC07 fermée hors environnement isolé.
-- [ ] xlsx : aucune version corrigée sur npm (0.18.5); décision : paquet officiel SheetJS 0.20.3 (CDN) ou remplacement.
-- [ ] zod 4 : changement majeur, migration dédiée.
-- [ ] Révocation chauffeurs R4C/R4D, fonctions privilégiées, accès fichiers contrôlé : préparés, installation serveur à autoriser (INSTALLATION-R4D.md).
+- [x] xlsx 0.20.3 officiel SheetJS (aperçu).
+- [x] zod 4.6.6 (uuid→guid), react-router-dom 7.18 — aperçu, non publiés.
+- [x] Installé 0231 : helper chauffeur, portail, fiche, notifications, documents/Storage (essai hébergé annulé, preuve docs/audit/reprise-r4d-preuves/essai-heberge-2026-10-27.txt).
+- [ ] Missions GPS/réquisitions R4D : bloquées (dépend EXEC-02/R3-R4 non installés; casserait missions entrepreneur actuelles).
+- [ ] Liens signés déjà émis : valides jusqu'à expiration; proxy de téléchargement revérifié à construire.
+- [ ] Serveur formulaire isolé (prepared/remblai-formulaire/serveur) et fonctions serveur épinglent encore zod 3.25.76.
+- [ ] Revue fonctions SECURITY DEFINER exposées : non faite ce tour.
