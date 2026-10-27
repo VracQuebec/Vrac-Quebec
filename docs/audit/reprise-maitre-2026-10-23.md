@@ -195,3 +195,11 @@ La limite de cette exécution a permis R1 et les préparations documentaires ind
 - Non testé de bout en bout : téléchargement autorisé, refus même session après révocation, refus interentreprises — bloqués faute de sessions TEST authentifiées.
 - Anciens liens signés déjà émis : valides jusqu’à expiration; aucun déplacement de fichiers ni changement de clé.
 - Patch Zod serveur, paquet EXEC-02→éditeur→R4D, PDF visuel : non avancés dans ce lot.
+
+## R4G — examen fonctions sensibles connectées (2026-10-27)
+- Périmètre : 30 fonctions SECURITY DEFINER fin_/asr_/entcrm_/has_role exécutables par comptes connectés sans contrôle visible direct, + aides centrales (entcrm_role, asr_role, fin_can_*, fin_exp_can_see, fin_portal_active, has_role).
+- Défaut démontré : fin_exp_adv_avail, fin_exp_alloc_sum, fin_bank_account_ok, fin_pay_account_check sans contrôle entreprise. Correctif préparé `prepared/securite-r4g/0233_…sql`, NON installé.
+- Autres : contrôle délégué vérifié (rôle actif + archived_at + is_active). Fonctions publiques à jeton (entcrm_public_quote/respond) conservées.
+- Tests de session (accepté/autre entreprise/rôle/révoqué) : non exécutés, sans comptes TEST.
+### Prochains objectifs
+1. Diagnostic Zod serveur. 2. Contrôle visuel PDF. 3. Paquet EXEC-02 → éditeur → missions R4D. 4. Validation complète avec les deux comptes TEST.
