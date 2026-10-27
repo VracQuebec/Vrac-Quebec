@@ -142,6 +142,7 @@ try {
   const conc = await Promise.all([propose(30), propose(30), propose(30)]);
   const list = async () => (await call({ requestId: rid, kind: 'list' })).body;
   const l1 = await list();
+  console.log('DEBUG', JSON.stringify((await db`select state, evaluation->>'result' res, evaluation->'reasons' rs from submission_reception_reservations where submission_id=${rid}`)), JSON.stringify(l1.exceptions), JSON.stringify(l1.policy));
   check('Concurrence : 3 propositions de 30 sur capacité 50 → réservé ≤ 50', Number(l1.reserved) <= 50, { reserved: l1.reserved, st: conc.map((x) => x.status) });
   check('Concurrence : exactement une réservation de 30', Number(l1.reserved) === 30, { reserved: l1.reserved, rows: l1.rows?.map((r: any) => [r.state, r.quantity, r.reason]), st: conc.map((x) => [x.status, x.body]) });
   const resv = l1.rows.find((r: any) => r.state === 'reserved');
