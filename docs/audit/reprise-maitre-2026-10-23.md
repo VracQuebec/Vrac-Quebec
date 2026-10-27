@@ -215,3 +215,12 @@ La limite de cette exécution a permis R1 et les préparations documentaires ind
 | Comptes TEST | Instructions conservées | — | — | Création par parcours normal (inscription, courriel confirmé, invitation chauffeur). Je ne peux pas ouvrir leurs sessions automatiquement : le seul moyen sûr est que vous vous connectiez vous-même dans l’aperçu Lovable avec le compte TEST, la session est alors transmise à mes essais |
 
 Prochains objectifs : composition EXEC-02 sur schéma réel (base jetable), autorisation de redéploiement Zod, essais 0233 et documents avec comptes TEST.
+
+## R4I — 2026-10-27 : paquet missions et Zod (rien installé ni déployé)
+| Point | Changement | Environnement | Tests | Bloqué |
+|---|---|---|---|---|
+| Paquet EXEC-02→éditeur→R4D | `prepared/paquet-missions-2026-10-27/` (00–10, retour, manifeste, `INSTALLATION.md`) ; priorités « haute » → « importante » (refusées par le serveur) ; RPC missions limitées aux missions liées | Réplique isolée fidèle au serveur | 40/40 scénarios ; retour arrière vérifié identique au serveur | Autorisation d’installation ; décision propriétaire des demandes (731/737 sans auteur) |
+| Défaut existant voyages | Correctif 00 préparé : création de voyage impossible sur le serveur | Réplique | voyage + journal OK | Autorisation |
+| Zod 4 serveur | Essai du point d’entrée complet, `prepared/zod-serveur/` | Deno local isolé | 16/16 réponses identiques, `deno check` 2 fonctions | Runtime hébergé non prouvé ; redéploiement non autorisé |
+| Comptes TEST | — | — | vraies sessions non exécutées | Connexion du gestionnaire dans l’aperçu |
+Résiduel noté : 256 fonctions serveur exécutables par tous par défaut (corps protégés à vérifier au cas par cas, hors lot).
