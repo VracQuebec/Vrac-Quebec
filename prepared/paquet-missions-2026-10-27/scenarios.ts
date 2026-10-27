@@ -93,7 +93,7 @@ try {
   check('Historique de modification conservé', (await db`select count(*)::int n from ent_crm_history where entity_id=${sub}`)[0].n >= 1);
 
   // Revalidation explicite puis mission
-  await db`update submissions set revalidation_requested_at=NULL where id=${sub}`;
+  await db`update submission_site_decisions set status='approuvee' where submission_id=${sub}`; await db`update submissions set revalidation_requested_at=NULL where id=${sub}`;
   await act(managerA, 'transmit'); await act(driverUser, 'accept');
   const mid = (await as(driverUser, (tx) => tx`select driver_tracking_start(${request}::uuid,true) r`))[0].r;
   await act(driverUser, 'start');
