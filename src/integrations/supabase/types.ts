@@ -27783,6 +27783,125 @@ export type Database = {
           },
         ]
       }
+      submission_ownership_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          id: string
+          request_id: string | null
+          submission_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          request_id?: string | null
+          submission_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          request_id?: string | null
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_ownership_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "submission_ownership_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_ownership_events_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_ownership_events_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_ownership_requests: {
+        Row: {
+          company_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          id: string
+          proof_reference: string | null
+          proof_type: string | null
+          requested_by: string
+          requester_note: string
+          status: string
+          submission_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          proof_reference?: string | null
+          proof_type?: string | null
+          requested_by: string
+          requester_note?: string
+          status?: string
+          submission_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          proof_reference?: string | null
+          proof_type?: string | null
+          requested_by?: string
+          requester_note?: string
+          status?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_ownership_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_ownership_requests_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_ownership_requests_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submission_portal_confirmations: {
         Row: {
           created_at: string
@@ -35670,6 +35789,21 @@ export type Database = {
         Args: { s: Database["public"]["Tables"]["submissions"]["Row"] }
         Returns: Json
       }
+      submission_ownership_decide: {
+        Args: {
+          _approve: boolean
+          _note: string
+          _proof_reference: string
+          _proof_type: string
+          _request: string
+        }
+        Returns: Json
+      }
+      submission_ownership_request: {
+        Args: { _company: string; _id: string; _note: string }
+        Returns: Json
+      }
+      submission_ownership_status: { Args: { _id: string }; Returns: Json }
       svc_request_create: {
         Args: { _key: string; _kind: string; _note: string; _sub: string }
         Returns: string
