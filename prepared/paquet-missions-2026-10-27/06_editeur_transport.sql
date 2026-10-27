@@ -40,7 +40,7 @@ BEGIN
  result:=result||jsonb_build_object('id',_id,'version',(SELECT current_version FROM public.transport_requests WHERE id=_id),'status',(SELECT lifecycle_status FROM public.transport_requests WHERE id=_id));
  INSERT INTO public.transport_request_events(request_id,action,version,details,actor_id,actor_role,origin)
  VALUES(_id,'requisition_transport_edit',(result->>'version')::integer,jsonb_build_object('id',_id,'operation',_operation,'changes',_changes,'result',result,'previous_accepted',t.requisition_accepted_snapshot),auth.uid(),public.trq_actor_role(_id),'entreprise');
- PERFORM public.crm_notify('transport-edit:'||_id||':'||_operation,'demandes','demande_modifiee','haute','Demande de transport modifiée',NULL,'transport_request',_id,'/admin/demandes-acces',NULL,t.request_number,NULL,jsonb_build_object('version',result->'version'),false);
+ PERFORM public.crm_notify('transport-edit:'||_id||':'||_operation,'demandes','demande_modifiee','importante','Demande de transport modifiée',NULL,'transport_request',_id,'/admin/demandes-acces',NULL,t.request_number,NULL,jsonb_build_object('version',result->'version'),false);
  RETURN result;
 END$$;
 REVOKE ALL ON FUNCTION public.request_update_versioned(uuid,integer,jsonb,uuid,boolean) FROM PUBLIC,anon;

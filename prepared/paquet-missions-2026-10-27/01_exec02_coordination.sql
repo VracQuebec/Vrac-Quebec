@@ -48,7 +48,7 @@ BEGIN
  ON CONFLICT(entity_type,entity_id) DO UPDATE SET next_action=excluded.next_action,reminder_reason=excluded.reminder_reason,next_reminder_at=excluded.next_reminder_at,follow_status='en_attente',resolved_at=NULL RETURNING id INTO f;
  INSERT INTO request_followup_events(followup_id,entity_type,entity_id,action,detail)
  VALUES(f,'submission',_id,'exec02_exception',jsonb_build_object('reason',_reason,'next',_next,'reference',_reference));
- PERFORM crm_notify('exec02-'||_id||'-'||coalesce(_reference::text,_reason),'demandes','reception_exception','haute','Réception à vérifier',_reason,'submission',_id,'/admin/centre-controle',NULL,NULL,NULL,jsonb_build_object('next_action',_next),false);
+ PERFORM crm_notify('exec02-'||_id||'-'||coalesce(_reference::text,_reason),'demandes','reception_exception','importante','Réception à vérifier',_reason,'submission',_id,'/admin/centre-controle',NULL,NULL,NULL,jsonb_build_object('next_action',_next),false);
 END $$;
 REVOKE ALL ON FUNCTION public.exec02_exception(uuid,text,text,uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.exec02_exception(uuid,text,text,uuid) TO service_role;
