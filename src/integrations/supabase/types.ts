@@ -4739,6 +4739,59 @@ export type Database = {
           },
         ]
       }
+      ent_employee_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          request_key: string
+          revoked_at: string | null
+          role: string
+          token_hash: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          company_id: string
+          created_at?: string
+          created_by: string
+          email: string
+          expires_at: string
+          id?: string
+          request_key: string
+          revoked_at?: string | null
+          role: string
+          token_hash: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          request_key?: string
+          revoked_at?: string | null
+          role?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_employee_invites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entrepreneur_profiles: {
         Row: {
           average_volume: string
@@ -34761,6 +34814,18 @@ export type Database = {
         }
         Returns: string
       }
+      pun_invite_accept: { Args: { _token: string }; Returns: string }
+      pun_invite_prepare: {
+        Args: {
+          _company: string
+          _email: string
+          _key: string
+          _role: string
+          _token: string
+        }
+        Returns: string
+      }
+      pun_invite_revoke: { Args: { _id: string }; Returns: undefined }
       pun_manual: {
         Args: {
           _client: string
@@ -35472,6 +35537,10 @@ export type Database = {
           id: string
           label: string
         }[]
+      }
+      workbench_invalidate_reservations: {
+        Args: { _company: string; _id: string; _operation: string }
+        Returns: undefined
       }
     }
     Enums: {
