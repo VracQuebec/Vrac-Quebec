@@ -233,3 +233,9 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [x] Activer portail et vérifier dossier fictif complet sur site publié, même identifiant CRM serveur et photo privée réellement affichée; écran CRM admin non revérifié.
 - [x] Activer transport réel et bouton après succès; captures fictives conservées, nouvelles confirmations seulement depuis 21:50:07 UTC.
 - [x] Conserver EXEC-02 à 06 désactivés et consigner état réel, sans restauration globale.
+
+## Sécurité — correctifs (2026-10-27)
+- [x] dompurify 3.4.17, jspdf 4.2.1, lodash 4.18.1 (via override) — tests complets réussis sauf suite EXEC07 fermée hors environnement isolé.
+- [ ] xlsx : aucune version corrigée sur npm (0.18.5); décision : paquet officiel SheetJS 0.20.3 (CDN) ou remplacement.
+- [ ] zod 4 : changement majeur, migration dédiée.
+- [ ] Révocation chauffeurs R4C/R4D, fonctions privilégiées, accès fichiers contrôlé : préparés, installation serveur à autoriser (INSTALLATION-R4D.md).
