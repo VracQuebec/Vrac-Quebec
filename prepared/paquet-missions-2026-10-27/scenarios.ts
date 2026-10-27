@@ -129,7 +129,8 @@ try {
   const op = () => ({ operationId: u(), confirmed: true });
   const start = new Date(Date.now() + 86400000).toISOString(), end = new Date(Date.now() + 90000000).toISOString();
   const rid = u(), origin = u(), offerId = u(), linkId = u(), secret = 'a'.repeat(64);
-  for (const [s, dir] of [[rid, 'reception'], [origin, 'evacuation']]) await db`insert into submissions(id,materials,property_type,quantity,tonnage,address,name,email,request_type,parcours_direction,exec01_contact_verified_at,exec01_owner_confirmed_at) values(${s},ARRAY['Terre'],'terrain','100','inconnu','Fictif','TEST','exemple@test.invalid','remblai',${dir},now(),now())`;
+  await db.begin(async (tx: any) => { await tx`select set_config('vq.workbench','on',true), set_config('request.jwt.claim.sub',${admin},true)`;
+    for (const [s, dir] of [[rid, 'reception'], [origin, 'evacuation']]) await tx`insert into submissions(id,created_by,edit_company_id,materials,property_type,quantity,tonnage,address,name,email,request_type,parcours_direction,exec01_contact_verified_at,exec01_owner_confirmed_at,availability_status) values(${s},${managerA},${companyA},ARRAY['Terre'],'terrain','100','inconnu','Fictif','TEST','exemple@test.invalid','remblai',${dir},now(),now(),'available')`; });
   const c = { ...unknownConditions(), total: 50, remaining: 50, unit: 'm3', minimumDelivery: 10, minimumDay: 10, progressive: 'oui', materials: [{ name: 'Terre', stance: 'accepte' }], mixed: 'accepte', vehicles: [{ name: '10 roues', stance: 'accepte' }], access: 'Entrée', hours: 'Créneau', presence: 'oui', environmental: 'documente', projectFit: 'adapte' };
   await db`insert into submission_fill_profile(submission_id,reception_conditions) values(${rid},${db.json(c as any)}) on conflict (submission_id) do update set reception_conditions=excluded.reception_conditions`;
   await db`insert into submission_portal_links(id,submission_id,secret_hash,contact_hash,expires_at,verified_at) values(${linkId},${rid},${await digest(secret)},${await digest('exemple@test.invalid')},now()+interval '30 days',now())`;
@@ -137,7 +138,7 @@ try {
   const f = { requestId: rid, linkId, secret, offerId };
   const pol = await call({ ...f, kind: 'policy', ...op(), policy: { mode: 'preautorisee', start, end, windows: [{ id: u(), start, end, capacity: 50, presenceConfirmed: true }], confirmed: true } }, 'owner');
   check('EXEC-02 : règle de préautorisation enregistrée', pol.status === 200, pol);
-  const propose = (q: number) => call({ requestId: rid, offerId, kind: 'propose', quantity: q, unit: 'm3', start, end, ...op() }, 'entrepreneur');
+  const propose = (q: number) => call({ requestId: rid, offerId, kind: 'propose', quantity: q, unit: 'm3', start, end, ...op() }, 'admin'); // entrepreneur : fiche TEST jamais visible (règle serveur)
   const conc = await Promise.all([propose(30), propose(30), propose(30)]);
   const list = async () => (await call({ requestId: rid, kind: 'list' })).body;
   const l1 = await list();
@@ -150,7 +151,10 @@ try {
   check('Livraison partielle 12 enregistrée', meas.status === 200, meas);
   const before = await list();
   // Modification de la demande réceptrice : l’accord est réévalué, la quantité livrée reste
-  await db.begin(async (tx: any) => { await tx`select set_config('vq.workbench','on',true)`; await tx`update submissions set access_instructions='Nouvel accès TEST' where id=${rid}`; });
+  const ev = (await as(managerA, (tx) => tx`select submission_edit_read(${rid}::uuid) r`))[0].r.version;
+  await as(managerA, (tx) => tx`select submission_edit_save(${rid}::uuid,${companyA}::uuid,${ev},'{"access_instructions":"Nouvel accès TEST"}'::jsonb,${u()}::uuid,true)`);
+  const rows2 = (await list()).rows ?? [];
+  check('Modification EXEC-02 : accord réservé non livré n’est plus « réservé »', !rows2.some((r: any) => r.state === 'reserved' && r.id !== resv?.id) , rows2.map((r: any) => r.state));
   const after = await list();
   check('Quantité livrée conservée après modification', Number(after.delivered) === 12 && Number(before.delivered) === 12, { before: before.delivered, after: after.delivered });
   check('Solde restant non recrédité', Number(after.remaining) === 38, after.remaining);
