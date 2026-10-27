@@ -243,3 +243,6 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [ ] Liens signés déjà émis : valides jusqu'à expiration; proxy de téléchargement revérifié à construire.
 - [ ] Serveur formulaire isolé (prepared/remblai-formulaire/serveur) et fonctions serveur épinglent encore zod 3.25.76.
 - [ ] Revue fonctions SECURITY DEFINER exposées : non faite ce tour.
+- [x] 0232 aides finances/assurances restreintes; fonction secure-file déployée (non branchée aux écrans).
+- [x] R4D missions préparé corrigé (entrepreneurs préservés), 47 tests jetables.
+- [ ] Brancher secure-file dans documents/preuves; installer EXEC-02→R4D missions (autorisation); patch zod4 serveur à déployer (autorisation); comptes fictifs Auth confirmés pour preuve complète.
