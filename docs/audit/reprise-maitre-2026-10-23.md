@@ -189,3 +189,9 @@ Définitions inchangées de `docs/audit/exec08-bilan.md` : A formulaire → cour
 7. **Publication** : autorisation distincte, non exécutée. Aucun envoi réel, paiement, achat ou campagne implicitement couvert par l’accord d’installation.
 
 La limite de cette exécution a permis R1 et les préparations documentaires indépendantes, pas les 22 périmètres complets. R2/R3/R4 sont encore des développements; l’absence d’environnement complet explique les validations hébergées manquantes, pas tout le code restant.
+## Mise à jour 2026-10-27 (R4G)
+- Raccordé à l’interface (aperçu) : Documents d’entreprise, Preuves d’assurance chauffeur et pièces de police passent par `secure-file` (`src/lib/secureFile.ts`); l’accès direct au stockage depuis ces écrans est retiré. Messages 401/403/indisponible affichés.
+- Testé : 2 tests de messages; fonction hébergée sans session → 401 (observé).
+- Non testé de bout en bout : téléchargement autorisé, refus même session après révocation, refus interentreprises — bloqués faute de sessions TEST authentifiées.
+- Anciens liens signés déjà émis : valides jusqu’à expiration; aucun déplacement de fichiers ni changement de clé.
+- Patch Zod serveur, paquet EXEC-02→éditeur→R4D, PDF visuel : non avancés dans ce lot.
