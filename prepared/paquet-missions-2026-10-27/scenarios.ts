@@ -66,7 +66,7 @@ try {
     await tx`select set_config('vq.workbench','on',true)`;
     await tx`insert into submissions(id,created_by,materials,property_type,quantity,tonnage,address,name,email,edit_company_id) values(${sub},${managerA},ARRAY['Terre'],'terrain','100','inconnu','Chantier TEST','TEST','m@test.invalid',${companyA})`;
   });
-  await db`insert into transport_requests(id,origin_submission_id,site_address,material_type,client_phone,client_name) values(${request},${sub},'Chantier TEST','Terre','000','TEST')`;
+  await db`insert into transport_requests(id,origin_submission_id,site_address,material_type,client_phone,client_name) values(${request},${sub},'Chantier TEST','Terre','8195550100','TEST')`;
   await db`insert into submission_site_decisions(submission_id,site_id,status) values(${sub},${site},'approuvee')`;
   const reqVer = async () => (await db`select requisition_version v, requisition_state s from transport_requests where id=${request}`)[0];
   const values = { company_id: companyA, request_id: request, driver_id: driverA, truck_id: truckA, destination_id: site, material: 'Terre', quantity: 10, unit: 'm3', starts_at: '2026-11-02T12:00:00Z', instructions: 'TEST' };
