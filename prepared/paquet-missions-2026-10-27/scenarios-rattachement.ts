@@ -32,9 +32,10 @@ try {
   await db`insert into user_roles(user_id,role,approved) values(${admin},'admin',true)`;
   await db`insert into jsc_companies(id,code,name) values(${cA},'TA','TEST A'),(${cB},'TB','TEST B')`;
   await db`insert into jsc_company_members(company_id,user_id,role) values(${cA},${mgrA},'proprietaire'),(${cB},${mgrB},'gestionnaire'),(${cA},${multi},'gestionnaire'),(${cB},${multi},'gestionnaire'),(${cA},${driverU},'chauffeur')`;
-  const ins = (uid: string | null, mail: string) => uid
-    ? as(uid, (tx) => tx`insert into submissions(materials,property_type,quantity,tonnage,address,name,email,request_type) values(ARRAY['Terre'],'terrain','10','inconnu','1 rue Fictive','TEST',${mail},'remblai') returning id, created_by, edit_company_id, creation_origin`)
-    : db.begin(async (tx: any) => { await tx`select set_config('role','anon',true)`; return tx`insert into submissions(materials,property_type,quantity,tonnage,address,name,email,request_type) values(ARRAY['Terre'],'terrain','10','inconnu','1 rue Fictive','TEST',${mail},'remblai') returning id`; });
+  const ins = async (uid: string | null, mail: string) => { const id = u();
+    const q = (tx: any) => tx`insert into submissions(id,materials,property_type,quantity,tonnage,address,name,email,request_type) values(${id},ARRAY['Terre'],'terrain','10','inconnu','1 rue Fictive','TEST',${mail},'remblai')`;
+    if (uid) await as(uid, q); else await db.begin(async (tx: any) => { await tx`select set_config('role','anon',true)`; await q(tx); });
+    return [{ id }]; };
 
   // 1. Particulier sans session
   const pub = (await ins(null, 'p@test.invalid'))[0];
@@ -57,7 +58,7 @@ try {
   check('Chauffeur connecté : aucune attribution', (await db`select created_by from submissions where id=${d.id}`)[0].created_by === null);
   // 5. Falsification : un client ne peut pas imposer auteur/entreprise
   await rejects('Falsification : entreprise imposée à la création refusée', as(mgrB, (tx) => tx`insert into submissions(materials,property_type,quantity,tonnage,address,name,email,request_type,edit_company_id) values(ARRAY['Terre'],'terrain','10','inconnu','1 rue Fictive','TEST','b@test.invalid','remblai',${cA})`));
-  const forged = (await as(mgrB, (tx) => tx`insert into submissions(materials,property_type,quantity,tonnage,address,name,email,request_type,created_by) values(ARRAY['Terre'],'terrain','10','inconnu','1 rue Fictive','TEST','b@test.invalid','remblai',${mgrA}) returning id`))[0];
+  const forged = { id: u() }; await as(mgrB, (tx) => tx`insert into submissions(id,materials,property_type,quantity,tonnage,address,name,email,request_type,created_by) values(${forged.id},ARRAY['Terre'],'terrain','10','inconnu','1 rue Fictive','TEST','b@test.invalid','remblai',${mgrA})`);
   check('Falsification : auteur imposé remplacé par la session', (await db`select created_by from submissions where id=${forged.id}`)[0].created_by === mgrB);
 
   // 6. Ancienne demande sans auteur : demande de vérification

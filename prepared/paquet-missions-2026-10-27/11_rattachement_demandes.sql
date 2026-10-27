@@ -54,6 +54,12 @@ BEGIN
  RETURN NEW;
 END $$;
 REVOKE ALL ON FUNCTION public.zz_submission_capture_author() FROM PUBLIC,anon,authenticated;
+-- La règle de création existante exige created_by NULL pour un non-admin ; on accepte en plus EXACTEMENT la session
+-- (le déclencheur ci-dessus ne peut écrire que auth.uid()). Empreinte vérifiée avant changement.
+DO $$BEGIN
+ IF (SELECT md5(with_check) FROM pg_policies WHERE schemaname='public' AND tablename='submissions' AND policyname='Anyone can submit a request')<>'e1fb01e5bbf9408c7ec5bbc904a7fce5' THEN RAISE EXCEPTION 'Règle de création divergente : arrêt'; END IF;
+END$$;
+ALTER POLICY "Anyone can submit a request" ON public.submissions WITH CHECK ((((auth.uid() IS NOT NULL) AND has_role(auth.uid(), 'admin'::app_role)) OR ((creation_origin = 'public_form'::text) AND (status = 'nouveau'::text) AND (priority = 'normal'::text) AND (assigned_entrepreneur IS NULL) AND ((created_by IS NULL) OR (auth.uid() IS NOT NULL AND created_by = auth.uid())) AND (lead_source = ANY (ARRAY['vracquebec.ca'::text, 'google'::text, 'facebook'::text, 'referencement_naturel'::text, 'pages_locales'::text, 'campagne'::text])) AND (lead_category IS NOT NULL) AND (latitude IS NULL) AND (longitude IS NULL))));
 CREATE TRIGGER zz_submission_capture_author BEFORE INSERT ON public.submissions FOR EACH ROW EXECUTE FUNCTION public.zz_submission_capture_author();
 
 CREATE FUNCTION public.zz_submission_author_journal() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
