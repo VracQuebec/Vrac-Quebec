@@ -1,0 +1,16 @@
+fp_ids|0a2c44196ce3066892e94e223a22d165
+fp_portal|0acb8294ceb292b0069c8be7a1b37e2d
+pol|jsc_drivers|Admins manage jsc_drivers|ALL|jsc_can_manage(auth.uid())|jsc_can_manage(auth.uid())
+pol|jsc_notifications|Admins manage notifications|ALL|(jsc_can_manage(auth.uid()) OR (user_id = auth.uid()))|jsc_can_manage(auth.uid())
+pol|jsc_drivers|portal driver reads own file|SELECT|(user_id = auth.uid())|
+pol|jsc_notifications|portal reads own notifications|SELECT|(user_id = auth.uid())|
+pol|jsc_notifications|portal updates own notifications|UPDATE|(user_id = auth.uid())|(user_id = auth.uid())
+pol|ent_company_documents|ecd_read|SELECT|entcrm_can_read(company_id)|
+pol|ent_company_documents|ecd_insert|INSERT||entcrm_can_write(company_id)
+pol|ent_company_documents|ecd_update|UPDATE|entcrm_can_write(company_id)|entcrm_can_write(company_id)
+pol|objects|company_docs_read|SELECT|((bucket_id = 'company-docs'::text) AND entcrm_can_read(((storage.foldername(name))[1])::uuid))|
+pol|objects|asr_files_read|SELECT|((bucket_id = 'asr-files'::text) AND (asr_can_read(((storage.foldername(name))[1])::uuid) OR (EXISTS ( SELECT 1
+   FROM asr_documents d
+  WHERE ((d.storage_path = objects.name) AND asr_driver_doc_ok(d.id))))))|
+notif_total|34|34
+notif_nonmember|9
