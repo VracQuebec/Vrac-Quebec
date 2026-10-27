@@ -1,0 +1,4 @@
+Essai hébergé (serveur partagé), transaction annulée par exception finale — 0 donnée restante vérifiée.
+Session simulée rôle authenticated + identité JWT fictive (pas une vraie connexion Auth).
+avant_fiches=2 avant_notifs=2 avant_docA=true | apres_ficheA=0 ficheB_conservee=1 notifA=0 notifB=1 majNotifA=0 docA=false docB=true portail=Fictif B | toutRevoque_portail=aucun notifs=0
+Isolation: fiche et notification de l'autre chauffeur B jamais visibles (2 et non 3).
