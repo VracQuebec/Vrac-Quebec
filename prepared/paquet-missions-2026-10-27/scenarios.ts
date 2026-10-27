@@ -63,7 +63,7 @@ try {
   // --- Demande + réquisition
   const sub = u(), site = u(), request = u();
   await db.begin(async (tx: any) => {
-    await tx`select set_config('vq.workbench','on',true)`;
+    await tx`select set_config('vq.workbench','on',true), set_config('request.jwt.claim.sub',${admin},true)`; // chemin réel « manual_admin » : seul cas où le serveur garde l’auteur
     await tx`insert into submissions(id,created_by,materials,property_type,quantity,tonnage,address,name,email,edit_company_id) values(${sub},${managerA},ARRAY['Terre'],'terrain','100','inconnu','Chantier TEST','TEST','m@test.invalid',${companyA})`;
   });
   await db`insert into transport_requests(id,origin_submission_id,site_address,material_type,client_phone,client_name) values(${request},${sub},'Chantier TEST','Terre','8195550100','TEST')`;
