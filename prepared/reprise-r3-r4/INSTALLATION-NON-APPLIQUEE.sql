@@ -84,7 +84,7 @@ BEGIN
  UPDATE public.transport_requests SET lifecycle_status='revalidation_requise',updated_at=now(),requisition_version=requisition_version+1,requisition_state=CASE WHEN requisition_state IN ('accepted','transmitted','prepared') THEN 'revalidation' ELSE requisition_state END WHERE origin_submission_id=s.id AND (lifecycle_status IN ('confirmee','attente_confirmation_dompe') OR requisition_state IN ('accepted','transmitted','prepared'));
  response:=jsonb_build_object('id',s.id,'version',s.edit_version+1,'revalidation',true);
  INSERT INTO public.ent_crm_history(company_id,entity,entity_id,action,before,after,actor_id,origin) VALUES(_company,'submission_edit',s.id,'demande_modifiee',oldvalues,jsonb_build_object('id',s.id,'operation',_operation,'changes',_changes,'changed',changed,'version',s.edit_version+1,'result',response,'values',newvalues),auth.uid(),'entrepreneur');
- PERFORM public.crm_notify('submission-edit:'||s.id||':'||_operation,'demandes','demande_modifiee','haute','Demande modifiée — revalidation requise',array_to_string(changed,', '),'submission',s.id,'/admin/centre-controle',NULL,s.submission_number::text,NULL,jsonb_build_object('company_id',_company,'version',s.edit_version+1),false);
+ PERFORM public.crm_notify('submission-edit:'||s.id||':'||_operation,'demandes','demande_modifiee','importante','Demande modifiée — revalidation requise',array_to_string(changed,', '),'submission',s.id,'/admin/centre-controle',NULL,s.submission_number::text,NULL,jsonb_build_object('company_id',_company,'version',s.edit_version+1),false);
  RETURN response;
 END $$;
 REVOKE ALL ON FUNCTION public.submission_edit_save(uuid,uuid,integer,jsonb,uuid,boolean) FROM PUBLIC,anon;
@@ -170,7 +170,7 @@ BEGIN
    SELECT * INTO assigned_driver FROM public.jsc_drivers WHERE id=t.requisition_driver_id;
    INSERT INTO public.jsc_notifications(company_id,audience,user_id,channel,title,body,entity_type,entity_id,status) VALUES(_company,'driver',assigned_driver.user_id,'in_app','Réquisition à examiner',t.request_number,'transport_request',t.id,'pending');
  END IF;
- PERFORM public.crm_notify('requisition:'||t.id||':'||_operation,'demandes','requisition_'||_action,CASE WHEN _action IN ('refuse','incident','cancel') THEN 'haute' ELSE 'normale' END,'Réquisition mise à jour',_reason,'transport_request',t.id,'/admin/demandes-acces',NULL,t.request_number,NULL,jsonb_build_object('company_id',_company,'state',next_state,'version',t.requisition_version+1),false);
+ PERFORM public.crm_notify('requisition:'||t.id||':'||_operation,'demandes','requisition_'||_action,CASE WHEN _action IN ('refuse','incident','cancel') THEN 'importante' ELSE 'normale' END,'Réquisition mise à jour',_reason,'transport_request',t.id,'/admin/demandes-acces',NULL,t.request_number,NULL,jsonb_build_object('company_id',_company,'state',next_state,'version',t.requisition_version+1),false);
  RETURN response;
 END $$;
 REVOKE ALL ON FUNCTION public.requisition_action(uuid,uuid,integer,text,text,uuid,boolean) FROM PUBLIC,anon;
