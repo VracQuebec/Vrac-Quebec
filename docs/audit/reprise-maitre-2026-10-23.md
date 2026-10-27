@@ -235,3 +235,12 @@ Résiduel noté : 256 fonctions serveur exécutables par tous par défaut (corps
 | Écran : explication « non rattachée » + demande de vérification | Aperçu | 10/10 tests écran | service non installé ; éditeur toujours désactivé (`REQUEST_WORKBENCH_INSTALLED=false`) |
 Toujours désactivés : réservations automatiques (aucune règle propriétaire), envois réels, points d’entrée EXEC-02/invitations non déployés, éditeur et réquisitions côté écran.
 Non exécuté (vraies sessions TEST) : connexion gestionnaire/chauffeur, téléchargement autorisé/refusé, révocation avec session ouverte sur le serveur, invitation capturée réelle.
+
+## R4K — 2026-10-27 (rattachement installé, éditeur/réquisitions en aperçu, essais avec vraies sessions TEST)
+- **Serveur** : migration 0245 rattachement des demandes (concordance vérifiée : objets absents, règle de création empreinte e1fb01e5…, retour `prepared/paquet-missions-2026-10-27/retour/11_rattachement_demandes.sql`). Droits : status/request/decide authenticated seulement, capture d'auteur non appelable; 0233 et `exec02_dispatch` toujours fermés.
+- **Serveur — défaut démontré et corrigé** : `secure-file` servait une copie en cache du stockage à un membre révoqué (même session). Lecture via point « authenticated » + paramètre unique; redéployée (archive `prepared/securite-r4k/archive/`).
+- **Aperçu seulement** (build de développement, pas la version publiée) : éditeur, réquisitions, demande de vérification et panneau de décision du centre de contrôle.
+- **Vraies sessions TEST (comptes @test.invalid)** : téléchargement autorisé 200 no-store; refus A→B et B→A 403; sans session 401; révocation même session ouverte 403 après correctif puis 200 au rétablissement; auteur capturé par la session, auteur imposé écrasé, entreprise imposée refusée; demande de vérification (refus pour autre entreprise, idempotente), décision refusée au non-admin; refus motivé et approbation avec preuve via l'écran admin, journal + historique CRM; modification autorisée v1→v2 avec revalidation, rejeu idempotent, version périmée refusée, autre entreprise refusée. Captures `docs/audit/r4k-preuves/`.
+- **Données TEST créées** : 4 demandes fictives (@test.invalid), 2 demandes de rattachement, 2 fichiers TEST. Accès B rétabli.
+- **Bloqué** : invitation chauffeur en capture TEST, accès aux missions, révocation chauffeur — aucun compte chauffeur TEST confirmé. Création d'une réquisition complète : nécessite chauffeur/camion TEST.
+- **Avant publication** : décision de publier, essais chauffeur, activer l'interrupteur hors aperçu.
