@@ -128,7 +128,6 @@ try {
   const call = async (p: Record<string, unknown>, role = 'admin') => { const r = await endpoint(new Request('http://localhost/coordination', { method: 'POST', headers: { authorization: role }, body: JSON.stringify(p) })); return { status: r.status, body: await r.json() }; };
   const op = () => ({ operationId: u(), confirmed: true });
   const start = new Date(Date.now() + 86400000).toISOString(), end = new Date(Date.now() + 90000000).toISOString();
-  const start = new Date(Date.now() + 86400000).toISOString(), end = new Date(Date.now() + 90000000).toISOString();
   const mk = async (capacity: number) => {
     const rid = u(), origin = u(), offerId = u(), linkId = u(), secret = 'a'.repeat(64);
     await db.begin(async (tx: any) => { await tx`select set_config('vq.workbench','on',true), set_config('request.jwt.claim.sub',${admin},true)`;
