@@ -31,10 +31,11 @@ Deno.serve(async (req) => {
   });
   const { data: u } = await db.auth.getUser();
   if (!u?.user) return fail(401, "Session expirée");
-  // Point « authenticated » : jamais servi depuis le cache CDN, règles réévaluées à chaque requête
+  // Point « authenticated » + paramètre unique : contourne toute copie en cache (le cache ignore la session),
+  // règles d'accès réévaluées à chaque requête.
   // (le point public /object/{bucket}/… pouvait renvoyer une copie en cache après révocation — R4K).
   const enc = body.path.split("/").map(encodeURIComponent).join("/");
-  const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/authenticated/${body.bucket}/${enc}`, {
+  const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/authenticated/${body.bucket}/${enc}?nocache=${crypto.randomUUID()}`, {
     headers: { Authorization: auth, apikey: Deno.env.get("SUPABASE_ANON_KEY")! }, cache: "no-store",
   });
   // Refus des règles d'accès ou fichier absent : même réponse, sans détail.
