@@ -1,1 +1,25 @@
-runuser: Critical error - immediate abort
+AVANT authenticated direct:
+70
+0233 appliqué
+OK refus authenticated fin_exp_adv_avail('00000000-0000-0000-0000-0000000000d1')
+OK refus anon fin_exp_adv_avail('00000000-0000-0000-0000-0000000000d1')
+OK refus authenticated fin_exp_alloc_sum(gen_random_uuid())
+OK refus anon fin_exp_alloc_sum(gen_random_uuid())
+OK refus authenticated fin_bank_account_ok(gen_random_uuid(),gen_random_uuid())
+OK refus anon fin_bank_account_ok(gen_random_uuid(),gen_random_uuid())
+OK refus authenticated fin_pay_account_check(gen_random_uuid(),gen_random_uuid(),'x')
+OK refus anon fin_pay_account_check(gen_random_uuid(),gen_random_uuid(),'x')
+service_role:
+30
+appelant definer en authenticated:
+70/30
+1,4c1,4
+< fin_bank_account_ok|postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres
+< fin_exp_adv_avail|postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres
+< fin_exp_alloc_sum|postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres
+< fin_pay_account_check|postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres
+---
+> fin_bank_account_ok|postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres
+> fin_exp_adv_avail|postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres
+> fin_exp_alloc_sum|postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres
+> fin_pay_account_check|postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres
