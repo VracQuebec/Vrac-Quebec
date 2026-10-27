@@ -1625,6 +1625,13 @@
       "when": 1793105704416,
       "tag": "0231_r4cd_revocation_chauffeurs_securite",
       "breakpoints": true
+    },
+    {
+      "idx": 232,
+      "version": "7",
+      "when": 1793106839968,
+      "tag": "0232_securite_fonctions_internes_finances_assurances",
+      "breakpoints": true
     }
   ]
 }
