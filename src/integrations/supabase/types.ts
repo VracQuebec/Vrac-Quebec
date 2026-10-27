@@ -27563,6 +27563,7 @@ export type Database = {
           heavy_truck_access: string | null
           id: string
           original_text: string | null
+          reception_communication: Json
           reception_conditions: Json | null
           reception_policy: Json | null
           reception_policy_version: number
@@ -27585,6 +27586,7 @@ export type Database = {
           heavy_truck_access?: string | null
           id?: string
           original_text?: string | null
+          reception_communication?: Json
           reception_conditions?: Json | null
           reception_policy?: Json | null
           reception_policy_version?: number
@@ -27607,6 +27609,7 @@ export type Database = {
           heavy_truck_access?: string | null
           id?: string
           original_text?: string | null
+          reception_communication?: Json
           reception_conditions?: Json | null
           reception_policy?: Json | null
           reception_policy_version?: number
@@ -27939,7 +27942,7 @@ export type Database = {
           {
             foreignKeyName: "submission_reception_debits_reservation_id_fkey"
             columns: ["reservation_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "submission_reception_reservations"
             referencedColumns: ["id"]
           },
@@ -27961,6 +27964,93 @@ export type Database = {
             foreignKeyName: "submission_reception_debits_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: true
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_reception_measurements: {
+        Row: {
+          actor_id: string
+          corrects: string | null
+          created_at: string
+          id: string
+          operation_id: string
+          outcome: string
+          quantity: number
+          reason: string | null
+          received_at: string
+          reservation_id: string
+          submission_id: string
+          ticket_ref: string
+          trip_id: string
+          unit: string
+        }
+        Insert: {
+          actor_id: string
+          corrects?: string | null
+          created_at?: string
+          id?: string
+          operation_id: string
+          outcome: string
+          quantity: number
+          reason?: string | null
+          received_at: string
+          reservation_id: string
+          submission_id: string
+          ticket_ref: string
+          trip_id: string
+          unit: string
+        }
+        Update: {
+          actor_id?: string
+          corrects?: string | null
+          created_at?: string
+          id?: string
+          operation_id?: string
+          outcome?: string
+          quantity?: number
+          reason?: string | null
+          received_at?: string
+          reservation_id?: string
+          submission_id?: string
+          ticket_ref?: string
+          trip_id?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_reception_measurements_corrects_fkey"
+            columns: ["corrects"]
+            isOneToOne: true
+            referencedRelation: "submission_reception_measurements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_reception_measurements_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "submission_reception_reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_reception_measurements_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_reception_measurements_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_reception_measurements_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
             referencedRelation: "trips"
             referencedColumns: ["id"]
           },
@@ -28004,6 +28094,7 @@ export type Database = {
           expires_at: string
           fingerprint: string
           id: string
+          last_reminded_at: string | null
           offer_id: string
           offer_snapshot: Json
           origin_submission_id: string
@@ -28028,6 +28119,7 @@ export type Database = {
           expires_at: string
           fingerprint: string
           id?: string
+          last_reminded_at?: string | null
           offer_id: string
           offer_snapshot: Json
           origin_submission_id: string
@@ -28052,6 +28144,7 @@ export type Database = {
           expires_at?: string
           fingerprint?: string
           id?: string
+          last_reminded_at?: string | null
           offer_id?: string
           offer_snapshot?: Json
           origin_submission_id?: string
@@ -30014,6 +30107,8 @@ export type Database = {
           pickup_lat: number | null
           pickup_lng: number | null
           quarry_address: string | null
+          received_at: string | null
+          received_outcome: string | null
           received_quantity: number | null
           received_ticket_ref: string | null
           received_unit: string | null
@@ -30056,6 +30151,8 @@ export type Database = {
           pickup_lat?: number | null
           pickup_lng?: number | null
           quarry_address?: string | null
+          received_at?: string | null
+          received_outcome?: string | null
           received_quantity?: number | null
           received_ticket_ref?: string | null
           received_unit?: string | null
@@ -30098,6 +30195,8 @@ export type Database = {
           pickup_lat?: number | null
           pickup_lng?: number | null
           quarry_address?: string | null
+          received_at?: string | null
+          received_outcome?: string | null
           received_quantity?: number | null
           received_ticket_ref?: string | null
           received_unit?: string | null
@@ -31798,7 +31897,13 @@ export type Database = {
         Returns: Json
       }
       exec01_quota: { Args: { _identity: string }; Returns: boolean }
+      exec02_defer_message: {
+        Args: { message_id: number; seconds: number }
+        Returns: undefined
+      }
       exec02_dispatch: { Args: { p: Json }; Returns: Json }
+      exec02_dispatch_base: { Args: { p: Json }; Returns: Json }
+      exec02_due: { Args: never; Returns: Json }
       exec02_exception: {
         Args: {
           _id: string
@@ -31808,6 +31913,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      exec02_message_current: { Args: { p: Json }; Returns: boolean }
+      exec02_message_delay: { Args: { p: Json }; Returns: number }
       fin__alloc: {
         Args: {
           _allocs: Json

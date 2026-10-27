@@ -1653,6 +1653,13 @@
       "when": 1793111086541,
       "tag": "0235_exec02_coordination",
       "breakpoints": true
+    },
+    {
+      "idx": 236,
+      "version": "7",
+      "when": 1793111184986,
+      "tag": "0236_exec02_lifecycle",
+      "breakpoints": true
     }
   ]
 }
