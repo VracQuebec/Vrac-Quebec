@@ -31,9 +31,16 @@ Deno.serve(async (req) => {
   });
   const { data: u } = await db.auth.getUser();
   if (!u?.user) return fail(401, "Session expirée");
-  const { data, error } = await db.storage.from(body.bucket as string).download(body.path);
+  // Point « authenticated » + paramètre unique : contourne toute copie en cache (le cache ignore la session),
+  // règles d'accès réévaluées à chaque requête.
+  // (le point public /object/{bucket}/… pouvait renvoyer une copie en cache après révocation — R4K).
+  const enc = body.path.split("/").map(encodeURIComponent).join("/");
+  const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/authenticated/${body.bucket}/${enc}?nocache=${crypto.randomUUID()}`, {
+    headers: { Authorization: auth, apikey: Deno.env.get("SUPABASE_ANON_KEY")! }, cache: "no-store",
+  });
   // Refus des règles d'accès ou fichier absent : même réponse, sans détail.
-  if (error || !data) return fail(403, "Accès refusé");
+  if (!res.ok) { await res.body?.cancel(); return fail(403, "Accès refusé"); }
+  const data = await res.blob();
   const name = body.path.split("/").pop()!.replace(/[^\w.\-]/g, "_");
   return new Response(data, {
     headers: { ...cors, ...noStore, "Content-Type": data.type || "application/octet-stream", "Content-Disposition": `attachment; filename="${name}"` },
