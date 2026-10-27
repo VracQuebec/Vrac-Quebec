@@ -49,3 +49,4 @@
 - Submission ownership: new entrepreneur requests take created_by from the server session (company only when exactly one managed membership); legacy requests are bound only by an admin decision with typed proof — never inferred from name/email, keeping private-owner portals untouched.
 - Request workbench/ownership UI is gated by import.meta.env.DEV (preview only) until publication is authorized; server RPC/RLS remain the sole authority.
 - secure-file reads Storage through /object/authenticated with a unique query parameter: the plain object endpoint can serve cached copies after revocation.
+- Installed driver invitation RPCs are exposed only in development preview through the existing capture-only adapter, independently of the disabled punch extension; requisition mission links use the existing tracking route and server-projected driver company.

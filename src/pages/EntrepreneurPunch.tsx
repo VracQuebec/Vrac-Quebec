@@ -1,6 +1,8 @@
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import PunchBoard from "@/components/punch/PunchBoard";
 import { useCompanyRole } from "@/components/todo/useCompanyRole";
+import { DriverInvitationPanel } from "../../prepared/reprise-r3-r4/DriverInvitationPanel";
+import { DRIVER_INVITATIONS_INSTALLED, driverInvitationCall } from "@/lib/auth/driver-invitations";
 
 export default function EntrepreneurPunch() {
   const { companies, companyId, setCompanyId, role, ready } = useCompanyRole();
@@ -16,6 +18,9 @@ export default function EntrepreneurPunch() {
         : role === null ? <p className="text-muted-foreground">Vérification des droits…</p>
         : role === "aucun" ? <p className="text-muted-foreground">Accès refusé pour cette entreprise.</p>
         : <PunchBoard key={companyId} companyId={companyId} role={role} />}
+      {ready && companyId && role === "proprietaire" && DRIVER_INVITATIONS_INSTALLED && (
+        <DriverInvitationPanel key={`driver-${companyId}`} company={companyId} call={driverInvitationCall} />
+      )}
     </EntrepreneurAppShell>
   );
 }

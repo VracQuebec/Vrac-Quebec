@@ -101,7 +101,7 @@ export default function DriverPortal() {
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <div className="mx-auto max-w-2xl px-4"><RequisitionPanel key={user.id} driver /></div>
+      <div className="mx-auto max-w-2xl px-4"><RequisitionPanel key={user.id} company={typeof data.driver.company_id === "string" ? data.driver.company_id : null} driver /></div>
       <header className="border-b bg-card">
         <div className="mx-auto max-w-2xl px-4 py-5">
           <Link to="/" className="mb-2 inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
