@@ -146,7 +146,7 @@ export default function EntrepreneurDemandeDetail() {
 
             <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
               <SectionHeader title="Actions" />
-              {request.submission && <RequestEditPanel id={request.submission.id} onChanged={refresh} />}
+              {request.submission && <RequestEditPanel id={request.submission.id} onChanged={refresh} companies={editCompanies} />}
               {(request.kind === "transport" || request.dumpSearch) && (
                 <Button asChild className="h-12 w-full font-display font-bold">
                   <Link to={request.kind === "transport" ? "/acces-dompe" : "/entrepreneur/carte"}>
