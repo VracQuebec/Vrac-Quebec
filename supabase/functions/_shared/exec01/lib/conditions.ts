@@ -1,4 +1,4 @@
-import { z } from "npm:zod@3.25.76";
+import { z } from "npm:zod@4.6.6";
 
 export const WAITING_MESSAGE = "Votre demande est active. Aucune livraison n’est confirmée. Nous vous contacterons lorsqu’une proposition compatible sera disponible dans votre secteur. Les disponibilités dépendent des chantiers; aucune date ne peut être garantie à ce stade.";
 const text = z.string().trim().max(2000).nullable();

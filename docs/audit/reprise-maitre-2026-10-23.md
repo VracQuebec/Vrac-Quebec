@@ -224,3 +224,14 @@ Prochains objectifs : composition EXEC-02 sur schéma réel (base jetable), auto
 | Zod 4 serveur | Essai du point d’entrée complet, `prepared/zod-serveur/` | Deno local isolé | 16/16 réponses identiques, `deno check` 2 fonctions | Runtime hébergé non prouvé ; redéploiement non autorisé |
 | Comptes TEST | — | — | vraies sessions non exécutées | Connexion du gestionnaire dans l’aperçu |
 Résiduel noté : 256 fonctions serveur exécutables par tous par défaut (corps protégés à vérifier au cas par cas, hors lot).
+
+## R4J — 2026-10-27 (10:45 Toronto) : installations autorisées
+| Point | Environnement | Vérification | Résultat |
+|---|---|---|---|
+| Correctif création voyages (0234) | Serveur en service | empreinte avant ; essai annulé | voyage + journal créés puis annulés, 0 voyage conservé |
+| Paquet EXEC-02→éditeur→R4D (0235–0244) | Serveur en service | état serveur = état testé avant ; fichiers installés = fichiers testés ; 156 objets serveur = réplique | aucun écart ; 0233 conservé (4 aides refusées anon/authenticated) ; création publique passe (essai annulé) ; 0 mission, 0 réservation, 0 dossier rattaché |
+| Zod 4.6.6 (submission-owner-portal, send-transactional-email) | Serveur en service | GET 200 sans mutation ; POST origine étrangère 403 ; démarrage des deux fonctions dans les journaux ; GET envoi 401 | archive `prepared/zod-serveur/archive-avant-deploiement/` ; retour = restaurer ces 2 fichiers et redéployer |
+| Rattachement des demandes (fichier 11) | Réplique isolée seulement | 30/30 essais + 40/40 chaîne ; retour arrière vérifié | NON installé |
+| Écran : explication « non rattachée » + demande de vérification | Aperçu | 10/10 tests écran | service non installé ; éditeur toujours désactivé (`REQUEST_WORKBENCH_INSTALLED=false`) |
+Toujours désactivés : réservations automatiques (aucune règle propriétaire), envois réels, points d’entrée EXEC-02/invitations non déployés, éditeur et réquisitions côté écran.
+Non exécuté (vraies sessions TEST) : connexion gestionnaire/chauffeur, téléchargement autorisé/refusé, révocation avec session ouverte sur le serveur, invitation capturée réelle.
