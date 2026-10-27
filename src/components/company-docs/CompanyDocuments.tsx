@@ -87,9 +87,10 @@ export default function CompanyDocuments({ companyId, canWrite }: { companyId: s
   };
 
   const open = async (d: any) => {
-    const { data, error } = await supabase.storage.from(BUCKET).download(d.storage_path);
-    if (error || !data) return toast({ title: "Accès refusé", description: error?.message, variant: "destructive" });
-    setViewer({ doc: d, url: URL.createObjectURL(new Blob([data], { type: d.mime_type })) });
+    try {
+      const blob = await fetchSecureFile(BUCKET, d.storage_path, d.mime_type);
+      setViewer({ doc: d, url: URL.createObjectURL(blob) });
+    } catch (e: any) { toast({ title: "Ouverture impossible", description: e?.message, variant: "destructive" }); }
   };
   const closeViewer = () => { if (viewer) URL.revokeObjectURL(viewer.url); setViewer(null); };
   const toggleArchive = async (d: any) => {

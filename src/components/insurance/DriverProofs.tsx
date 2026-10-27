@@ -8,9 +8,10 @@ export default function DriverProofs({ companyId }: { companyId: string }) {
   const [rows, setRows] = useState<any[] | null>(null);
   useEffect(() => {let active=true;setRows(null);const load=()=>{(supabase as any).rpc("asr_driver_proofs",{_company:companyId}).then(({data,error}:any)=>{if(active)setRows(error?[]:data??[]);});};load();window.addEventListener('focus',load);return()=>{active=false;window.removeEventListener('focus',load);};}, [companyId]);
   const open = async (r: any) => {
-    const { data, error } = await supabase.storage.from("asr-files").download(r.storage_path);
-    if (error || !data) return toast({ title: "Accès refusé", variant: "destructive" });
-    window.open(URL.createObjectURL(new Blob([data], { type: r.mime_type })), "_blank");
+    try {
+      const blob = await fetchSecureFile("asr-files", r.storage_path, r.mime_type);
+      window.open(URL.createObjectURL(blob), "_blank");
+    } catch (e: any) { toast({ title: "Ouverture impossible", description: e?.message, variant: "destructive" }); }
   };
   if (!rows) return <p className="text-muted-foreground">Chargement…</p>;
   return (
