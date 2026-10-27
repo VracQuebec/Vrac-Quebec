@@ -108,8 +108,7 @@ try {
     check('Session ouverte : lecture avant révocation', (await open`select id from drv_missions where id=${mid}`).length === 1);
     await as(managerA, (tx) => tx`select driver_invite_revoke(${inv.id}::uuid)`);
     check('Session ouverte : même transaction, mission invisible après révocation', (await open`select id from drv_missions where id=${mid}`).length === 0);
-    await open`savepoint p`;
-    let refused = false; try { await open`select drv_mission_point(${mid},46.8,-71.2,5,now())`; } catch (e: any) { refused = e.code === '42501'; await open`rollback to savepoint p`; }
+    let refused = false; try { await open.savepoint((sp: any) => sp`select drv_mission_point(${mid},46.8,-71.2,5,now())`); } catch (e: any) { refused = e.code === '42501'; }
     check('Session ouverte : même transaction, point refusé', refused);
   });
   check('Révocation : mission invisible', (await as(driverUser, (tx) => tx`select id from drv_missions where id=${mid}`)).length === 0);
