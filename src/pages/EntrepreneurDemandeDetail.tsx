@@ -18,6 +18,7 @@ import { deriveJourneyStage } from "@/lib/parcours/submission-display";
 import { mapLinkedTransport } from "@/lib/parcours/validation";
 import { buildDemandeParcours, isTransportLinked } from "@/lib/parcours/demande-parcours";
 import RequestEditPanel from "@/components/entrepreneur-app/RequestEditPanel";
+import { useCompanyRole } from "@/components/todo/useCompanyRole";
 
 const DetailLine = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
   <div className="flex gap-3 border-b border-border py-3 last:border-0">
@@ -30,6 +31,7 @@ const DetailLine = ({ icon, label, value }: { icon: React.ReactNode; label: stri
 );
 
 export default function EntrepreneurDemandeDetail() {
+  const { companies: editCompanies } = useCompanyRole();
   const { id = "" } = useParams<{ id: string }>();
   const { loading, error, submissions, accessRequests, chantiers, trips, tripsAvailable, refresh } = useEntrepreneurData();
   const request = buildEntrepreneurRequests(submissions, accessRequests, chantiers).find((item) => item.id === id || item.sourceId === id);
