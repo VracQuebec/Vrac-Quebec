@@ -9,7 +9,7 @@ const time=z.string().datetime({offset:true});
 export const receptionPolicySchema=z.object({
  mode:z.enum(['preautorisee','creneaux','par_demande']),
  start:time,end:time,
- windows:z.array(z.object({id:z.string().uuid(),start:time,end:time,capacity:z.number().positive().max(999999),presenceConfirmed:z.boolean()}).strict()).max(60),
+ windows:z.array(z.object({id:z.guid(),start:time,end:time,capacity:z.number().positive().max(999999),presenceConfirmed:z.boolean()}).strict()).max(60),
  confirmed:z.literal(true),
 }).strict().superRefine((p,c)=>{
  if(p.end<=p.start)c.addIssue({code:'custom',message:'Période invalide.'});
