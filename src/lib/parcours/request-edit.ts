@@ -33,7 +33,7 @@ export async function requestWorkbenchCall<T>(name: string, args: Record<string,
   return data as T;
 }
 // Rattachement des anciennes demandes : préparé, non installé ; décision toujours prise par l'administration sur preuve.
-export const REQUEST_OWNERSHIP_INSTALLED = false;
+export const REQUEST_OWNERSHIP_INSTALLED = REQUEST_WORKBENCH_INSTALLED; // installé (0245), aperçu seulement
 export const NOT_LINKED_MESSAGE = "Cette demande n’est pas encore rattachée à votre entreprise. Les nouvelles demandes faites depuis votre compte le sont automatiquement ; les anciennes sont rattachées par l’équipe Vrac Québec après vérification d’une preuve, jamais d’après un nom ou un courriel.";
 export function isNotLinkedError(message: string) { return /Dossier ou entreprise non autorisés/.test(message); }
 export type OwnershipState = "rattachee" | "non_rattachee" | "verification_en_attente" | "verification_refusee";
