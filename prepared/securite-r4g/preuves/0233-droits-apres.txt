@@ -1,0 +1,9 @@
+fin_bank_account_ok(_company uuid, _account uuid)|postgres=X/postgres,service_role=X/postgres|auth=false|anon=false
+fin_bank_overview(_company uuid, _account uuid)|postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres|auth=true|anon=false
+fin_exp_adv_avail(_adv uuid)|postgres=X/postgres,service_role=X/postgres|auth=false|anon=false
+fin_exp_alloc_sum(_report uuid)|postgres=X/postgres,service_role=X/postgres|auth=false|anon=false
+fin_exp_overview(_company uuid, _mine boolean)|postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres|auth=true|anon=false
+fin_pay_account_check(_company uuid, _account uuid, _method text)|postgres=X/postgres,service_role=X/postgres|auth=false|anon=false
+fin_payment_save(_company uuid, _p jsonb, _dry boolean)|postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres|auth=true|anon=false
+anon fin_exp_alloc_sum: 401
+anon catalogue public: 200
