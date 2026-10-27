@@ -1,8 +1,8 @@
--- RETOUR ARRIÈRE du paquet EXEC-02 → éditeur → missions R4D (fichiers 01–10).
+-- RETOUR ARRIÈRE COMPLET du paquet (fichiers 00 à 10) — vérifié sur réplique : état fonctions/règles/déclencheurs identique au serveur.
 -- Généré depuis l'état RÉEL du serveur (lecture 2026-10-27 14:10:26.457269+00).
 -- Restaure les définitions et droits archivés, retire déclencheurs/règles/fonctions ajoutés.
 -- CONSERVE volontairement tables et colonnes ajoutées et leurs données (retour sans perte).
--- Le correctif 00 a son propre retour : retour/00_trips_journal_creation.sql.
+-- Retour partiel du seul correctif 00 : retour/00_trips_journal_creation.sql.
 
 DROP TRIGGER IF EXISTS "driver_mission_write_guard" ON public."drv_missions";
 DROP TRIGGER IF EXISTS "driver_tracking_write_guard" ON public."drv_points";
