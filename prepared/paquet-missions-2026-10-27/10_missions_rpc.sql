@@ -1,3 +1,4 @@
+-- Corrigé 2026-10-27 (essai réplique) : contrôle réquisition seulement pour les missions liées; missions ordinaires = règles existantes (user_id + mission ouverte).
 -- Same existing RPC bodies with authorization before all paths, including empty batches.
 DO $$BEGIN
  IF md5(pg_get_functiondef('public.drv_mission_point(uuid,double precision,double precision,double precision,timestamptz)'::regprocedure))<>'e90183e81735e443e71592342390fc8b' THEN RAISE EXCEPTION 'RPC drv_mission_point divergente : arrêt'; END IF;
@@ -7,7 +8,7 @@ END$$;
 CREATE OR REPLACE FUNCTION public.drv_mission_point(_mission uuid, _lat double precision, _lng double precision, _acc double precision, _at timestamptz)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 BEGIN
-  IF NOT public.driver_mission_access(_mission,true) THEN RAISE EXCEPTION 'Accès mission retiré' USING ERRCODE='42501'; END IF;
+  IF EXISTS (SELECT 1 FROM drv_missions WHERE id=_mission AND requisition_id IS NOT NULL) AND NOT public.driver_mission_access(_mission,true) THEN RAISE EXCEPTION 'Accès mission retiré' USING ERRCODE='42501'; END IF;
   IF NOT EXISTS (SELECT 1 FROM drv_missions WHERE id=_mission AND user_id=auth.uid() AND ended_at IS NULL) THEN
     RAISE EXCEPTION 'Mission inactive' USING ERRCODE='42501'; END IF;
   IF _lat NOT BETWEEN -90 AND 90 OR _lng NOT BETWEEN -180 AND 180 THEN RAISE EXCEPTION 'Position invalide'; END IF;
@@ -16,14 +17,14 @@ END $$;
 CREATE OR REPLACE FUNCTION public.drv_mission_end(_mission uuid) RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 BEGIN
-  IF NOT public.driver_mission_access(_mission,true) THEN RAISE EXCEPTION 'Accès mission retiré' USING ERRCODE='42501'; END IF;
+  IF EXISTS (SELECT 1 FROM drv_missions WHERE id=_mission AND requisition_id IS NOT NULL) AND NOT public.driver_mission_access(_mission,true) THEN RAISE EXCEPTION 'Accès mission retiré' USING ERRCODE='42501'; END IF;
   UPDATE drv_missions SET ended_at=now() WHERE id=_mission AND user_id=auth.uid() AND ended_at IS NULL;
 END $$;
 CREATE OR REPLACE FUNCTION public.drv_points_batch(_mission uuid, _points jsonb, _source text DEFAULT 'natif')
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE p jsonb; n int := 0; dup int := 0; k text; lat float8; lng float8;
 BEGIN
-  IF NOT public.driver_mission_access(_mission,true) THEN RAISE EXCEPTION 'Accès mission retiré' USING ERRCODE='42501'; END IF;
+  IF EXISTS (SELECT 1 FROM drv_missions WHERE id=_mission AND requisition_id IS NOT NULL) AND NOT public.driver_mission_access(_mission,true) THEN RAISE EXCEPTION 'Accès mission retiré' USING ERRCODE='42501'; END IF;
   IF NOT EXISTS (SELECT 1 FROM drv_missions WHERE id=_mission AND user_id=auth.uid() AND ended_at IS NULL) THEN
     RAISE EXCEPTION 'Mission inactive' USING ERRCODE='42501'; END IF;
   IF jsonb_typeof(_points) <> 'array' OR jsonb_array_length(_points) > 500 THEN RAISE EXCEPTION 'Lot invalide (500 points max)'; END IF;
