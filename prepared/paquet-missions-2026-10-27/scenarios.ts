@@ -102,12 +102,16 @@ try {
   check('Mission réquisition : invisible pour chauffeur B', (await as(driverUserB, (tx) => tx`select id from drv_missions where id=${mid}`)).length === 0);
 
   // --- Révocation avec session encore ouverte (même transaction ouverte = même session)
+  // Même jeton chauffeur, même transaction ouverte : la révocation arrive d'une AUTRE connexion pendant la transaction.
   await db.begin(async (open: any) => {
-    await open`select set_config('role','authenticated',true), set_config('request.jwt.claim.sub',${driverUser},true)`;
+    await open`select set_config('role','authenticated',true), set_config('request.jwt.claim.sub',${driverUser},true), set_config('request.jwt.claim.role','authenticated',true)`;
     check('Session ouverte : lecture avant révocation', (await open`select id from drv_missions where id=${mid}`).length === 1);
-    await open`reset role`;
+    await as(managerA, (tx) => tx`select driver_invite_revoke(${inv.id}::uuid)`);
+    check('Session ouverte : même transaction, mission invisible après révocation', (await open`select id from drv_missions where id=${mid}`).length === 0);
+    await open`savepoint p`;
+    let refused = false; try { await open`select drv_mission_point(${mid},46.8,-71.2,5,now())`; } catch (e: any) { refused = e.code === '42501'; await open`rollback to savepoint p`; }
+    check('Session ouverte : même transaction, point refusé', refused);
   });
-  await as(managerA, (tx) => tx`select driver_invite_revoke(${inv.id}::uuid)`);
   check('Révocation : mission invisible', (await as(driverUser, (tx) => tx`select id from drv_missions where id=${mid}`)).length === 0);
   await rejects('Révocation : point refusé', as(driverUser, (tx) => tx`select drv_mission_point(${mid},46.8,-71.2,5,now())`), '42501');
   await rejects('Révocation : lot de points refusé (même vide)', as(driverUser, (tx) => tx`select drv_points_batch(${mid},'[]'::jsonb,'web')`), '42501');
