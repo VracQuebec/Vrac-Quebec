@@ -1,5 +1,6 @@
 import {supabase} from '@/integrations/supabase/client';
-export const DRIVER_INVITATIONS_INSTALLED=false;
+// Installed RPCs are exposed only in the unpublished development preview.
+export const DRIVER_INVITATIONS_INSTALLED=import.meta.env.DEV;
 export async function driverInvitationCall<T>(name:string,args:Record<string,unknown>):Promise<T>{
  if(!DRIVER_INVITATIONS_INSTALLED)throw Error('Invitations chauffeurs non installées. Aucun accès activé.');
  const capture=name==='driver_invite_prepare';
