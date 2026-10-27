@@ -34966,6 +34966,16 @@ export type Database = {
         Returns: Json
       }
       request_update: { Args: { _changes: Json; _id: string }; Returns: Json }
+      request_update_versioned: {
+        Args: {
+          _changes: Json
+          _confirmed: boolean
+          _id: string
+          _operation: string
+          _version: number
+        }
+        Returns: Json
+      }
       requisition_access: {
         Args: { t: Database["public"]["Tables"]["transport_requests"]["Row"] }
         Returns: string
