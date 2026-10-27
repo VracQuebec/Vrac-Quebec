@@ -1,0 +1,16 @@
+
+ RUN  v3.2.4 /dev-server
+
+ ✓ src/test/driver-invitation-client.test.ts (4 tests) 10ms
+ ✓ src/test/capture-worker-r4d.test.ts (2 tests) 8ms
+ ✓ src/test/driver-preview-capture.test.ts (3 tests) 14ms
+ ✓ src/test/invitation-auth-r4d.test.tsx (2 tests) 183ms
+ ✓ src/test/driver-invitation-panel.test.tsx (3 tests) 178ms
+ ✓ src/test/driver-mission-safety.test.tsx (7 tests) 341ms
+ ✓ src/test/driver-requisition-tracking-link.test.tsx (2 tests) 198ms
+
+ Test Files  7 passed (7)
+      Tests  23 passed (23)
+   Start at  17:46:50
+   Duration  4.11s (transform 531ms, setup 1.56s, collect 2.91s, tests 933ms, environment 11.37s, prepare 3.71s)
+
