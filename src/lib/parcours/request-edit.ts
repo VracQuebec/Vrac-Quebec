@@ -31,6 +31,17 @@ export async function requestWorkbenchCall<T>(name: string, args: Record<string,
   if (!data) throw new Error("Résultat non confirmé. Relisez le dossier avant une nouvelle tentative.");
   return data as T;
 }
+// Rattachement des anciennes demandes : préparé, non installé ; décision toujours prise par l'administration sur preuve.
+export const REQUEST_OWNERSHIP_INSTALLED = false;
+export const NOT_LINKED_MESSAGE = "Cette demande n’est pas encore rattachée à votre entreprise. Les nouvelles demandes faites depuis votre compte le sont automatiquement ; les anciennes sont rattachées par l’équipe Vrac Québec après vérification d’une preuve, jamais d’après un nom ou un courriel.";
+export function isNotLinkedError(message: string) { return /Dossier ou entreprise non autorisés/.test(message); }
+export type OwnershipState = "rattachee" | "non_rattachee" | "verification_en_attente" | "verification_refusee";
+export async function requestOwnershipVerification(id: string, company: string, note: string, call = (name: string, args: Record<string, unknown>) => { if (!REQUEST_OWNERSHIP_INSTALLED) throw new Error("La demande de vérification du rattachement est préparée, mais son service n’est pas encore installé. Aucune demande envoyée."); return requestWorkbenchCall<{ ok: boolean; state: OwnershipState }>(name, args); }) {
+  if (note.length > 1000) throw new Error("Précision trop longue (1000 caractères maximum).");
+  const result = await call("submission_ownership_request", { _id: id, _company: company, _note: note.trim() });
+  if (!result?.ok || result.state !== "verification_en_attente") throw new Error("Demande non confirmée par le serveur. Aucune réussite annoncée.");
+  return result;
+}
 export async function saveRequestEdit(row: EditableRequest, after: RequestEdit, key: string, call = requestWorkbenchCall) {
   const result = await call<{ id: string; version: number; revalidation: boolean }>("submission_edit_save", {
     _id: row.id, _company: row.company_id, _version: row.version, _changes: changedRequestFields(row.values, after), _operation: key, _confirmed: true,
