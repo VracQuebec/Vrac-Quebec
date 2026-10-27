@@ -1,3 +1,4 @@
+-- Corrigé 2026-10-27 : les missions sans réquisition (suivi entrepreneur existant) gardent leurs règles actuelles.
 -- Additive scope for existing GPS missions; old unbound rows stay unavailable to drivers.
 ALTER TABLE public.drv_missions ADD COLUMN company_id uuid;
 ALTER TABLE public.drv_missions ADD COLUMN requisition_id uuid REFERENCES public.transport_requests(id);
@@ -16,16 +17,17 @@ GRANT EXECUTE ON FUNCTION public.driver_company_active(uuid,uuid),public.driver_
 ALTER POLICY "Admins manage notifications" ON public.jsc_notifications USING(jsc_can_manage(auth.uid()) OR (user_id=auth.uid() AND driver_company_active(company_id))) WITH CHECK(jsc_can_manage(auth.uid()));
 ALTER POLICY "portal reads own notifications" ON public.jsc_notifications USING(user_id=auth.uid() AND driver_notification_access(company_id));
 ALTER POLICY "portal updates own notifications" ON public.jsc_notifications USING(user_id=auth.uid() AND driver_notification_access(company_id)) WITH CHECK(user_id=auth.uid() AND driver_notification_access(company_id));
-ALTER POLICY "missions read" ON public.drv_missions USING(has_role(auth.uid(),'admin') OR (user_id=auth.uid() AND driver_mission_access(id)) OR (user_id<>auth.uid() AND entrepreneur_id=cpn_my_entrepreneur()));
-ALTER POLICY "points read" ON public.drv_points USING(EXISTS(SELECT 1 FROM drv_missions m WHERE m.id=mission_id AND (has_role(auth.uid(),'admin') OR (m.user_id=auth.uid() AND driver_mission_access(m.id)) OR (m.user_id<>auth.uid() AND m.entrepreneur_id=cpn_my_entrepreneur()))));
+ALTER POLICY "missions read" ON public.drv_missions USING(has_role(auth.uid(),'admin') OR (user_id=auth.uid() AND (requisition_id IS NULL OR driver_mission_access(id))) OR entrepreneur_id=cpn_my_entrepreneur());
+ALTER POLICY "points read" ON public.drv_points USING(EXISTS(SELECT 1 FROM drv_missions m WHERE m.id=mission_id AND (has_role(auth.uid(),'admin') OR (m.user_id=auth.uid() AND (m.requisition_id IS NULL OR driver_mission_access(m.id))) OR m.entrepreneur_id=cpn_my_entrepreneur())));
 
 -- Guard existing SECURITY DEFINER point/end/batch writes too: cannot bypass via old RPC.
 CREATE FUNCTION public.driver_tracking_write_guard() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 BEGIN
  IF auth.uid() IS NOT NULL AND NOT has_role(auth.uid(),'admin') THEN
-  IF TG_TABLE_NAME='drv_points' THEN IF NOT driver_mission_access(NEW.mission_id,true) THEN RAISE EXCEPTION 'Accès mission retiré' USING ERRCODE='42501'; END IF;
+  IF TG_TABLE_NAME='drv_points' THEN IF EXISTS(SELECT 1 FROM drv_missions WHERE id=NEW.mission_id AND requisition_id IS NOT NULL) AND NOT driver_mission_access(NEW.mission_id,true) THEN RAISE EXCEPTION 'Accès mission retiré' USING ERRCODE='42501'; END IF;
   ELSE
-   IF TG_OP='INSERT' THEN
+   IF NEW.requisition_id IS NULL AND (TG_OP='INSERT' OR OLD.requisition_id IS NULL) THEN NULL; -- mission entrepreneur historique : règles existantes inchangées
+   ELSIF TG_OP='INSERT' THEN
     IF NOT EXISTS(SELECT 1 FROM transport_requests t WHERE t.id=NEW.requisition_id AND t.requisition_company_id=NEW.company_id AND requisition_access(t)='driver' AND t.requisition_state IN ('accepted','running') AND NEW.user_id=auth.uid()) THEN RAISE EXCEPTION 'Mission autorisée requise' USING ERRCODE='42501'; END IF;
    ELSIF NOT driver_mission_access(OLD.id,true) THEN RAISE EXCEPTION 'Accès mission retiré' USING ERRCODE='42501'; END IF;
   END IF;
