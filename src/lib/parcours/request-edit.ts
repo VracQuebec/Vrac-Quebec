@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 
-// Independent installation gate: never enables any hosted writer by a URL flag.
-export const REQUEST_WORKBENCH_INSTALLED = false;
+// Services installed on the server (0239–0245). Exposed in the preview build only until publication is
+// separately authorized; never enabled by a URL flag. The server remains the sole authority on rights.
+export const REQUEST_WORKBENCH_INSTALLED = import.meta.env.DEV === true;
 export const requestFields = ["address", "materials", "material_description", "quantity_value", "quantity_unit", "desired_date", "desired_time", "truck_type_key", "access_instructions"] as const;
 export const requestEditSchema = z.object({
   address: z.string().trim().min(5).max(500),

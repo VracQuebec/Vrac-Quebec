@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useDraft } from "@/lib/drafts/useDraft";
 import DraftStatusBar from "@/components/drafts/DraftStatusBar";
+import OwnershipDecisionsPanel from "@/components/admin/OwnershipDecisionsPanel";
+import { REQUEST_OWNERSHIP_INSTALLED } from "@/lib/parcours/request-edit";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   actionRank, computeSystemState, elapsed, enrich, fromSubmission, fromTransport, matches,
@@ -272,6 +274,7 @@ export default function AdminControlCenter() {
       />
       <main className="mx-auto w-full max-w-7xl space-y-5 px-3 py-4 sm:px-6">
         {showSettings && <DelaySettings delays={delays} onSave={saveDelays} />}
+        {REQUEST_OWNERSHIP_INSTALLED && <OwnershipDecisionsPanel />}
 
         <section className="grid grid-cols-2 gap-2 lg:grid-cols-4">
           <div className={`rounded-xl border px-3 py-2 ${SYS_STYLE[sys]}`}>
