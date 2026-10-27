@@ -4746,9 +4746,11 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string
+          driver_id: string | null
           email: string
           expires_at: string
           id: string
+          renewal_key: string | null
           request_key: string
           revoked_at: string | null
           role: string
@@ -4760,9 +4762,11 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by: string
+          driver_id?: string | null
           email: string
           expires_at: string
           id?: string
+          renewal_key?: string | null
           request_key: string
           revoked_at?: string | null
           role: string
@@ -4774,9 +4778,11 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string
+          driver_id?: string | null
           email?: string
           expires_at?: string
           id?: string
+          renewal_key?: string | null
           request_key?: string
           revoked_at?: string | null
           role?: string
@@ -4788,6 +4794,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_employee_invites_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_drivers"
             referencedColumns: ["id"]
           },
         ]
@@ -31869,6 +31882,23 @@ export type Database = {
         Returns: boolean
       }
       driver_identity_current: { Args: { c: string }; Returns: boolean }
+      driver_invite_accept: { Args: { _token: string }; Returns: Json }
+      driver_invite_options: { Args: { _company: string }; Returns: Json }
+      driver_invite_prepare: {
+        Args: {
+          _company: string
+          _driver: string
+          _email: string
+          _key: string
+          _token: string
+        }
+        Returns: string
+      }
+      driver_invite_renew: {
+        Args: { _id: string; _key: string; _token: string }
+        Returns: string
+      }
+      driver_invite_revoke: { Args: { _id: string }; Returns: undefined }
       driver_user_current: { Args: never; Returns: boolean }
       drv_mission_end: { Args: { _mission: string }; Returns: undefined }
       drv_mission_point: {

@@ -1688,6 +1688,13 @@
       "when": 1793111453422,
       "tag": "0240_editeur_transport",
       "breakpoints": true
+    },
+    {
+      "idx": 241,
+      "version": "7",
+      "when": 1793111512971,
+      "tag": "0241_invitations_chauffeurs",
+      "breakpoints": true
     }
   ]
 }
