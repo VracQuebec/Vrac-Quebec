@@ -1639,6 +1639,13 @@
       "when": 1793108397549,
       "tag": "0233_0233_revoquer_aides_finances_sans_controle",
       "breakpoints": true
+    },
+    {
+      "idx": 234,
+      "version": "7",
+      "when": 1793110968417,
+      "tag": "0234_correctif_journal_creation_voyages",
+      "breakpoints": true
     }
   ]
 }
