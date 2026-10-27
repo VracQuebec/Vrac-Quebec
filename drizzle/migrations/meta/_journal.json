@@ -1646,6 +1646,13 @@
       "when": 1793110968417,
       "tag": "0234_correctif_journal_creation_voyages",
       "breakpoints": true
+    },
+    {
+      "idx": 235,
+      "version": "7",
+      "when": 1793111086541,
+      "tag": "0235_exec02_coordination",
+      "breakpoints": true
     }
   ]
 }

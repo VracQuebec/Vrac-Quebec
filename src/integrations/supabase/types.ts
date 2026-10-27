@@ -19565,6 +19565,7 @@ export type Database = {
           quantity_unit: string | null
           quantity_value: number | null
           raw_description: string | null
+          reception_documents: Json
           region: string | null
           secondary_materials: string[]
           sector: string | null
@@ -19604,6 +19605,7 @@ export type Database = {
           quantity_unit?: string | null
           quantity_value?: number | null
           raw_description?: string | null
+          reception_documents?: Json
           region?: string | null
           secondary_materials?: string[]
           sector?: string | null
@@ -19643,6 +19645,7 @@ export type Database = {
           quantity_unit?: string | null
           quantity_value?: number | null
           raw_description?: string | null
+          reception_documents?: Json
           region?: string | null
           secondary_materials?: string[]
           sector?: string | null
@@ -27561,6 +27564,8 @@ export type Database = {
           id: string
           original_text: string | null
           reception_conditions: Json | null
+          reception_policy: Json | null
+          reception_policy_version: number
           source: string
           submission_id: string
           updated_at: string
@@ -27581,6 +27586,8 @@ export type Database = {
           id?: string
           original_text?: string | null
           reception_conditions?: Json | null
+          reception_policy?: Json | null
+          reception_policy_version?: number
           source?: string
           submission_id: string
           updated_at?: string
@@ -27601,6 +27608,8 @@ export type Database = {
           id?: string
           original_text?: string | null
           reception_conditions?: Json | null
+          reception_policy?: Json | null
+          reception_policy_version?: number
           source?: string
           submission_id?: string
           updated_at?: string
@@ -27723,6 +27732,45 @@ export type Database = {
             foreignKeyName: "submission_portal_confirmations_submission_id_fkey"
             columns: ["submission_id"]
             isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_portal_dispatches: {
+        Row: {
+          created_at: string
+          dedupe_key: string
+          input_hash: string
+          queue_id: number
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          dedupe_key: string
+          input_hash: string
+          queue_id: number
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          dedupe_key?: string
+          input_hash?: string
+          queue_id?: number
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_portal_dispatches_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_portal_dispatches_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
             referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
@@ -27855,6 +27903,200 @@ export type Database = {
             columns: ["link_id"]
             isOneToOne: false
             referencedRelation: "submission_portal_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_reception_debits: {
+        Row: {
+          created_at: string
+          quantity: number
+          reservation_id: string
+          submission_id: string
+          ticket_ref: string
+          trip_id: string
+          unit: string
+        }
+        Insert: {
+          created_at?: string
+          quantity: number
+          reservation_id: string
+          submission_id: string
+          ticket_ref: string
+          trip_id: string
+          unit: string
+        }
+        Update: {
+          created_at?: string
+          quantity?: number
+          reservation_id?: string
+          submission_id?: string
+          ticket_ref?: string
+          trip_id?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_reception_debits_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: true
+            referencedRelation: "submission_reception_reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_reception_debits_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_reception_debits_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_reception_debits_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_reception_operations: {
+        Row: {
+          actor: string
+          created_at: string
+          input_hash: string
+          operation_id: string
+          result: Json
+        }
+        Insert: {
+          actor: string
+          created_at?: string
+          input_hash: string
+          operation_id: string
+          result: Json
+        }
+        Update: {
+          actor?: string
+          created_at?: string
+          input_hash?: string
+          operation_id?: string
+          result?: Json
+        }
+        Relationships: []
+      }
+      submission_reception_reservations: {
+        Row: {
+          accepted_at: string | null
+          accepted_history: Json
+          conditions_snapshot: Json | null
+          counter_end: string | null
+          counter_start: string | null
+          created_at: string
+          ends_at: string
+          evaluated_conditions: Json | null
+          evaluation: Json
+          expires_at: string
+          fingerprint: string
+          id: string
+          offer_id: string
+          offer_snapshot: Json
+          origin_submission_id: string
+          policy_version: number | null
+          quantity: number
+          starts_at: string
+          state: string
+          submission_id: string
+          unit: string
+          window_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_history?: Json
+          conditions_snapshot?: Json | null
+          counter_end?: string | null
+          counter_start?: string | null
+          created_at?: string
+          ends_at: string
+          evaluated_conditions?: Json | null
+          evaluation: Json
+          expires_at: string
+          fingerprint: string
+          id?: string
+          offer_id: string
+          offer_snapshot: Json
+          origin_submission_id: string
+          policy_version?: number | null
+          quantity: number
+          starts_at: string
+          state?: string
+          submission_id: string
+          unit: string
+          window_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_history?: Json
+          conditions_snapshot?: Json | null
+          counter_end?: string | null
+          counter_start?: string | null
+          created_at?: string
+          ends_at?: string
+          evaluated_conditions?: Json | null
+          evaluation?: Json
+          expires_at?: string
+          fingerprint?: string
+          id?: string
+          offer_id?: string
+          offer_snapshot?: Json
+          origin_submission_id?: string
+          policy_version?: number | null
+          quantity?: number
+          starts_at?: string
+          state?: string
+          submission_id?: string
+          unit?: string
+          window_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_reception_reservations_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "material_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_reception_reservations_origin_submission_id_fkey"
+            columns: ["origin_submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_reception_reservations_origin_submission_id_fkey"
+            columns: ["origin_submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_reception_reservations_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_reception_reservations_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
         ]
@@ -29772,6 +30014,9 @@ export type Database = {
           pickup_lat: number | null
           pickup_lng: number | null
           quarry_address: string | null
+          received_quantity: number | null
+          received_ticket_ref: string | null
+          received_unit: string | null
           revenue: number | null
           scheduled_at: string | null
           signature_url: string | null
@@ -29811,6 +30056,9 @@ export type Database = {
           pickup_lat?: number | null
           pickup_lng?: number | null
           quarry_address?: string | null
+          received_quantity?: number | null
+          received_ticket_ref?: string | null
+          received_unit?: string | null
           revenue?: number | null
           scheduled_at?: string | null
           signature_url?: string | null
@@ -29850,6 +30098,9 @@ export type Database = {
           pickup_lat?: number | null
           pickup_lng?: number | null
           quarry_address?: string | null
+          received_quantity?: number | null
+          received_ticket_ref?: string | null
+          received_unit?: string | null
           revenue?: number | null
           scheduled_at?: string | null
           signature_url?: string | null
@@ -31547,6 +31798,16 @@ export type Database = {
         Returns: Json
       }
       exec01_quota: { Args: { _identity: string }; Returns: boolean }
+      exec02_dispatch: { Args: { p: Json }; Returns: Json }
+      exec02_exception: {
+        Args: {
+          _id: string
+          _next: string
+          _reason: string
+          _reference?: string
+        }
+        Returns: undefined
+      }
       fin__alloc: {
         Args: {
           _allocs: Json
