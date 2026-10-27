@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { fetchSecureFile } from "@/lib/secureFile";
 import { supabase } from "@/integrations/supabase/client";
 
 const db = supabase as any;
@@ -87,9 +88,10 @@ export default function CompanyDocuments({ companyId, canWrite }: { companyId: s
   };
 
   const open = async (d: any) => {
-    const { data, error } = await supabase.storage.from(BUCKET).download(d.storage_path);
-    if (error || !data) return toast({ title: "Accès refusé", description: error?.message, variant: "destructive" });
-    setViewer({ doc: d, url: URL.createObjectURL(new Blob([data], { type: d.mime_type })) });
+    try {
+      const blob = await fetchSecureFile(BUCKET, d.storage_path, d.mime_type);
+      setViewer({ doc: d, url: URL.createObjectURL(blob) });
+    } catch (e: any) { toast({ title: "Ouverture impossible", description: e?.message, variant: "destructive" }); }
   };
   const closeViewer = () => { if (viewer) URL.revokeObjectURL(viewer.url); setViewer(null); };
   const toggleArchive = async (d: any) => {

@@ -1,5 +1,6 @@
 // ASSUR-01 — fiche de police : période, coûts, garanties, biens, documents, renouvellement, soumissions, questions, historique.
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { fetchSecureFile } from "@/lib/secureFile";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,9 +74,10 @@ export default function PolicyDetail({ companyId, policyId, canWrite, tab }: { c
 
   const run = async (p: Promise<any>, ok: string) => { const { error } = await p; if (error) { toast({ title: "Refusé", description: error.message, variant: "destructive" }); return false; } toast({ title: ok }); await load(); return true; };
   const openDoc = async (doc: any, download = false) => {
-    const { data, error } = await supabase.storage.from(BUCKET).download(doc.storage_path);
-    if (error || !data) return toast({ title: "Accès refusé", description: error?.message, variant: "destructive" });
-    const url = URL.createObjectURL(new Blob([data], { type: doc.mime_type }));
+    let blob: Blob;
+    try { blob = await fetchSecureFile(BUCKET, doc.storage_path, doc.mime_type); }
+    catch (e: any) { return toast({ title: "Ouverture impossible", description: e?.message, variant: "destructive" }); }
+    const url = URL.createObjectURL(blob);
     if (download) { const a = document.createElement("a"); a.href = url; a.download = doc.file_name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 5000); }
     else setViewer({ doc, url });
   };
