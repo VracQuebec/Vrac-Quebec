@@ -1,3 +1,8 @@
+## R4K — clôture chauffeur (27 octobre 2026)
+- [ ] Préparer camion et profil chauffeur fictifs dans TEST A, réutiliser le dossier 823; ne pas simuler une affectation sauvegardée sans chauffeur confirmé.
+- [ ] Raccorder la capture invitation installée dans l’aperçu uniquement, sans activer le punch ni les envois; accès suivi depuis la réquisition.
+- [ ] Consigner données présentes, défaut de cache corrigé, preuves et résultats; vrais essais chauffeur attendent compte confirmé et connexion.
+
 - [x] R4D : raccordements Auth client/invitation et capture queue existante préparés; révocation SQL transversale et régressions, 112 tests + navigateur Connexion/Retour.
 - [ ] R4D preuve complète : cible indépendante Auth/API/Storage/PGMQ indisponible; anciens liens Storage signés et téléchargement après révocation non certifiés. INSTALLATION-R4D.md décrit décision/ordre/impact/retour; aucun serveur partagé modifié.
 - [ ] R5 communications/partenaires : gardes TEST/hiver/formation actualisés; preuve services/oppositions/horaires/attribution et décisions métier restent séparées, jamais envois réels.
