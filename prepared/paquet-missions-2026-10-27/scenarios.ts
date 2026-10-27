@@ -142,7 +142,7 @@ try {
   const list = async () => (await call({ requestId: rid, kind: 'list' })).body;
   const l1 = await list();
   check('Concurrence : 3 propositions de 30 sur capacité 50 → réservé ≤ 50', Number(l1.reserved) <= 50, { reserved: l1.reserved, st: conc.map((x) => x.status) });
-  check('Concurrence : exactement une réservation de 30', Number(l1.reserved) === 30, l1.reserved);
+  check('Concurrence : exactement une réservation de 30', Number(l1.reserved) === 30, { reserved: l1.reserved, rows: l1.rows?.map((r: any) => [r.state, r.quantity, r.reason]), st: conc.map((x) => [x.status, x.body]) });
   const resv = l1.rows.find((r: any) => r.state === 'reserved');
   const trip = u();
   await db`insert into trips(id,submission_id,status,delivered_at) values(${trip},${rid},'termine',now())`;
