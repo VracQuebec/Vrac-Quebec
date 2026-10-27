@@ -29,3 +29,6 @@ Serveur : 0 mission, 0 point lors de la dernière lecture. Missions ordinaires (
 ## Tests (réplique isolée, `scenarios.ts`) : 40/40
 Mission ordinaire (5), invitation capturée/isolation (8), réquisition/édition/revalidation/rejeu/historique (6), session ouverte et révocation (10), concurrence 3×30 sur 50 → 30 réservés, voyage + livraison 12, modification refusée après livraison, livré 12/solde 38 conservés, accord non livré invalidé, pas de réservation avant revalidation (11).
 Non exécuté : Auth/API/Storage hébergés, vraies sessions TEST.
+
+## État 2026-10-27 10:45 Toronto
+00–10 INSTALLÉS (migrations 0234–0244), contenu identique aux fichiers testés. Fichier 11 (rattachement) préparé : `11_rattachement_demandes.sql`, retour `retour/11_rattachement_demandes.sql`, essais `scenarios-rattachement.ts` 30/30. Il modifie la règle de création des demandes (accepte un auteur égal à la session, rien d'autre) : autorisation distincte requise.
