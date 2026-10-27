@@ -1,5 +1,6 @@
 // ASSUR-01 — fiche de police : période, coûts, garanties, biens, documents, renouvellement, soumissions, questions, historique.
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { fetchSecureFile } from "@/lib/secureFile";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { fetchSecureFile } from "@/lib/secureFile";
 import { supabase } from "@/integrations/supabase/client";
 
 const db = supabase as any;

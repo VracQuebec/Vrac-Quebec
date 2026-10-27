@@ -1,5 +1,6 @@
 // Chauffeur : seulement les preuves d'assurance des véhicules, sans primes ni soumissions.
 import { useEffect, useState } from "react";
+import { fetchSecureFile } from "@/lib/secureFile";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
