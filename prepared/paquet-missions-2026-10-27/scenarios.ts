@@ -70,7 +70,8 @@ try {
   await db`insert into submission_site_decisions(submission_id,site_id,status) values(${sub},${site},'approuvee')`;
   const reqVer = async () => (await db`select requisition_version v, requisition_state s from transport_requests where id=${request}`)[0];
   const values = { company_id: companyA, request_id: request, driver_id: driverA, truck_id: truckA, destination_id: site, material: 'Terre', quantity: 10, unit: 'm3', starts_at: '2026-11-02T12:00:00Z', instructions: 'TEST' };
-  await as(managerA, (tx) => tx`select requisition_assign(${request}::uuid,${companyA}::uuid,${(await reqVer()).v ?? 1},${tx.json(values)},${u()}::uuid,true)`);
+  const v0 = (await reqVer()).v ?? 1;
+  await as(managerA, (tx) => tx`select requisition_assign(${request}::uuid,${companyA}::uuid,${v0},${tx.json(values)},${u()}::uuid,true)`);
   const act = async (who: string, a: string) => as(who, async (tx) => (await tx`select requisition_action(${request}::uuid,${companyA}::uuid,${(await reqVer()).v},${a},'TEST',${u()}::uuid,true) r`)[0].r);
   await act(managerA, 'transmit'); await act(driverUser, 'accept');
   check('Réquisition acceptée par le chauffeur', (await reqVer()).s === 'accepted', await reqVer());
