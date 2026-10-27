@@ -1632,6 +1632,13 @@
       "when": 1793106839968,
       "tag": "0232_securite_fonctions_internes_finances_assurances",
       "breakpoints": true
+    },
+    {
+      "idx": 233,
+      "version": "7",
+      "when": 1793108397549,
+      "tag": "0233_0233_revoquer_aides_finances_sans_controle",
+      "breakpoints": true
     }
   ]
 }

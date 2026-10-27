@@ -74,11 +74,18 @@ export type ProgressRecap = {
 };
 
 // Polices standard PDF (WinAnsi) : on remplace les espaces fines et signes hors jeu.
-const clean = (s: string) =>
+// Les flèches/comparateurs n'existent pas en WinAnsi (rendus « !' » avant ce correctif).
+export const clean = (s: string) =>
   s
     .replace(/[\u202F\u00A0]/g, " ")
     .replace(/[\u2212\u2013\u2014]/g, "-")
-    .replace(/[\u2019]/g, "'");
+    .replace(/[\u2019]/g, "'")
+    .replace(/[\u2192\u27F6\u21D2]/g, "->")
+    .replace(/[\u2190\u27F5\u21D0]/g, "<-")
+    .replace(/\u2194/g, "<->")
+    .replace(/\u2265/g, ">=")
+    .replace(/\u2264/g, "<=")
+    .replace(/\u2026/g, "...");
 const money = (n: number | null | undefined) =>
   n == null ? "À déterminer" : clean(n.toLocaleString("fr-CA", { style: "currency", currency: "CAD" }));
 const num = (n: unknown) =>

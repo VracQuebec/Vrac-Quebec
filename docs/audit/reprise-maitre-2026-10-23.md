@@ -203,3 +203,15 @@ La limite de cette exécution a permis R1 et les préparations documentaires ind
 - Tests de session (accepté/autre entreprise/rôle/révoqué) : non exécutés, sans comptes TEST.
 ### Prochains objectifs
 1. Diagnostic Zod serveur. 2. Contrôle visuel PDF. 3. Paquet EXEC-02 → éditeur → missions R4D. 4. Validation complète avec les deux comptes TEST.
+
+## R4H — 2026-10-27 (09:45 Toronto)
+
+| Point | Changé | Environnement | Tests réellement exécutés | Reste bloqué |
+|---|---|---|---|---|
+| 0233 aides finances | Correctif corrigé (signature réelle `fin_pay_account_check(uuid,uuid,text)`; l’ancienne version préparée aurait échoué) puis **installé** | Serveur en service | Lecture code : 11 appelants tous SECURITY DEFINER/propriétaire postgres, aucun appel client ni politique/vue. Test local PostgreSQL jetable : 8 refus (authenticated/anon × 4), service_role OK, appelant interne OK (70/30), retour arrière = mêmes droits (ordre d’affichage seul différent). Serveur : droits effectifs authenticated=false, anon=false; RPC parentes conservées. Appel API anonyme 401, catalogue public 200. Preuves `prepared/securite-r4g/preuves/0233-*` | Essai avec vraie session (parcours dépenses/banque/paiement) : **non exécuté**, exige comptes TEST |
+| Zod serveur | Aucun changement serveur | Local (Deno 2.6.10) | Cause du « plantage » : résolution des paquets Deno en mode node_modules du projet, pas Zod. En dossier isolé, zod 3.25.76 et 4.6.6 : vérification de types et import OK; 5 cas de validation identiques (200/400/400/400/200). `preuves/zod/probe.ts` | Compatibilité du moteur hébergé non prouvée sans redéploiement (non autorisé) |
+| PDF facture | Défaut démontré corrigé : « → » rendu « !' »; flèches/comparateurs/points de suspension remplacés | Aperçu (code) | PDF fictif 3 pages : accents OK, montants 5 700,00 / 285,00 / 568,58 / 6 553,58 $ exacts, « Page x / 3 », totaux non coupés. Vitest 2/2. Preuves `preuves/pdf/`. PDF déjà émis non modifiés (octets figés) | — |
+| Paquet EXEC-02→éditeur→R4D | `INSTALLATION-PAQUET-EXEC02-EDITEUR-R4D.md` + nouveau manifeste | Lecture serveur, fichiers préparés | EXEC-02 absent du serveur; 0 mission/0 point actuels; empreintes des 4 fonctions missions consignées; anciens manifestes R4C/R4D périmés (3 fichiers) | Installation non autorisée; composition EXEC-02 sur schéma réel à écrire |
+| Comptes TEST | Instructions conservées | — | — | Création par parcours normal (inscription, courriel confirmé, invitation chauffeur). Je ne peux pas ouvrir leurs sessions automatiquement : le seul moyen sûr est que vous vous connectiez vous-même dans l’aperçu Lovable avec le compte TEST, la session est alors transmise à mes essais |
+
+Prochains objectifs : composition EXEC-02 sur schéma réel (base jetable), autorisation de redéploiement Zod, essais 0233 et documents avec comptes TEST.
