@@ -47,3 +47,5 @@
 - Driver revocation is enforced by jsc_my_driver_ids/driver_company_active/driver_identity_current/driver_user_current in RLS and portal RPCs; reuse them for any new driver-readable surface so a still-open session loses access immediately.
 
 - Submission ownership: new entrepreneur requests take created_by from the server session (company only when exactly one managed membership); legacy requests are bound only by an admin decision with typed proof — never inferred from name/email, keeping private-owner portals untouched.
+- Request workbench/ownership UI is gated by import.meta.env.DEV (preview only) until publication is authorized; server RPC/RLS remain the sole authority.
+- secure-file reads Storage through /object/authenticated with a unique query parameter: the plain object endpoint can serve cached copies after revocation.
