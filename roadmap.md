@@ -1,3 +1,8 @@
+## R4K — SELECT ciblé (28 octobre 2026)
+- [x] Archive serveur, défaut reproduit, 12 contrôles RLS isolés, retour exact; seul SELECT installé par 0246 (préparation 0245), droits inchangés et HTTP anonyme vide.
+- [x] Preuves et écart de reprise consignés dans docs/audit/r4k-select-preuves/BILAN.md; DT-0056 conserve deux positions et six événements, chauffeur reste désactivé.
+- [ ] Sessions réelles après 0246 : entrepreneur ordinaire, chauffeur et autre entreprise non exécutés; aucune réactivation autorisée. GPS téléphone physique non testé.
+
 ## R4K — clôture chauffeur (27 octobre 2026)
 - [x] Préparer camion et profil fictifs TEST A et support transport DT-0056 sur dossier 823; affectation volontairement indisponible sans chauffeur confirmé/destination approuvée.
 - [x] Raccorder capture invitation installée dans l’aperçu uniquement, indépendamment du punch désactivé; lien de suivi depuis réquisition acceptée.
