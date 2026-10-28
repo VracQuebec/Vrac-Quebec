@@ -21,7 +21,7 @@ CREATE TABLE drv_missions(id uuid default gen_random_uuid(),user_id uuid default
 CREATE TABLE drv_points(mission_id uuid,lat float8,lng float8,accuracy float8,recorded_at timestamptz);
 CREATE TABLE history(id integer,event text);
 CREATE FUNCTION workbench_manager(c uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER AS $$SELECT EXISTS(SELECT 1 FROM jsc_company_members WHERE company_id=c AND user_id=auth.uid() AND is_active AND archived_at IS NULL AND role IN('proprietaire','gestionnaire'))$$;
-GRANT SELECT ON drv_missions,jsc_drivers TO authenticated;
+GRANT SELECT ON drv_missions,jsc_drivers,jsc_company_members TO authenticated; ALTER TABLE jsc_company_members ENABLE ROW LEVEL SECURITY; CREATE POLICY own_membership ON jsc_company_members FOR SELECT TO authenticated USING(user_id=auth.uid());
 ALTER TABLE drv_missions ENABLE ROW LEVEL SECURITY;
 """
 # Exact server definitions for SELECT dependencies; workbench_manager is an explicit fixture seam (no subscription in this matrix).
