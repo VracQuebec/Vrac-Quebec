@@ -274,3 +274,11 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [x] Couverture sauvegarde/restauration documentée; inventaire des sauvegardes à vérifier dans l'interface (More → Database → Manage → Backups).
 - [x] Hébergement vérifié : Lovable Cloud, AWS us-east-1 (États-Unis), instance Tiny; sous-traitants et région du stockage fichiers à confirmer pour la politique de confidentialité.
 - [ ] EN ATTENTE d'autorisation : purge historique technique des tâches (conservation 14 jours), installation surveillance volumes, réduction de fréquence des superviseurs SEO.
+
+## Groupes Facebook — répertoire et suivi (2026-10-28)
+- [x] Migration 0250 : fb_groups, fb_campaigns, fb_campaign_groups, fb_publications, fb_assignments, fb_group_events (RLS admin plateforme).
+- [x] Import des 580 fiches GF0001–GF0580 (26 notes de transcription, 7 noms à compléter); relance sans doublon vérifiée.
+- [x] Interface /admin/groupes-facebook : Répertoire, Prochains groupes, Publications, Campagnes; menu super admin; 9 tests de rotation réussis; essais navigateur super admin TEST réussis; données fictives d'essai retirées.
+- [ ] Liens Facebook à fournir et vérifier fiche par fiche (580 « À fournir »); 7 noms à compléter.
+- [ ] Rattachement de pièces jointes aux publications via le système de fichiers existant (non branché).
+- [ ] Essai de conflit simultané entre deux administrateurs (attribution persistante livrée, essai à deux sessions non exécuté).
