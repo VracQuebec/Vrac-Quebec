@@ -1730,6 +1730,13 @@
       "when": 1793208974731,
       "tag": "0246_driver_ordinary_mission_read_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 247,
+      "version": "7",
+      "when": 1793211563467,
+      "tag": "0247_entcrm_file_thumbnails",
+      "breakpoints": true
     }
   ]
 }

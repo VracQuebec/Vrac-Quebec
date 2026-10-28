@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { FILE_ACCEPT, FILE_CATEGORIES, FILE_MAX, FILE_MIME } from "@/lib/entcrm/catalog";
+import { makeThumb, runLimited, withRetry } from "@/lib/uploads/fastUpload";
 
 const db = supabase as any;
 const BUCKET = "entcrm-files";
@@ -37,11 +38,12 @@ export default function CrmFiles({ companyId, ownerType, ownerId, canWrite, canA
       .eq("company_id", companyId).eq("owner_type", ownerType).eq("owner_id", ownerId).order("created_at", { ascending: false });
     const list = (data ?? []).filter((l: any) => l.file);
     setLinks(list);
-    const imgs = list.filter((l: any) => l.file.mime_type.startsWith("image/"));
+    // Seules les miniatures sont chargées pour la liste; l'original n'est ouvert qu'au clic.
+    const imgs = list.filter((l: any) => l.file.mime_type.startsWith("image/") && l.file.thumb_path);
     if (imgs.length) {
-      const { data: s } = await supabase.storage.from(BUCKET).createSignedUrls(imgs.map((l: any) => l.file.storage_path), 600);
+      const { data: s } = await supabase.storage.from(BUCKET).createSignedUrls(imgs.map((l: any) => l.file.thumb_path), 600);
       const m: Record<string, string> = {}; imgs.forEach((l: any, i: number) => { if (s?.[i]?.signedUrl) m[l.file.id] = s[i].signedUrl; }); setUrls(m);
-    }
+    } else setUrls({});
   }, [companyId, ownerType, ownerId]);
   useEffect(() => { void load(); }, [load]);
 
@@ -60,10 +62,14 @@ export default function CrmFiles({ companyId, ownerType, ownerId, canWrite, canA
     if (err) return fail(err);
     const ext = u.file.name.split(".").pop()!.toLowerCase();
     const path = `company/${companyId}/${crypto.randomUUID()}.${ext}`;
-    const up = await supabase.storage.from(BUCKET).upload(path, u.file, { contentType: FILE_MIME[ext], upsert: false });
-    if (up.error) return fail(`Envoi refusé : ${up.error.message}`);
+    // Original envoyé tel quel (pièces pouvant servir de preuve) avec reprise automatique.
+    try { await withRetry(async () => { const r = await supabase.storage.from(BUCKET).upload(path, u.file, { contentType: FILE_MIME[ext], upsert: false }); if (r.error && !/exists/i.test(r.error.message)) throw r.error; }); }
+    catch (e: any) { return fail(`Envoi refusé : ${e?.message ?? "réseau"}`); }
+    let thumb_path: string | null = null;
+    const tb = await makeThumb(u.file);
+    if (tb) { const tp = `company/${companyId}/thumbs/${crypto.randomUUID()}.jpg`; const t = await supabase.storage.from(BUCKET).upload(tp, tb, { contentType: "image/jpeg", upsert: false }); if (!t.error) thumb_path = tp; }
     // La fiche n'est créée qu'après la confirmation de l'envoi.
-    const { data: f, error } = await db.from("ent_crm_files").insert({ company_id: companyId, storage_path: path, file_name: u.file.name, mime_type: FILE_MIME[ext], size_bytes: u.file.size, title: u.file.name.replace(/\.[^.]+$/, ""), category: newCat, is_field: ownerType === "project" && ["avant_travaux", "apres_travaux", "bon_livraison", "billet_pesee"].includes(newCat) }).select("id").single();
+    const { data: f, error } = await db.from("ent_crm_files").insert({ company_id: companyId, storage_path: path, thumb_path, file_name: u.file.name, mime_type: FILE_MIME[ext], size_bytes: u.file.size, title: u.file.name.replace(/\.[^.]+$/, ""), category: newCat, is_field: ownerType === "project" && ["avant_travaux", "apres_travaux", "bon_livraison", "billet_pesee"].includes(newCat) }).select("id").single();
     if (error) { await supabase.storage.from(BUCKET).remove([path]); return fail(`Enregistrement refusé : ${error.message}`); }
     const l = await db.from("ent_crm_file_links").insert({ company_id: companyId, file_id: f.id, owner_type: ownerType, owner_id: ownerId });
     if (l.error) return fail(`Rattachement refusé : ${l.error.message}`);
@@ -75,7 +81,7 @@ export default function CrmFiles({ companyId, ownerType, ownerId, canWrite, canA
     if (!list?.length) return;
     const items: Up[] = Array.from(list).map((file) => ({ key: crypto.randomUUID(), file, status: "pending" }));
     setUps((l) => [...l, ...items]);
-    for (const it of items) await uploadOne(it);
+    await runLimited(items, 3, uploadOne);
     if (cam.current) cam.current.value = ""; if (pick.current) pick.current.value = "";
     load();
   };
@@ -126,8 +132,8 @@ export default function CrmFiles({ companyId, ownerType, ownerId, canWrite, canA
     </div>
     {!shown.length && <p className="text-xs text-muted-foreground">Aucune pièce.</p>}
     <div className="grid gap-2 sm:grid-cols-2">{shown.map((l) => <div key={l.id} className="flex gap-2 rounded-md border border-border p-2">
-      {urls[l.file.id] ? <button onClick={() => signed(l)}><img src={urls[l.file.id]} alt={l.file.title ?? "Photo"} className="h-16 w-16 rounded object-cover" /></button>
-        : <button onClick={() => signed(l)} className="flex h-16 w-16 items-center justify-center rounded bg-muted"><FileText className="h-6 w-6 text-muted-foreground" /></button>}
+      {urls[l.file.id] ? <button onClick={() => signed(l)}><img src={urls[l.file.id]} alt={l.file.title ?? "Photo"} loading="lazy" decoding="async" className="h-16 w-16 rounded object-cover" /></button>
+        : <button onClick={() => signed(l)} aria-label={l.file.mime_type.startsWith("image/") ? "Ouvrir la photo" : "Ouvrir le document"} className="flex h-16 w-16 items-center justify-center rounded bg-muted">{l.file.mime_type.startsWith("image/") ? <Camera className="h-6 w-6 text-muted-foreground" /> : <FileText className="h-6 w-6 text-muted-foreground" />}</button>}
       <div className="min-w-0 flex-1 text-xs">
         {canWrite ? <Input className="h-8 text-xs" defaultValue={l.file.title ?? ""} onBlur={(e) => e.target.value !== (l.file.title ?? "") && patchFile(l, { title: e.target.value || null })} aria-label="Titre" />
           : <p className="truncate font-semibold">{l.file.title ?? l.file.file_name}</p>}

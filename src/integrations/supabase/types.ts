@@ -3881,6 +3881,7 @@ export type Database = {
           mime_type: string
           size_bytes: number
           storage_path: string
+          thumb_path: string | null
           title: string | null
           updated_at: string
         }
@@ -3897,6 +3898,7 @@ export type Database = {
           mime_type: string
           size_bytes: number
           storage_path: string
+          thumb_path?: string | null
           title?: string | null
           updated_at?: string
         }
@@ -3913,6 +3915,7 @@ export type Database = {
           mime_type?: string
           size_bytes?: number
           storage_path?: string
+          thumb_path?: string | null
           title?: string | null
           updated_at?: string
         }
