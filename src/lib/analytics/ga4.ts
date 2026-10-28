@@ -12,7 +12,7 @@ export { GA4_MEASUREMENT_ID };
 
 /** Espaces connectés et liens personnels : jamais mesurés. */
 export function isPrivateAnalyticsPath(path: string): boolean {
-  return /^\/(admin|entrepreneur|portail|partenaire|chauffeur|mission|compte|client|invitation|auth)(\/|$)/i.test(path);
+  return /^\/(admin|entrepreneur|portail|partenaire|chauffeur|mission|compte|client|invitation|auth|essai-telephone)(\/|$)/i.test(path);
 }
 
 /** Ne garde que les paramètres de campagne; retire codes, jetons et identifiants. */

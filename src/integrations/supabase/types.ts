@@ -29160,6 +29160,30 @@ export type Database = {
           },
         ]
       }
+      test_phone_tokens: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string
+          token_hash: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at: string
+          token_hash: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          token_hash?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       transport_dimension_rules: {
         Row: {
           applies_to: string
