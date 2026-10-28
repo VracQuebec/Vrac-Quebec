@@ -257,3 +257,10 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [x] 0232 aides finances/assurances restreintes; fonction secure-file déployée (non branchée aux écrans).
 - [x] R4D missions préparé corrigé (entrepreneurs préservés), 47 tests jetables.
 - [ ] Brancher secure-file dans documents/preuves; installer EXEC-02→R4D missions (autorisation); patch zod4 serveur à déployer (autorisation); comptes fictifs Auth confirmés pour preuve complète.
+
+## Stockage — suite bilan (2026-10-28, lecture seule)
+- [x] Source des journaux identifiée : cron.job_run_details = 4 356 Mo (~92 % de la base); ~8 700 exécutions/jour; platform_cleanup ne purge pas cet historique.
+- [x] Surveillance quotidienne des volumes préparée (prepared/stockage-2026-10-28/01_surveillance_volumes.sql), non installée.
+- [x] Couverture sauvegarde/restauration documentée; inventaire des sauvegardes à vérifier dans l'interface (More → Database → Manage → Backups).
+- [x] Hébergement vérifié : Lovable Cloud, AWS us-east-1 (États-Unis), instance Tiny; sous-traitants et région du stockage fichiers à confirmer pour la politique de confidentialité.
+- [ ] EN ATTENTE d'autorisation : purge historique technique des tâches (conservation 14 jours), installation surveillance volumes, réduction de fréquence des superviseurs SEO.
