@@ -102,6 +102,7 @@ export default function FleetDocuments({ ownerType, ownerId, label = "Photos et 
   const [docs, setDocs] = useState<FleetDocument[]>([]);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
+  const [fileErrors, setFileErrors] = useState<string[]>([]);
   const uploadLock = useRef(false);
   const openingLock = useRef(false);
   const [opening, setOpening] = useState(false);
@@ -122,6 +123,7 @@ export default function FleetDocuments({ ownerType, ownerId, label = "Photos et 
     if (!files?.length || uploadLock.current) return;
     uploadLock.current = true;
     setBusy(true);
+    setFileErrors([]);
     setProgress(`0/${files.length}`);
     let ok = 0;
     await runLimited(Array.from(files), 3, async (file) => {
@@ -129,6 +131,7 @@ export default function FleetDocuments({ ownerType, ownerId, label = "Photos et 
         await uploadDocument(ownerType, ownerId, file, file.type.startsWith("image/") ? "photo" : "document");
         ok++;
       } catch (e) {
+        setFileErrors(errors => [...errors, `${file.name} : ${(e as Error).message}`]);
         toast({ title: `Ajout impossible : ${file.name}`, description: (e as Error).message, variant: "destructive" });
       }
     }, (done, total) => setProgress(`${done}/${total}`));
@@ -185,6 +188,7 @@ export default function FleetDocuments({ ownerType, ownerId, label = "Photos et 
           onChange={(e) => upload(e.target.files)} />
       </div>
       {busy && <p role="status" className="text-xs text-muted-foreground font-body">Envoi : {progress} fichier(s) traités…</p>}
+      {fileErrors.length > 0 && <div role="alert" className="text-xs text-destructive">{fileErrors.map(error => <p key={error}>{error}</p>)}</div>}
       {opening && <p role="status" className="text-xs text-muted-foreground">Ouverture…</p>}
 
       {photos.length > 0 && (
