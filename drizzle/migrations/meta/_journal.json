@@ -1744,6 +1744,13 @@
       "when": 1793213437985,
       "tag": "0248_platform_capacity_monitoring",
       "breakpoints": true
+    },
+    {
+      "idx": 249,
+      "version": "7",
+      "when": 1793216402196,
+      "tag": "0249_test_phone_tokens",
+      "breakpoints": true
     }
   ]
 }
