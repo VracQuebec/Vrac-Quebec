@@ -1,3 +1,4 @@
+import { openConsentSettings } from "@/lib/analytics/consent";
 import { PUBLIC_PHONE, PUBLIC_PHONE_E164 } from "@/lib/public-phone";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
