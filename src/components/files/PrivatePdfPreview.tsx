@@ -44,7 +44,7 @@ export default function PrivatePdfPreview({ blob, name }: { blob: Blob; name: st
       render = pdfPage.render({ canvas: element, canvasContext: context, viewport: view });
       await render.promise;
       if (active) setLoading(false);
-    })().catch((cause: unknown) => { if (active) { setError(`Aperçu PDF indisponible. Téléchargez le document.${cause instanceof Error ? ` (${cause.message})` : ""}`); setLoading(false); } });
+    })().catch(() => { if (active) { setError("Aperçu PDF indisponible. Téléchargez le document."); setLoading(false); } });
     return () => { active = false; render?.cancel(); };
   }, [page, ready]);
   return <div className="space-y-2">

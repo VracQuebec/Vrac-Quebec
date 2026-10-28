@@ -1,7 +1,8 @@
 ## Groupes Facebook — finalisation (28 octobre 2026)
-- [ ] Pièces jointes privées par publication, aperçus/téléchargements et reprises sans doublons.
-- [ ] Attribution atomique et test simultané avec deux identités admin; refus serveur entrepreneur/administrateur entreprise.
-- [ ] Vérifier téléphone/iPad; bilan installations, preuves et limites sans publication ni suppression.
+- [x] Pièces jointes privées par publication, aperçus/téléchargements et reprises sans doublons; originaux TEST conservés.
+- [x] Attribution atomique 0251 installée; test simultané deux admins et refus serveur entrepreneur/gestionnaire exécutés.
+- [x] Téléphone/iPad/ordinateur simulés : onglets, photos, PDF non blanc et téléchargement; bilan docs/audit/groupes-facebook-2026-10-28.md.
+- [ ] Essai physique Safari/téléphone/iPad : appareils non accessibles; vérification éditoriale des liens et noms tronqués dépend des captures/liens confirmés. Aucun blocage de l'usage courant.
 
 ## Fichiers partout — 28 octobre 2026
 - [x] Recensement transversal des pipelines et 57 sources; tableau docs/audit/fichiers-plateforme-2026-10-28.md, couverture non certifiée exhaustive.
