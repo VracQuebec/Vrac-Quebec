@@ -16,13 +16,13 @@ export default function PrivatePdfPreview({ blob, name }: { blob: Blob; name: st
     let task: import("pdfjs-dist").PDFDocumentLoadingTask | undefined;
     setLoading(true); setError(""); setPage(1);
     (async () => {
-      const pdf = await import("pdfjs-dist");
-      const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+      const pdf = await import("pdfjs-dist/legacy/build/pdf.mjs");
+      const worker = await import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url");
       pdf.GlobalWorkerOptions.workerSrc = worker.default;
       if (!active) return;
-      task = pdf.getDocument({ data: new Uint8Array(await blob.arrayBuffer()), isEvalSupported: false });
+      task = pdf.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) });
       const doc = await task.promise;
-      if (!active) { await doc.destroy(); return; }
+      if (!active) { await task.destroy(); return; }
       document.current = doc; setPages(doc.numPages); setReady((value) => value + 1);
     })().catch(() => { if (active) { setError("Aperçu PDF indisponible. Le téléchargement reste possible."); setLoading(false); } });
     return () => { active = false; document.current = null; void task?.destroy(); };
@@ -39,7 +39,9 @@ export default function PrivatePdfPreview({ blob, name }: { blob: Blob; name: st
       if (!active) return;
       const view = pdfPage.getViewport({ scale: 1.5 });
       element.width = view.width; element.height = view.height;
-      render = pdfPage.render({ canvas: element, viewport: view });
+      const context = element.getContext("2d");
+      if (!context) throw new Error("Canvas indisponible");
+      render = pdfPage.render({ canvas: element, canvasContext: context, viewport: view });
       await render.promise;
       if (active) setLoading(false);
     })().catch(() => { if (active) { setError("Aperçu PDF indisponible. Téléchargez le document."); setLoading(false); } });
