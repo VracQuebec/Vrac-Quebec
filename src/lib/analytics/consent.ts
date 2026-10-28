@@ -36,8 +36,12 @@ export function saveConsent(analytics: boolean): ConsentChoice {
     v: 1, analytics, advertising: false,
     decidedAt: new Date().toISOString(), policy: CONSENT_POLICY_VERSION,
   };
+  const wasAllowed = analyticsAllowed();
   window.localStorage.setItem(CONSENT_KEY, JSON.stringify(choice));
   applyConsent();
+  // Retrait après accord : recharger pour décharger complètement la balise déjà active
+  // (sinon un événement déjà mis en file pourrait encore partir).
+  if (wasAllowed && !analytics) { window.setTimeout(() => window.location.reload(), 0); }
   window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: choice }));
   return choice;
 }

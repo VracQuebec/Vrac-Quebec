@@ -23311,6 +23311,69 @@ export type Database = {
           },
         ]
       }
+      platform_capacity_snapshots: {
+        Row: {
+          alerts: string[]
+          captured_at: string
+          captured_on: string
+          cron_log_bytes: number | null
+          db_size_bytes: number
+          disk_used_pct: number | null
+          id: number
+          ram_used_pct: number | null
+          storage_bytes: number | null
+          storage_objects: number | null
+          top_tables: Json
+          unmeasured: string[]
+        }
+        Insert: {
+          alerts?: string[]
+          captured_at?: string
+          captured_on?: string
+          cron_log_bytes?: number | null
+          db_size_bytes: number
+          disk_used_pct?: number | null
+          id?: never
+          ram_used_pct?: number | null
+          storage_bytes?: number | null
+          storage_objects?: number | null
+          top_tables: Json
+          unmeasured?: string[]
+        }
+        Update: {
+          alerts?: string[]
+          captured_at?: string
+          captured_on?: string
+          cron_log_bytes?: number | null
+          db_size_bytes?: number
+          disk_used_pct?: number | null
+          id?: never
+          ram_used_pct?: number | null
+          storage_bytes?: number | null
+          storage_objects?: number | null
+          top_tables?: Json
+          unmeasured?: string[]
+        }
+        Relationships: []
+      }
+      platform_capacity_thresholds: {
+        Row: {
+          bytes: number
+          key: string
+          label: string
+        }
+        Insert: {
+          bytes: number
+          key: string
+          label: string
+        }
+        Update: {
+          bytes?: number
+          key?: string
+          label?: string
+        }
+        Relationships: []
+      }
       platform_change_log: {
         Row: {
           action: string
@@ -35002,6 +35065,7 @@ export type Database = {
         Args: { _company: string; _year: number }
         Returns: Json
       }
+      platform_capacity_snapshot: { Args: never; Returns: string[] }
       platform_cleanup: { Args: never; Returns: Json }
       platform_has_capability: {
         Args: {

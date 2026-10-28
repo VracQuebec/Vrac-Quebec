@@ -1737,6 +1737,13 @@
       "when": 1793211563467,
       "tag": "0247_entcrm_file_thumbnails",
       "breakpoints": true
+    },
+    {
+      "idx": 248,
+      "version": "7",
+      "when": 1793213437985,
+      "tag": "0248_platform_capacity_monitoring",
+      "breakpoints": true
     }
   ]
 }

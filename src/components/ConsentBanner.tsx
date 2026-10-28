@@ -26,7 +26,7 @@ export default function ConsentBanner() {
 
   return (
     <div role="dialog" aria-modal="false" aria-labelledby="vq-consent-title"
-      className="fixed inset-x-0 bottom-0 z-[60] border-t border-border bg-card px-4 py-4 shadow-2xl sm:inset-x-auto sm:bottom-4 sm:right-4 sm:max-w-md sm:rounded-xl sm:border">
+      className="fixed inset-x-0 bottom-0 z-[70] border-t border-border bg-card px-4 py-4 shadow-2xl sm:inset-x-auto sm:bottom-4 sm:right-4 sm:max-w-md sm:rounded-xl sm:border">
       <h2 id="vq-consent-title" className="font-display text-base font-bold text-foreground">Témoins et mesure d'audience</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Les témoins essentiels gardent votre session et vos saisies. Avec votre accord, Google Analytics mesure

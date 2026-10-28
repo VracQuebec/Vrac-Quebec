@@ -16,6 +16,7 @@ const ParcoursForm = lazy(() => import("@/components/parcours/ParcoursForm"));
 const SiteAssistant = lazy(() => import("@/components/assistant/SiteAssistant"));
 import { ArrowDown, ClipboardList, HardHat, MapPin, MessageCircle, Mountain, MoreHorizontal, Phone, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
+import { openConsentSettings } from "@/lib/analytics/consent";
 import { PUBLIC_PHONE, PUBLIC_PHONE_E164 } from "@/lib/public-phone";
 import { DOMPE_PATH, REMBLAI_PATH } from "@/lib/navigation/priority-paths";
 
@@ -399,6 +400,12 @@ const Index = () => {
               <a href="/login" className="inline-flex min-h-11 items-center hover:text-foreground transition-colors text-xs">
                 Administration
               </a>
+              <a href="/confidentialite" className="inline-flex min-h-11 items-center hover:text-foreground transition-colors text-xs">
+                Confidentialité
+              </a>
+              <button type="button" onClick={openConsentSettings} className="inline-flex min-h-11 items-center hover:text-foreground transition-colors text-xs">
+                Témoins
+              </button>
             </div>
           </div>
         </div>
