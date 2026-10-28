@@ -61,7 +61,9 @@ export default function Confidentialite() {
         <p><Todo>durée de conservation des demandes, comptes, photos et conversations, et mode de destruction</Todo></p>
 
         <h2>Témoins et brouillons</h2>
-        <p>Le navigateur conserve votre session et les réponses en cours de saisie afin que vous ne les perdiez pas. <Todo>consentement aux témoins de mesure d'audience</Todo></p>
+        <p>Le navigateur conserve votre session, les réponses en cours de saisie et votre choix de témoins afin que vous ne les perdiez pas. Ces éléments essentiels restent sur votre appareil.</p>
+        <p>Mesure d'audience : seulement si vous l'acceptez, Google Analytics 4 (Google LLC, serveurs pouvant être situés hors du Québec, notamment aux États-Unis) reçoit les pages publiques consultées, sans paramètres d'adresse autres que ceux de campagne, ainsi que quelques actions anonymes (choix d'un parcours, bouton d'appel, envoi réussi d'un formulaire). L'adresse IP est tronquée et les signaux publicitaires Google sont désactivés. Aucune mesure n'a lieu dans les espaces connectés, le CRM ni les liens personnels de suivi; aucun nom, courriel, téléphone, adresse, code ou numéro de dossier n'est transmis. Nous n'utilisons aucun témoin publicitaire.</p>
+        <p>Vous pouvez accepter, refuser ou personnaliser, puis changer d'avis en tout temps avec le lien « Témoins » au bas des pages. Un refus efface les témoins de mesure déjà déposés. <Todo>durée de conservation configurée dans Google Analytics (2 ou 14 mois)</Todo></p>
 
         <h2>Vos droits</h2>
         <p>Vous pouvez demander l'accès à vos renseignements, leur rectification ou le retrait de votre consentement en communiquant avec nous. <Todo>délai de réponse et procédure de plainte</Todo></p>
