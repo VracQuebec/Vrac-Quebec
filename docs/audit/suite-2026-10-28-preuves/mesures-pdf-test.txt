@@ -1,0 +1,9 @@
+PDF 1 Mo: 1.00 Mo | envoi 200 1.79 s (0.6 Mo/s) | secure-file 200 4.64 s, 1.00 Mo, identique=True, cache=no-store, private, max-age=0
+gros document 15 Mo: 15.00 Mo | envoi 200 1.71 s (8.8 Mo/s) | secure-file 200 2.80 s, 15.00 Mo, identique=True, cache=no-store, private, max-age=0
+petit fichier 15 o (coût fixe des vérifications) : 200 0.48 s
+secure-file à chaud r4k-test.txt 200 [0.5, 0.51, 0.61]
+  lecture directe Storage (référence réseau) 200 0.23
+secure-file à chaud r4k-perf-1000000.pdf 200 [0.68, 0.46, 0.58]
+  lecture directe Storage (référence réseau) 200 0.71
+secure-file à chaud r4k-perf-15000000.pdf 200 [1.04, 1.01, 1.03]
+  lecture directe Storage (référence réseau) 200 0.49

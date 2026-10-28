@@ -32,7 +32,7 @@ Tests restants :
 | Mémoire | 65 % utilisée |
 | Connexions | 9/60 |
 | Disque | 43 % utilisé |
-| Base | 4,72 Go, dont environ 92 % de journaux de tâches planifiées |
+| Base | 4,72 Gio (≈ 5,07 Go décimaux), dont environ 92 % de journaux de tâches planifiées |
 | Journal d'écriture (WAL) | 128 Mo |
 | Fichiers | environ 443 Mo |
 | Transactions annulées depuis le démarrage | 134 963 (à suivre, pas d'alerte) |
