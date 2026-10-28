@@ -1,3 +1,9 @@
+## Fichiers partout — 28 octobre 2026
+- [ ] Recenser toutes les surfaces actives et leurs opérations dans un tableau dédié.
+- [ ] Corriger transferts répétés, chargements inutiles, progression et reprises sans altérer les originaux/droits.
+- [ ] Mesurer et vérifier les parcours TEST disponibles; distinguer ceux encore non vérifiés et les dépendances serveur.
+- [ ] Livrer tableau avant/après et état aperçu/serveur, sans publication ni suppression.
+
 ## R4K — SELECT ciblé (28 octobre 2026)
 - [x] Archive serveur, défaut reproduit, 12 contrôles RLS isolés, retour exact; seul SELECT installé par 0246 (préparation 0245), droits inchangés et HTTP anonyme vide.
 - [x] Preuves et écart de reprise consignés dans docs/audit/r4k-select-preuves/BILAN.md; DT-0056 conserve deux positions et six événements, chauffeur reste désactivé.
