@@ -108,7 +108,7 @@ export async function logEvent(
     action,
     group_id: groupId ?? null,
     publication_id: publicationId ?? null,
-    detail: detail ?? null,
+    detail: (detail ?? null) as never,
   });
 }
 
