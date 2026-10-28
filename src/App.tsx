@@ -91,6 +91,7 @@ const BlogCalculator = lazy(() => import("./pages/BlogCalculator"));
 const BlogGuides = lazy(() => import("./pages/BlogGuides"));
 const BlogFaq = lazy(() => import("./pages/BlogFaq"));
 const AdminBlacklist = lazy(() => import("./pages/AdminBlacklist"));
+const AdminFacebookGroups = lazy(() => import("./pages/AdminFacebookGroups"));
 const ZonesIndex = lazy(() => import("./pages/ZonesIndex"));
 const ZoneCityIndex = lazy(() => import("./pages/ZoneCityIndex"));
 const AdminSeoManager = lazy(() => import("./pages/AdminSeoManager"));
@@ -337,6 +338,7 @@ const App = () => {
             <Route path="/admin/blogue/maillage" element={<AdminBlogMesh />} />
             <Route path="/admin/blogue/editer/:id" element={<AdminBlogEditor />} />
             <Route path="/admin/liste-noire" element={<AdminBlacklist />} />
+            <Route path="/admin/groupes-facebook" element={<AdminFacebookGroups />} />
             <Route path="/admin/seo" element={<AdminSeoManager />} />
             <Route path="/demande-transport" element={<TransportRequest />} />
             <Route path="/acces-dompe" element={<TransportRequest />} />

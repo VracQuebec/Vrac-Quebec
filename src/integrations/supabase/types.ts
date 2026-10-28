@@ -5158,6 +5158,338 @@ export type Database = {
         }
         Relationships: []
       }
+      fb_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_to: string
+          campaign_id: string
+          cycle: number
+          group_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_to: string
+          campaign_id: string
+          cycle?: number
+          group_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_to?: string
+          campaign_id?: string
+          cycle?: number
+          group_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fb_assignments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "fb_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fb_assignments_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "fb_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fb_campaign_groups: {
+        Row: {
+          added_by: string | null
+          campaign_id: string
+          created_at: string
+          excluded: boolean
+          exclusion_reason: string | null
+          group_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          campaign_id: string
+          created_at?: string
+          excluded?: boolean
+          exclusion_reason?: string | null
+          group_id: string
+        }
+        Update: {
+          added_by?: string | null
+          campaign_id?: string
+          created_at?: string
+          excluded?: boolean
+          exclusion_reason?: string | null
+          group_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fb_campaign_groups_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "fb_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fb_campaign_groups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "fb_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fb_campaigns: {
+        Row: {
+          content_text: string | null
+          created_at: string
+          created_by: string | null
+          cycle: number
+          description: string | null
+          id: string
+          min_interval_days: number
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          content_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          cycle?: number
+          description?: string | null
+          id?: string
+          min_interval_days?: number
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          content_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          cycle?: number
+          description?: string | null
+          id?: string
+          min_interval_days?: number
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fb_group_events: {
+        Row: {
+          action: string
+          actor: string | null
+          created_at: string
+          detail: Json | null
+          group_id: string | null
+          id: string
+          publication_id: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          created_at?: string
+          detail?: Json | null
+          group_id?: string | null
+          id?: string
+          publication_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          created_at?: string
+          detail?: Json | null
+          group_id?: string | null
+          id?: string
+          publication_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fb_group_events_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "fb_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fb_group_events_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "fb_publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fb_groups: {
+        Row: {
+          ad_rules: string
+          allowed_days: string | null
+          archived_at: string | null
+          captures: string[]
+          category: string | null
+          cities: string | null
+          created_at: string
+          created_by: string | null
+          fb_identifier: string | null
+          fb_url: string | null
+          id: string
+          internal_notes: string | null
+          language: string | null
+          member_account: string | null
+          merged_into: string | null
+          min_interval_days: number | null
+          name: string
+          name_incomplete: boolean
+          region: string | null
+          source_id: string | null
+          status: string
+          transcription_note: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_rules?: string
+          allowed_days?: string | null
+          archived_at?: string | null
+          captures?: string[]
+          category?: string | null
+          cities?: string | null
+          created_at?: string
+          created_by?: string | null
+          fb_identifier?: string | null
+          fb_url?: string | null
+          id?: string
+          internal_notes?: string | null
+          language?: string | null
+          member_account?: string | null
+          merged_into?: string | null
+          min_interval_days?: number | null
+          name: string
+          name_incomplete?: boolean
+          region?: string | null
+          source_id?: string | null
+          status?: string
+          transcription_note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_rules?: string
+          allowed_days?: string | null
+          archived_at?: string | null
+          captures?: string[]
+          category?: string | null
+          cities?: string | null
+          created_at?: string
+          created_by?: string | null
+          fb_identifier?: string | null
+          fb_url?: string | null
+          id?: string
+          internal_notes?: string | null
+          language?: string | null
+          member_account?: string | null
+          merged_into?: string | null
+          min_interval_days?: number | null
+          name?: string
+          name_incomplete?: boolean
+          region?: string | null
+          source_id?: string | null
+          status?: string
+          transcription_note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fb_groups_merged_into_fkey"
+            columns: ["merged_into"]
+            isOneToOne: false
+            referencedRelation: "fb_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fb_publications: {
+        Row: {
+          account_used: string | null
+          campaign_id: string | null
+          content_text: string | null
+          created_at: string
+          created_by: string | null
+          cycle: number
+          group_id: string
+          id: string
+          notes: string | null
+          planned_date: string | null
+          post_url: string | null
+          published_at: string | null
+          published_real_date: string | null
+          responsible: string | null
+          status: string
+          submitted_at: string | null
+          submitted_real_date: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          account_used?: string | null
+          campaign_id?: string | null
+          content_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          cycle?: number
+          group_id: string
+          id?: string
+          notes?: string | null
+          planned_date?: string | null
+          post_url?: string | null
+          published_at?: string | null
+          published_real_date?: string | null
+          responsible?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_real_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          account_used?: string | null
+          campaign_id?: string | null
+          content_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          cycle?: number
+          group_id?: string
+          id?: string
+          notes?: string | null
+          planned_date?: string | null
+          post_url?: string | null
+          published_at?: string | null
+          published_real_date?: string | null
+          responsible?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_real_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fb_publications_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "fb_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fb_publications_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "fb_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_accounts: {
         Row: {
           archived_at: string | null

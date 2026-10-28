@@ -55,7 +55,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
-import { Activity, AlertTriangle as AlertTriangleCC, SlidersHorizontal, Wrench, Gauge, MoreHorizontal, RefreshCw } from "lucide-react";
+import { Activity, AlertTriangle as AlertTriangleCC, SlidersHorizontal, Wrench, Gauge, MoreHorizontal, RefreshCw, Facebook } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import DompesApprobationPanel from "@/components/admin/DompesApprobationPanel";
 import NewDumpRequestsPanel from "@/components/admin/NewDumpRequestsPanel";
@@ -761,6 +761,7 @@ const Admin = () => {
               <DropdownMenuItem asChild><Link to="/admin/finances"><Settings /> Finances</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/admin/crm"><Users /> CRM unifié</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/admin/operations"><Truck /> Opérations</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/admin/groupes-facebook"><Facebook /> Groupes Facebook</Link></DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setShowStatusManager(true)}><Settings /> Statuts</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -839,6 +840,7 @@ const Admin = () => {
                 <DropdownMenuItem asChild><Link to="/admin/finances"><Settings /> Finances</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/admin/crm"><Users /> CRM unifié</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/admin/operations"><Truck /> Opérations</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/groupes-facebook"><Facebook /> Groupes Facebook</Link></DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setShowStatusManager(true)}><Settings /> Statuts</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Pilotage</DropdownMenuLabel>
