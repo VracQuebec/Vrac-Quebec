@@ -55,7 +55,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
-import { Activity, AlertTriangle as AlertTriangleCC, SlidersHorizontal, Wrench, Gauge, MoreHorizontal, RefreshCw } from "lucide-react";
+import { Activity, AlertTriangle as AlertTriangleCC, SlidersHorizontal, Wrench, Gauge, MoreHorizontal, RefreshCw, Facebook } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import DompesApprobationPanel from "@/components/admin/DompesApprobationPanel";
 import NewDumpRequestsPanel from "@/components/admin/NewDumpRequestsPanel";
