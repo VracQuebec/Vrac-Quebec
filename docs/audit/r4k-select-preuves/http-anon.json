@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "empty": true,
+  "test": "HTTP anonymous, not real Auth session"
+}

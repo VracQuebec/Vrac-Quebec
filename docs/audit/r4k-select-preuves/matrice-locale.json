@@ -1,0 +1,53 @@
+{
+  "environment": "isolated 127.0.0.1:55459; synthetic fixtures; real server SELECT helpers; workbench membership seam; not hosted Auth",
+  "results": [
+    {
+      "test": "Defect reproduced: driver sees own ordinary row",
+      "passed": true
+    },
+    {
+      "test": "Driver only own requisition mission",
+      "passed": true
+    },
+    {
+      "test": "Other driver only own company requisition",
+      "passed": true
+    },
+    {
+      "test": "Manager own ordinary mission",
+      "passed": true
+    },
+    {
+      "test": "Other company cannot see A",
+      "passed": true
+    },
+    {
+      "test": "Admin intentional read preserved",
+      "passed": true
+    },
+    {
+      "test": "Revocation immediate without JWT change",
+      "passed": true
+    },
+    {
+      "test": "Revoked manager scoped company refused",
+      "passed": true
+    },
+    {
+      "test": "Ordinary start RPC preserved",
+      "passed": true
+    },
+    {
+      "test": "Ordinary point and end preserved",
+      "passed": true
+    },
+    {
+      "test": "History and two positions preserved",
+      "passed": true
+    },
+    {
+      "test": "Rollback exact predicate",
+      "passed": true
+    }
+  ]
+}

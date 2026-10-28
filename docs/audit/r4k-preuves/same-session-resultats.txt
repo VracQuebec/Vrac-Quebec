@@ -1,0 +1,25 @@
+Skipping host requirements validation logic because `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS` env variable is set.
+Retrait ciblé pendant session ouverte
+jsc_drivers désactivé 204
+jsc_company_members désactivé 204
+état Suivi arrêté · 0 position(s) enregistrée(s)
+
+Position partagée avec votre entrepreneur et l’équipe Vrac Québec, uniquement pendant cette mission et avec cette page visible. Aucun GPS continu en arrière-plan garanti.
+
+Position non enregistrée. Vérifiez votre connexion; aucune position n’est conservée hors connexion.
+
+Autoriser et reprendre le suivi
+Terminer la mission
+même jeton session True
+drv_mission_point {'data': None, 'error': 'Accès mission retiré'}
+drv_mission_end {'data': None, 'error': 'Accès mission retiré'}
+requisition_read {'data': [], 'error': None}
+missions refusées []
+portail Retour
+Accueil
+Portail chauffeur
+
+Votre compte n'est relié à aucun profil de chauffeur. Contactez votre répartiteur.
+
+Retour à l'accueil
+requisition_action {'data': {'id': 'c9d57ed8-9656-4c2c-ab33-f3a074f7c518', 'state': 'cancelled', 'version': 6}, 'error': None}
