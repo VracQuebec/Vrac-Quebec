@@ -8,6 +8,8 @@ import { toast } from "@/hooks/use-toast";
 import { exportCsv, fetchCampaigns, fetchPublications } from "@/lib/facebook-groups/api";
 import { PUBLICATION_STATUS_LABEL, type FbCampaign, type FbPublication, type FbPublicationStatus } from "@/lib/facebook-groups/types";
 import { supabase } from "@/integrations/supabase/client";
+import PublicationFiles from "./PublicationFiles";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function PublicationsTab() {
   const [pubs, setPubs] = useState<FbPublication[]>([]);
@@ -16,6 +18,7 @@ export default function PublicationsTab() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<"all" | FbPublicationStatus>("all");
   const [campaignId, setCampaignId] = useState("all");
+  const [selected, setSelected] = useState<FbPublication | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -107,6 +110,7 @@ export default function PublicationsTab() {
                   <TableHead>Date de l'action</TableHead>
                   <TableHead>Date réelle du post</TableHead>
                   <TableHead>Lien</TableHead>
+                  <TableHead>Pièces</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -124,11 +128,12 @@ export default function PublicationsTab() {
                         <a className="underline text-xs" href={p.post_url} target="_blank" rel="noreferrer">post</a>
                       ) : "—"}
                     </TableCell>
+                    <TableCell><Button size="sm" variant="outline" onClick={() => setSelected(p)}>Photos et documents</Button></TableCell>
                   </TableRow>
                 ))}
                 {pubs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
                       Aucune publication enregistrée pour ces filtres.
                     </TableCell>
                   </TableRow>
@@ -150,6 +155,7 @@ export default function PublicationsTab() {
           )}
         </>
       )}
+      {selected && <Dialog open onOpenChange={(open) => { if (!open) setSelected(null); }}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Photos et documents</DialogTitle></DialogHeader><PublicationFiles publicationId={selected.id} /></DialogContent></Dialog>}
     </div>
   );
 }
