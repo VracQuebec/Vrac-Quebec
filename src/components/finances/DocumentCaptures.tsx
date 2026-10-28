@@ -163,7 +163,7 @@ function CaptureReview({ companyId, id, sups, canWrite, onBack, onSwitch, onOpen
     {c.results.length > 0 && <div role="status" className="rounded border border-primary/40 bg-primary/5 p-2 text-sm">{c.results.map((r) => <p key={r.key}>{r.kind === "bill" ? "Brouillon de facture créé" : r.kind === "credit" ? "Brouillon de note de crédit créé" : "Document lié à une facture"} · {P.fmtStamp(r.at)}
       <Button size="sm" variant="link" onClick={() => (r.kind === "credit" ? onOpenCredit(r.id) : onOpenBill(r.id))}>Ouvrir</Button></p>)}</div>}
     <div className="grid gap-3 lg:grid-cols-2">
-      <div className="hidden lg:block"><Source /></div>
+      <div className="hidden lg:block"><Button size="sm" variant="outline" onClick={() => setShowSrc(v => !v)}>{showSrc ? "Masquer la pièce" : "Voir la pièce"}</Button>{showSrc && <Source />}</div>
       <div className="space-y-3">
         <Button size="sm" variant="outline" className="w-full lg:hidden" onClick={() => setShowSrc((v) => !v)}>{showSrc ? "Masquer la pièce" : "Voir la pièce"}</Button>
         {showSrc && <div className="lg:hidden"><Source /></div>}
