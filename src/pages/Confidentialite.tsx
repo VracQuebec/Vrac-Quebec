@@ -19,9 +19,19 @@ export default function Confidentialite() {
       </Helmet>
       <TransportBanner />
       <main className="container mx-auto max-w-3xl px-4 py-12 font-body text-foreground [&_h2]:mt-8 [&_h2]:mb-2 [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-bold [&_li]:ml-5 [&_li]:list-disc [&_p]:mt-2">
-        <p role="note" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
-          Brouillon en attente d'approbation — non publié. Les passages marqués [À VALIDER] restent à confirmer.
-        </p>
+        <div role="note" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
+          <p className="!mt-0 font-semibold">Brouillon incomplet — cette politique n'est pas finale et ne doit pas être publiée.</p>
+          <p>Informations à fournir par Vrac Québec avant publication :</p>
+          <ol className="ml-5 list-decimal">
+            <li>Nom et titre du responsable de la protection des renseignements personnels, courriel et adresse postale de contact.</li>
+            <li>Raison sociale exacte de l'entreprise exploitante et date d'entrée en vigueur.</li>
+            <li>Durée de conservation configurée dans Google Analytics (2 ou 14 mois).</li>
+            <li>Durées de conservation des demandes, comptes, photos, conversations et mode de destruction.</li>
+            <li>Nom du service d'envoi de courriels et du service d'intelligence artificielle retenus, avec leur pays d'hébergement.</li>
+            <li>Confirmation de l'évaluation des facteurs relatifs à la vie privée pour les transferts hors Québec.</li>
+            <li>Délai de réponse aux demandes d'accès et procédure de plainte.</li>
+          </ol>
+        </div>
         <h1 className="mt-6 font-display text-3xl font-extrabold">Politique de confidentialité</h1>
         <p>Dernière mise à jour : <Todo>date d'entrée en vigueur</Todo></p>
 
@@ -50,7 +60,7 @@ export default function Confidentialite() {
         <p>Certains renseignements sont traités par des fournisseurs, possiblement à l'extérieur du Québec :</p>
         <ul>
           <li>Hébergement, base de données, authentification et stockage des fichiers (Lovable Cloud).</li>
-          <li>Google Maps Platform : validation d'adresses et calcul des distances.</li>
+          <li>Google Maps Platform (Google LLC, serveurs pouvant être situés hors du Québec, notamment aux États-Unis) : service nécessaire au fonctionnement, non soumis au choix des témoins. Lorsque vous utilisez un champ d'adresse ou une carte, votre navigateur charge le service de Google, qui reçoit alors votre adresse IP, les caractères saisis pour proposer des adresses et les informations techniques du navigateur. Après l'envoi d'une demande, nos serveurs transmettent à Google l'adresse du chantier ou du site pour obtenir ses coordonnées et calculer distances et durées de trajet. Votre nom, courriel et téléphone ne sont pas transmis à Google Maps. La carte n'est pas affichée sur le site public.</li>
           <li>Google Analytics : mesure d'audience.</li>
           <li>Service d'envoi de courriels transactionnels.</li>
           <li>Service d'intelligence artificielle pour l'assistant du site.</li>
