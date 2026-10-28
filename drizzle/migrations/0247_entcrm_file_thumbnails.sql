@@ -1,0 +1,3 @@
+ALTER TABLE public.ent_crm_files ADD COLUMN IF NOT EXISTS thumb_path text;
+COMMENT ON COLUMN public.ent_crm_files.thumb_path IS 'Miniature privée JPEG (même entreprise, mêmes droits que l''original). Original jamais modifié.';
+ALTER POLICY "entcrm files read" ON storage.objects USING ((bucket_id = 'entcrm-files'::text) AND entcrm_can_read(entcrm_path_company(name)) AND (EXISTS (SELECT 1 FROM public.ent_crm_files f WHERE f.storage_path = objects.name OR f.thumb_path = objects.name)));

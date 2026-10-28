@@ -72,3 +72,15 @@ export async function uploadLeadPhotos(bucket: Bucket, files: File[], onProgress
   const urls = results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
   return { urls, failed: results.length - urls.length };
 }
+
+/** Miniature JPEG (côté max 320 px) pour les listes; l'original reste intact. */
+export async function makeThumb(file: File, edge = 320): Promise<Blob | null> {
+  if (!file.type.startsWith("image/") || typeof createImageBitmap !== "function") return null;
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: "from-image" } as ImageBitmapOptions);
+    const { w, h } = targetSize(bmp.width, bmp.height, edge);
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    c.getContext("2d")!.drawImage(bmp, 0, 0, w, h); bmp.close?.();
+    return await new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", 0.75));
+  } catch { return null; }
+}
