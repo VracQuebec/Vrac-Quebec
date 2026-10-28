@@ -399,6 +399,12 @@ const Index = () => {
               <a href="/login" className="inline-flex min-h-11 items-center hover:text-foreground transition-colors text-xs">
                 Administration
               </a>
+              <a href="/confidentialite" className="inline-flex min-h-11 items-center hover:text-foreground transition-colors text-xs">
+                Confidentialité
+              </a>
+              <button type="button" onClick={openConsentSettings} className="inline-flex min-h-11 items-center hover:text-foreground transition-colors text-xs">
+                Témoins
+              </button>
             </div>
           </div>
         </div>

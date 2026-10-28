@@ -195,6 +195,10 @@ export default function Blog() {
           <Link to="/" className="hover:text-foreground">Accueil</Link>
           {" · "}
           <Link to="/blog" className="hover:text-foreground">Blogue</Link>
+          {" · "}
+          <Link to="/confidentialite" className="hover:text-foreground">Confidentialité</Link>
+          {" · "}
+          <button type="button" onClick={openConsentSettings} className="hover:text-foreground">Témoins</button>
         </div>
       </footer>
     </div>
