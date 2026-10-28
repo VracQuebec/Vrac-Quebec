@@ -1,3 +1,8 @@
+## Groupes Facebook — finalisation (28 octobre 2026)
+- [ ] Pièces jointes privées par publication, aperçus/téléchargements et reprises sans doublons.
+- [ ] Attribution atomique et test simultané avec deux identités admin; refus serveur entrepreneur/administrateur entreprise.
+- [ ] Vérifier téléphone/iPad; bilan installations, preuves et limites sans publication ni suppression.
+
 ## Fichiers partout — 28 octobre 2026
 - [x] Recensement transversal des pipelines et 57 sources; tableau docs/audit/fichiers-plateforme-2026-10-28.md, couverture non certifiée exhaustive.
 - [x] Corriger reprises CRM, liste/originals flotte, URL locales, progression Documents/Assurances, hash/uploads financiers, aperçu reçus à la demande; tests ciblés et TEST UI réussis.
