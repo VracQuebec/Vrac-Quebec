@@ -35,7 +35,7 @@ export const LeadPhotos = ({ photos }: { photos: string[] }) => {
     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
       {urls.map((url) => (
         <a key={url} href={url} target="_blank" rel="noreferrer">
-          <img src={url} alt="Photo de la demande" className="w-full h-24 object-cover rounded" />
+          <img src={url} alt="Photo de la demande" loading="lazy" decoding="async" className="w-full h-24 object-cover rounded" />
         </a>
       ))}
     </div>
