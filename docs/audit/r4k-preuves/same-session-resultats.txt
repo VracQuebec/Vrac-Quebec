@@ -1,0 +1,19 @@
+Skipping host requirements validation logic because `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS` env variable is set.
+driver_invite_capture {'data': None, 'error': 'Profil chauffeur indisponible'}
+Traceback (most recent call last):
+  File "/tmp/browser/r4k-driver/same_session.py", line 16, in <module>
+    asyncio.run(main())
+    ~~~~~~~~~~~^^^^^^^^
+  File "/nix/store/44rn0p64x92bnnh7cwn6x6ybvflybmvz-python3-3.13.12/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/nix/store/44rn0p64x92bnnh7cwn6x6ybvflybmvz-python3-3.13.12/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/44rn0p64x92bnnh7cwn6x6ybvflybmvz-python3-3.13.12/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/browser/r4k-driver/same_session.py", line 13, in main
+    b=await p.chromium.launch(headless=True);oc=await b.new_context(viewport={'width':1280,'height':1800});op=await oc.new_page();await login(op,'/root/.cache/lovable-auth/r4k-owner.json');token=secrets.token_hex(32);inv=await rpc(op,'driver_invite_capture',{'_company':A,'_driver':'9d1b59b7-b36f-44c8-a7f5-1b5669ac2407','_email':'r4k-chauffeur@test.invalid','_key':str(uuid.uuid4()),'_token':token,'_origin':'http://localhost:8080'});assert not inv['error']
+                                                                                                                                                                                                                                                                                                                                                                                                                                                          ^^^^^^^^^^^^^^^^
+AssertionError
