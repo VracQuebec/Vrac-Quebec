@@ -20,9 +20,9 @@ export default function PrivatePdfPreview({ blob, name }: { blob: Blob; name: st
       const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
       pdf.GlobalWorkerOptions.workerSrc = worker.default;
       if (!active) return;
-      task = pdf.getDocument({ data: new Uint8Array(await blob.arrayBuffer()), isEvalSupported: false });
+      task = pdf.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) });
       const doc = await task.promise;
-      if (!active) { await doc.destroy(); return; }
+      if (!active) { await task.destroy(); return; }
       document.current = doc; setPages(doc.numPages); setReady((value) => value + 1);
     })().catch(() => { if (active) { setError("Aperçu PDF indisponible. Le téléchargement reste possible."); setLoading(false); } });
     return () => { active = false; document.current = null; void task?.destroy(); };
