@@ -16,8 +16,8 @@ export default function PrivatePdfPreview({ blob, name }: { blob: Blob; name: st
     let task: import("pdfjs-dist").PDFDocumentLoadingTask | undefined;
     setLoading(true); setError(""); setPage(1);
     (async () => {
-      const pdf = await import("pdfjs-dist");
-      const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+      const pdf = await import("pdfjs-dist/legacy/build/pdf.mjs");
+      const worker = await import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url");
       pdf.GlobalWorkerOptions.workerSrc = worker.default;
       if (!active) return;
       task = pdf.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) });
