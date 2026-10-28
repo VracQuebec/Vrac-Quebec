@@ -12,6 +12,8 @@ import AppErrorBoundary from "./components/AppErrorBoundary";
 import UniversalNav from "./components/UniversalNav";
 import PublicContactFooter from "./components/PublicContactFooter";
 import { trackPageView } from "./lib/analytics/ga4";
+import { applyConsent, CONSENT_EVENT } from "./lib/analytics/consent";
+import ConsentBanner from "./components/ConsentBanner";
 import { privateTelemetryBlocked } from './lib/analytics/privacy';
 import { useAdminNotifications } from "./hooks/useAdminNotifications";
 import { isolatedSearch } from "@/lib/entrepreneur/search-runtime";
@@ -197,13 +199,15 @@ const Ga4RouteTracker = () => {
     // CRM privé des entreprises : aucune mesure d'audience (consultations confidentielles).
     // Désactivation officielle GA4 : bloque tous les envois tant qu'on est dans le CRM.
     const inCrm = privateTelemetryBlocked() || location.pathname.startsWith("/entrepreneur/crm");
-    (window as unknown as Record<string, boolean>)["ga-disable-G-T6HYZVY8E0"] = inCrm;
-    if (inCrm) return;
+    if (inCrm) { (window as unknown as Record<string, boolean>)["ga-disable-G-T6HYZVY8E0"] = true; return; }
+    applyConsent();
     // Laisse le temps au titre de se mettre à jour (Helmet) avant d'envoyer le page_view.
     const t = window.setTimeout(() => {
       trackPageView(location.pathname + location.search, document.title);
     }, 50);
-    return () => window.clearTimeout(t);
+    const onConsent = () => trackPageView(location.pathname + location.search, document.title);
+    window.addEventListener(CONSENT_EVENT, onConsent);
+    return () => { window.clearTimeout(t); window.removeEventListener(CONSENT_EVENT, onConsent); };
   }, [location.pathname, location.search]);
   return null;
 };
@@ -256,6 +260,7 @@ const App = () => {
           <ScrollToTop />
           <PrivateNoIndex />
           <Ga4RouteTracker />
+          <ConsentBanner />
           <SessionKeeper />
           <ReturnToTracker />
           <AdminNotificationsMount />
