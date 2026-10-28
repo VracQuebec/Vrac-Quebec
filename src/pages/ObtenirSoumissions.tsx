@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CATEGORY_FORMS, UNKNOWN, findForm, type DynamicField } from "@/lib/marketplace/forms";
 import { CLIENT_TYPES } from "@/lib/marketplace/types";
+import { runLimited } from "@/lib/uploads/fastUpload";
 
 const STEPS = [
   "Service recherché", "Localisation", "Description", "Détails du projet",
@@ -67,6 +68,8 @@ export default function ObtenirSoumissions() {
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const startedAt = useRef(Date.now());
   const fileInput = useRef<HTMLInputElement>(null);
+  const uploadedFiles = useRef(new WeakMap<File, { path: string; done: boolean }>());
+  const [fileProgress, setFileProgress] = useState("");
 
   // NAV-01 : brouillon local des champs texte (les fichiers ne peuvent pas être conservés).
   const draft = useDraft({
@@ -137,16 +140,20 @@ export default function ObtenirSoumissions() {
   /** Photos : téléversées dans l'espace public déjà utilisé par les demandes. */
   const uploadFiles = async (): Promise<string[]> => {
     if (!files.length) return [];
-    const folder = crypto.randomUUID();
-    const paths: string[] = [];
-    for (const file of files.slice(0, 8)) {
+    const results = await runLimited(files.slice(0, 8), 3, async (file) => {
       const safe = file.name.toLowerCase().replace(/[^a-z0-9._-]/g, "-").slice(-60);
-      const path = `submissions/${folder}/${Date.now()}-${safe}`;
-      const { error } = await supabase.storage.from("lead-photos").upload(path, file);
-      if (error) throw new Error("Une photo n’a pas pu être enregistrée. Vos fichiers sont conservés; réessayez avant d’envoyer la demande.");
-      paths.push(path);
-    }
-    return paths;
+      let entry = uploadedFiles.current.get(file);
+      if (!entry) { entry = { path: `submissions/${crypto.randomUUID()}/${safe}`, done: false }; uploadedFiles.current.set(file, entry); }
+      if (!entry.done) {
+        const { error } = await supabase.storage.from("lead-photos").upload(entry.path, file, { upsert: false });
+        if (error && !/exists|duplicate/i.test(error.message)) throw new Error("Une photo n’a pas pu être enregistrée. Vos fichiers sont conservés; réessayez avant d’envoyer la demande.");
+        entry.done = true;
+      }
+      return entry.path;
+    }, (done, total) => setFileProgress(`${done}/${total} photo(s) traitée(s)`));
+    const failed = results.find(r => r.status === "rejected");
+    if (failed?.status === "rejected") throw failed.reason;
+    return results.flatMap(r => r.status === "fulfilled" ? [r.value] : []);
   };
 
   const submit = async () => {
@@ -395,6 +402,7 @@ export default function ObtenirSoumissions() {
           </Button>
         )}
       </div>
+      {sending && fileProgress && <p role="status" className="text-sm text-muted-foreground">{fileProgress}</p>}
     </main>
   );
 }

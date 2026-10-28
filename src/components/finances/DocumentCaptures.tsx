@@ -82,8 +82,15 @@ function CaptureReview({ companyId, id, sups, canWrite, onBack, onSwitch, onOpen
         const d = x.extraction?.documents?.[0] ?? null; return C.editsFrom(d, 0, C.matchSupplier(d?.supplier_name ?? null, sups).exact ?? ""); });
     } catch (er: any) { if (alive.current) setLoadErr(er.message); }
   }, [id, lk, sups]);
-  useEffect(() => { void load(); C.detail(id).then((x) => P.openFile(x.file_id)).then((u) => { if (alive.current) setUrl(u); }).catch(() => {}); }, [load, id]);
-  useEffect(() => { const v = c?.converted_file_id; if (!v) { setConvUrl(null); return; } P.openFile(v).then((u) => { if (alive.current) setConvUrl(u); }).catch(() => setConvUrl(null)); }, [c?.converted_file_id]);
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const fid = c?.file_id;
+    if (!showSrc || !fid) return;
+    let active = true;
+    P.openFile(fid).then(u => { if (active && alive.current) setUrl(u); }).catch(() => {});
+    return () => { active = false; };
+  }, [showSrc, c?.file_id]);
+  useEffect(() => { const v = c?.converted_file_id; if (!showSrc || !v) { setConvUrl(null); return; } let active = true; P.openFile(v).then((u) => { if (active && alive.current) setConvUrl(u); }).catch(() => { if (active) setConvUrl(null); }); return () => { active = false; }; }, [showSrc, c?.converted_file_id]);
   useEffect(() => { if (!dirty || !e) return; try { localStorage.setItem(lk, JSON.stringify(e)); } catch { /* indisponible */ } }, [e, dirty, lk]);
   useEffect(() => { if (!e?.supplier_id) { setBills([]); return; } P.overview(companyId, { supplier_id: e.supplier_id, status: "active" }, 100, 0).then((d) => { if (alive.current) setBills(d.rows); }).catch(() => setBills([])); }, [companyId, e?.supplier_id]);
   useEffect(() => { if (!e || e.kind !== "bill" || !e.supplier_id) { setDups(null); return; }
@@ -156,7 +163,7 @@ function CaptureReview({ companyId, id, sups, canWrite, onBack, onSwitch, onOpen
     {c.results.length > 0 && <div role="status" className="rounded border border-primary/40 bg-primary/5 p-2 text-sm">{c.results.map((r) => <p key={r.key}>{r.kind === "bill" ? "Brouillon de facture créé" : r.kind === "credit" ? "Brouillon de note de crédit créé" : "Document lié à une facture"} · {P.fmtStamp(r.at)}
       <Button size="sm" variant="link" onClick={() => (r.kind === "credit" ? onOpenCredit(r.id) : onOpenBill(r.id))}>Ouvrir</Button></p>)}</div>}
     <div className="grid gap-3 lg:grid-cols-2">
-      <div className="hidden lg:block"><Source /></div>
+      <div className="hidden lg:block"><Button size="sm" variant="outline" onClick={() => setShowSrc(v => !v)}>{showSrc ? "Masquer la pièce" : "Voir la pièce"}</Button>{showSrc && <Source />}</div>
       <div className="space-y-3">
         <Button size="sm" variant="outline" className="w-full lg:hidden" onClick={() => setShowSrc((v) => !v)}>{showSrc ? "Masquer la pièce" : "Voir la pièce"}</Button>
         {showSrc && <div className="lg:hidden"><Source /></div>}

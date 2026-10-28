@@ -12,6 +12,7 @@ import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { finAccounts } from "@/lib/finances/purchases";
 import * as st from "@/lib/finances/settlement";
 import { addDays, fmtDate, fmtMoney, todayIn } from "@/lib/finances/period";
+import { runLimited } from "@/lib/uploads/fastUpload";
 
 const TZ = "America/Toronto";
 const sel = "h-10 rounded-md border border-input bg-background px-2 text-sm";
@@ -81,7 +82,9 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
     try {
       const r = await st.savePayment(companyId, body, false);
       let missing = 0;
-      for (const f of files) { try { await st.attachFile(companyId, r.payment_id!, f); } catch (e: any) { missing++; toast({ title: `Pièce « ${f.name} » non jointe`, description: e.message, variant: "destructive" }); } }
+      const paymentId = r.payment_id;
+      if (files.length && !paymentId) throw new Error("Règlement sans référence : pièces non jointes.");
+      if (paymentId) await runLimited(files, 3, async (f) => { try { await st.attachFile(companyId, paymentId, f); } catch (e: any) { missing++; toast({ title: `Pièce « ${f.name} » non jointe`, description: e.message, variant: "destructive" }); } });
       toast({ title: future ? "Brouillon enregistré (sans effet sur les soldes)" : r.replayed ? "Règlement déjà enregistré (aucun doublon créé)" : "Règlement déclaré — non rapproché", description: !files.length || missing ? "Aucune pièce justificative jointe pour l'instant." : undefined });
       store.finalize();
       onDone();
