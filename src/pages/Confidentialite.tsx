@@ -59,15 +59,16 @@ export default function Confidentialite() {
         <h2>Fournisseurs de services</h2>
         <p>Certains renseignements sont traités par des fournisseurs, possiblement à l'extérieur du Québec :</p>
         <ul>
-          <li>Hébergement, base de données, authentification et stockage des fichiers (Lovable Cloud).</li>
+          <li>Hébergement, base de données, authentification et stockage des fichiers (Lovable Cloud, infrastructure Supabase). Les indices techniques désignent une région située aux États-Unis. <Todo>région d'hébergement à confirmer auprès du fournisseur</Todo></li>
           <li>Google Maps Platform (Google LLC, serveurs pouvant être situés hors du Québec, notamment aux États-Unis) : service nécessaire au fonctionnement, non soumis au choix des témoins. Lorsque vous utilisez un champ d'adresse ou une carte, votre navigateur charge le service de Google, qui reçoit alors votre adresse IP, les caractères saisis pour proposer des adresses et les informations techniques du navigateur. Après l'envoi d'une demande, nos serveurs transmettent à Google l'adresse du chantier ou du site pour obtenir ses coordonnées et calculer distances et durées de trajet. Votre nom, courriel et téléphone ne sont pas transmis à Google Maps. La carte n'est pas affichée sur le site public.</li>
-          <li>Google Analytics : mesure d'audience.</li>
-          <li>Service d'envoi de courriels transactionnels.</li>
-          <li>Service d'intelligence artificielle pour l'assistant du site.</li>
+          <li>Google Analytics : mesure d'audience, seulement avec votre accord (voir « Témoins »).</li>
+          <li>Courriels transactionnels (confirmation de compte, accusé de réception d'une demande, lien de suivi) : service d'envoi de courriels de Lovable. Il reçoit votre adresse courriel, votre nom s'il figure dans le message et le contenu du message. Aucun courriel de prospection n'est envoyé sans consentement.</li>
+          <li>Intelligence artificielle : la passerelle IA de Lovable transmet les messages que vous écrivez à l'assistant du site, ainsi que certains textes saisis dans l'assistant de soumission, à des modèles de Google (Gemini) ou d'OpenAI, pour produire une réponse. Ne saisissez pas de renseignements sensibles dans l'assistant.</li>
         </ul>
-        <p><Todo>liste complète des fournisseurs et pays d'hébergement; évaluation des facteurs relatifs à la vie privée pour les transferts hors Québec</Todo></p>
+        <p><Todo>pays de traitement de la passerelle IA et du service de courriels; évaluation des facteurs relatifs à la vie privée pour les transferts hors Québec</Todo></p>
 
         <h2>Conservation</h2>
+        <p>Réglages techniques déjà en place : journaux techniques de la plateforme et alertes traitées supprimés après 90 jours; résultats de calcul d'itinéraires en cache supprimés après 60 jours s'ils ne servent plus; sauvegardes de la base conservées environ 14 jours selon la documentation du fournisseur. Les demandes, comptes, photos, historiques de dossier et conversations n'ont aucune suppression automatique pour le moment.</p>
         <p><Todo>durée de conservation des demandes, comptes, photos et conversations, et mode de destruction</Todo></p>
 
         <h2>Témoins et brouillons</h2>
