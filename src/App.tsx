@@ -155,6 +155,7 @@ const AdminPlatformSettings = lazy(() => import("./pages/AdminPlatformSettings")
 const MonAbonnement = lazy(() => import("./pages/MonAbonnement"));
 const OpsCenter = lazy(() => import("./pages/OpsCenter"));
 const AdminControlCenter = lazy(() => import("./pages/AdminControlCenter"));
+const AdminTestPhone = lazy(() => import("./pages/AdminTestPhone"));
 const AdminCoupons = lazy(() => import("./pages/AdminCoupons"));
 const AdminCouponPrint = lazy(() => import("./pages/AdminCouponPrint"));
 const TripCounter = lazy(() => import("./pages/TripCounter"));
@@ -392,6 +393,7 @@ const App = () => {
             <Route path="/admin/supervision" element={<AdminMonitoring />} />
             <Route path="/admin/centre-operations" element={<OpsCenter />} />
             <Route path="/admin/centre-controle" element={<AdminControlCenter />} />
+            {import.meta.env.DEV && <Route path="/admin/essai-telephone" element={<AdminTestPhone />} />}
             <Route path="/admin/coupons" element={<AdminCoupons />} />
             <Route path="/admin/volets" element={<AdminVolets />} />
             <Route path="/admin/logbook" element={<AdminLogbook />} />

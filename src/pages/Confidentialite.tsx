@@ -68,7 +68,7 @@ export default function Confidentialite() {
         <p><Todo>pays de traitement de la passerelle IA et du service de courriels; évaluation des facteurs relatifs à la vie privée pour les transferts hors Québec</Todo></p>
 
         <h2>Conservation</h2>
-        <p>Réglages techniques déjà en place : journaux techniques de la plateforme et alertes traitées supprimés après 90 jours; résultats de calcul d'itinéraires en cache supprimés après 60 jours s'ils ne servent plus; sauvegardes de la base conservées environ 14 jours selon la documentation du fournisseur. Les demandes, comptes, photos, historiques de dossier et conversations n'ont aucune suppression automatique pour le moment.</p>
+        <p>Règle technique prévue : un nettoyage nocturne supprime les journaux techniques de la plateforme de plus de 90 jours, les alertes traitées depuis plus de 90 jours et les calculs d'itinéraires inutilisés depuis 60 jours. <Todo>effet réel de ce nettoyage à confirmer après le 3 novembre 2026</Todo> Les sauvegardes de la base sont conservées environ 14 jours selon la documentation du fournisseur. Les demandes, comptes, photos, historiques de dossier et conversations n'ont aucune suppression automatique pour le moment.</p>
         <p><Todo>durée de conservation des demandes, comptes, photos et conversations, et mode de destruction</Todo></p>
 
         <h2>Témoins et brouillons</h2>
