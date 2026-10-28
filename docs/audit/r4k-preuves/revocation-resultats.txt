@@ -1,5 +1,4 @@
 Skipping host requirements validation logic because `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS` env variable is set.
-mission révocation 125b2ef9-d3f9-47a7-bbd0-e98ce5129d00
 Traceback (most recent call last):
   File "/tmp/browser/r4k-driver/revoke.py", line 19, in <module>
     asyncio.run(main())
@@ -13,19 +12,18 @@ Traceback (most recent call last):
   File "/nix/store/44rn0p64x92bnnh7cwn6x6ybvflybmvz-python3-3.13.12/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
     return future.result()
            ~~~~~~~~~~~~~^^
-  File "/tmp/browser/r4k-driver/revoke.py", line 15, in main
-    oc=await b.new_context(viewport={'width':1280,'height':1800});op=await oc.new_page();await login(op,'/root/.cache/lovable-auth/r4k-owner.json');await op.goto('http://localhost:8080/entrepreneur/punch');await op.get_by_role('button',name='Retirer l’accès',exact=True).wait_for();op.on('dialog',lambda d:d.accept());await op.get_by_role('button',name='Retirer l’accès',exact=True).click();await op.get_by_text('Accès retiré',exact=False).wait_for();await shot(op,'revocation-owner.png');print('révocation depuis écran propriétaire confirmée')
-                                                                                                                                                                                                                                                                                                                                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/nix/store/a3czxrfpqrw5zrcbl7lw573qyaygxv0s-sandbox-python-env/lib/python3.13/site-packages/playwright/async_api/_generated.py", line 17906, in wait_for
-    await self._impl_obj.wait_for(timeout=timeout, state=state)
-  File "/nix/store/a3czxrfpqrw5zrcbl7lw573qyaygxv0s-sandbox-python-env/lib/python3.13/site-packages/playwright/_impl/_locator.py", line 692, in wait_for
-    await self._frame.wait_for_selector(
-        self._selector, strict=True, timeout=timeout, state=state
+  File "/tmp/browser/r4k-driver/revoke.py", line 13, in main
+    b=await p.chromium.launch(headless=True);c=await b.new_context(viewport={'width':1280,'height':1800},permissions=['geolocation'],geolocation={'latitude':0,'longitude':0,'accuracy':10});page=await c.new_page();m=await login(page,'/root/.cache/lovable-auth/session.json');await page.goto('http://localhost:8080/portail/chauffeur');await page.wait_for_timeout(1500);page.on('dialog',lambda d:d.accept());row=page.locator('article').filter(has=page.get_by_text('DT-0057',exact=True));await row.get_by_role('link',name='Suivi de cette mission').click();await page.get_by_role('button',name='Autoriser et reprendre le suivi',exact=True).click();await page.get_by_text('1 position(s) enregistrée(s)',exact=False).wait_for(timeout=15000);await shot(page,'revocation-before.png')
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/a3czxrfpqrw5zrcbl7lw573qyaygxv0s-sandbox-python-env/lib/python3.13/site-packages/playwright/async_api/_generated.py", line 15527, in click
+    await self._impl_obj.click(
+    ...<9 lines>...
     )
-  File "/nix/store/a3czxrfpqrw5zrcbl7lw573qyaygxv0s-sandbox-python-env/lib/python3.13/site-packages/playwright/_impl/_frame.py", line 369, in wait_for_selector
-    await self._channel.send(
-        "waitForSelector", self._timeout, locals_to_params(locals())
-    )
+  File "/nix/store/a3czxrfpqrw5zrcbl7lw573qyaygxv0s-sandbox-python-env/lib/python3.13/site-packages/playwright/_impl/_locator.py", line 160, in click
+    return await self._frame.click(self._selector, strict=True, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/a3czxrfpqrw5zrcbl7lw573qyaygxv0s-sandbox-python-env/lib/python3.13/site-packages/playwright/_impl/_frame.py", line 549, in click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
   File "/nix/store/a3czxrfpqrw5zrcbl7lw573qyaygxv0s-sandbox-python-env/lib/python3.13/site-packages/playwright/_impl/_connection.py", line 69, in send
     return await self._connection.wrap_api_call(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -34,7 +32,7 @@ Traceback (most recent call last):
     ^
   File "/nix/store/a3czxrfpqrw5zrcbl7lw573qyaygxv0s-sandbox-python-env/lib/python3.13/site-packages/playwright/_impl/_connection.py", line 559, in wrap_api_call
     raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
-playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 30000ms exceeded.
+playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.
 Call log:
-  - waiting for get_by_text("Accès retiré") to be visible
+  - waiting for locator("article").filter(has=get_by_text("DT-0057", exact=True)).get_by_role("link", name="Suivi de cette mission")
 
