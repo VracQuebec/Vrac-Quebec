@@ -177,16 +177,10 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
         }
         set({photos:[...data.photos,...added]}); return;
       }
-      for (const file of Array.from(files).slice(0, 6)) {
-        const ext = file.name.split(".").pop();
-        const safeExt = (ext || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg";
-        const path = `submissions/${crypto.randomUUID()}/${Date.now()}.${safeExt}`;
-        const { error: upErr } = await supabase.storage.from("lead-photos").upload(path, file);
-        if (!upErr) {
-          const { data: pub } = supabase.storage.from("lead-photos").getPublicUrl(path);
-          added.push({ url: pub.publicUrl, category: photoCategory });
-        }
-      }
+      const { uploadLeadPhotos } = await import("@/lib/uploads/fastUpload");
+      const { urls, failed } = await uploadLeadPhotos(supabase.storage.from("lead-photos") as never, Array.from(files).slice(0, 6));
+      urls.forEach((url) => added.push({ url, category: photoCategory }));
+      if (failed) setError(`${failed} photo(s) non envoyée(s) après 3 essais. Réessayez.`);
       if (added.length) set({ photos: [...data.photos, ...added] });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Photo non ajoutée.");

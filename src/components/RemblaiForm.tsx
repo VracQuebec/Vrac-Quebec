@@ -89,17 +89,8 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading, variant = "recherche" 
     if (!files || files.length === 0) return;
     setUploading(true);
     try {
-      const urls: string[] = [];
-      for (const file of Array.from(files)) {
-        const ext = file.name.split(".").pop();
-        const safeExt = (ext || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg";
-        const path = `submissions/${crypto.randomUUID()}/${Date.now()}.${safeExt}`;
-        const { error } = await supabase.storage.from("lead-photos").upload(path, file);
-        if (!error) {
-          const { data: pub } = supabase.storage.from("lead-photos").getPublicUrl(path);
-          urls.push(pub.publicUrl);
-        }
-      }
+      const { uploadLeadPhotos } = await import("@/lib/uploads/fastUpload");
+      const { urls } = await uploadLeadPhotos(supabase.storage.from("lead-photos") as never, Array.from(files));
       onChange({ photos: [...(data.photos || []), ...urls] });
     } finally {
       setUploading(false);
