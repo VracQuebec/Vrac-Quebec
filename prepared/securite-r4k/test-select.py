@@ -30,7 +30,7 @@ for name in ['has_role','cpn_my_entrepreneur','fleet_member_role','driver_compan
 setup+='CREATE POLICY "missions read" ON drv_missions FOR SELECT TO authenticated USING '+a['policies'][0]['using']+';'
 # Existing ordinary RPCs copied byte-for-byte from server snapshot.
 deps=(ROOT/'docs/audit/r4k-select-preuves/dependances-avant.sql').read_text()
-setup+=deps[:deps.index('CREATE OR REPLACE FUNCTION public.entcrm_can_write')].replace('$function$\n','$function$;\n')
+setup+=deps[:deps.index('CREATE OR REPLACE FUNCTION public.entcrm_can_write')].replace('END $function$\n','END $function$;\n')
 dbname='matrix_'+uuid.uuid4().hex
 sql('CREATE DATABASE '+dbname+';')
 cmd[-2]=dbname
