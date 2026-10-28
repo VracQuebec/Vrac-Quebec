@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { FILE_ACCEPT, FILE_CATEGORIES, FILE_MAX, FILE_MIME } from "@/lib/entcrm/catalog";
 import { makeThumb, runLimited, withRetry } from "@/lib/uploads/fastUpload";
+import { backfillThumbs, needsThumb } from "@/lib/uploads/thumbBackfill";
 
 const db = supabase as any;
 const BUCKET = "entcrm-files";
@@ -101,6 +102,22 @@ export default function CrmFiles({ companyId, ownerType, ownerId, canWrite, canA
     await supabase.storage.from(BUCKET).remove([l.file.storage_path]); load();
   };
 
+  const [thumbing, setThumbing] = useState<string | null>(null);
+  const missingThumbs = links.filter((l) => !l.file.archived_at && needsThumb(l.file)).length;
+  const runBackfill = async () => {
+    setThumbing("0");
+    const r = await backfillThumbs(companyId, links.map((l) => l.file), {
+      download: async (p) => { const { data } = await supabase.storage.from(BUCKET).download(p); return data ?? null; },
+      makeThumb: (f) => makeThumb(f),
+      upload: async (p, b) => { const { error } = await supabase.storage.from(BUCKET).upload(p, b, { contentType: "image/jpeg", upsert: false });
+        if (!error) return "ok"; return /exist|duplicate|409/i.test(`${error.message} ${(error as any).statusCode ?? ""}`) ? "exists" : "error"; },
+      setThumb: async (id, p) => { const { data } = await db.from("ent_crm_files").update({ thumb_path: p }).eq("id", id).is("thumb_path", null).select("id"); return (data ?? []).length > 0; },
+    }, 10, (d, t) => setThumbing(`${d}/${t}`));
+    setThumbing(null);
+    toast({ title: "Miniatures", description: `${r.created + r.reused} prêtes${r.failed ? `, ${r.failed} non créées (réessayer plus tard)` : ""}. Les originaux sont inchangés.` });
+    void load();
+  };
+
   const shown = links.filter((l) => (showArchived ? !!l.file.archived_at : !l.file.archived_at) && (!cat || l.file.category === cat)
     && (!q || `${l.file.title} ${l.file.file_name} ${l.file.description ?? ""}`.toLowerCase().includes(q.toLowerCase())));
 
@@ -130,6 +147,10 @@ export default function CrmFiles({ companyId, ownerType, ownerId, canWrite, canA
       <select aria-label="Filtrer par catégorie" className="h-9 rounded-md border border-border bg-background px-2 text-xs" value={cat} onChange={(e) => setCat(e.target.value)}><option value="">Toutes catégories</option>{FILE_CATEGORIES.map((c) => <option key={c.v} value={c.v}>{c.l}</option>)}</select>
       <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />Archivés</label>
     </div>
+    {canWrite && missingThumbs > 0 && <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      <span>{missingThumbs} ancienne(s) photo(s) sans miniature.</span>
+      <Button size="sm" variant="outline" disabled={!!thumbing} onClick={runBackfill}>{thumbing ? `Création ${thumbing}…` : "Créer les miniatures (10 à la fois)"}</Button>
+    </div>}
     {!shown.length && <p className="text-xs text-muted-foreground">Aucune pièce.</p>}
     <div className="grid gap-2 sm:grid-cols-2">{shown.map((l) => <div key={l.id} className="flex gap-2 rounded-md border border-border p-2">
       {urls[l.file.id] ? <button onClick={() => signed(l)}><img src={urls[l.file.id]} alt={l.file.title ?? "Photo"} loading="lazy" decoding="async" className="h-16 w-16 rounded object-cover" /></button>
