@@ -40,9 +40,11 @@ Deno.serve(async (req) => {
   });
   // Refus des règles d'accès ou fichier absent : même réponse, sans détail.
   if (!res.ok) { await res.body?.cancel(); return fail(403, "Accès refusé"); }
-  const data = await res.blob();
-  const name = body.path.split("/").pop()!.replace(/[^\w.\-]/g, "_");
-  return new Response(data, {
-    headers: { ...cors, ...noStore, "Content-Type": data.type || "application/octet-stream", "Content-Disposition": `attachment; filename="${name}"` },
+  const name = (body.path.split("/").pop() ?? "document").replace(/[^\w.\-]/g, "_");
+  // Préparé : transmettre après autorisation sans attendre la copie entière en mémoire.
+  // Aucun cache, lien réutilisable ni changement de bucket/droits.
+  const length = res.headers.get("content-length");
+  return new Response(res.body, {
+    headers: { ...cors, ...noStore, "Content-Type": res.headers.get("content-type") || "application/octet-stream", "Content-Disposition": `attachment; filename="${name}"`, ...(length ? { "Content-Length": length } : {}), "Access-Control-Expose-Headers": "Content-Length" },
   });
 });
