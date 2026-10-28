@@ -259,3 +259,4 @@ Non exécuté (vraies sessions TEST) : connexion gestionnaire/chauffeur, téléc
 - Préparé (non installé) : `prepared/stockage-2026-10-28/02_surveillance_alertes.sql`, testé sur base jetable locale.
 - Mesuré serveur avec TEST A : PDF 1 Mo et 15 Mo via secure-file (0,5–1 s à chaud, ≈4 s à froid).
 - Bloqué/à approuver : installation surveillance, purge journaux techniques, publication; essai téléphone réel; durée de conservation GA à confirmer.
+- 2026-10-28 : surveillance 0248 installée, témoins corrigés, miniature fictive testée → docs/audit/finalisation-2026-10-28.md
