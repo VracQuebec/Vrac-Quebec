@@ -51,3 +51,4 @@
 - Request workbench/ownership UI is gated by import.meta.env.DEV (preview only) until publication is authorized; server RPC/RLS remain the sole authority.
 - secure-file reads Storage through /object/authenticated with a unique query parameter: the plain object endpoint can serve cached copies after revocation.
 - Installed driver invitation RPCs are exposed only in development preview through the existing capture-only adapter, independently of the disabled punch extension; requisition mission links use the existing tracking route and server-projected driver company.
+- File performance helpers preserve original bytes and per-open authorization; local previews release object URLs, and CRM retries retain stable object/record identities to resume partial writes without duplicating files.

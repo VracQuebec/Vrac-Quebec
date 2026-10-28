@@ -24,7 +24,9 @@ export async function preparePhoto(file: File): Promise<File> {
     const { w, h } = targetSize(bmp.width, bmp.height);
     const canvas = document.createElement("canvas");
     canvas.width = w; canvas.height = h;
-    canvas.getContext("2d")!.drawImage(bmp, 0, 0, w, h);
+    const context = canvas.getContext("2d");
+    if (!context) { bmp.close?.(); return file; }
+    context.drawImage(bmp, 0, 0, w, h);
     bmp.close?.();
     const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", PHOTO_QUALITY));
     if (!blob || blob.size >= file.size) return file;
@@ -80,7 +82,9 @@ export async function makeThumb(file: File, edge = 320): Promise<Blob | null> {
     const bmp = await createImageBitmap(file, { imageOrientation: "from-image" } as ImageBitmapOptions);
     const { w, h } = targetSize(bmp.width, bmp.height, edge);
     const c = document.createElement("canvas"); c.width = w; c.height = h;
-    c.getContext("2d")!.drawImage(bmp, 0, 0, w, h); bmp.close?.();
+    const context = c.getContext("2d");
+    if (!context) { bmp.close?.(); return null; }
+    context.drawImage(bmp, 0, 0, w, h); bmp.close?.();
     return await new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", 0.75));
   } catch { return null; }
 }

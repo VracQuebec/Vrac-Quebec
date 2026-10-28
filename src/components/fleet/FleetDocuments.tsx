@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Camera, Paperclip, Trash2, FileText, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import LocalFilePreview from "@/components/files/LocalFilePreview";
+import { runLimited } from "@/lib/uploads/fastUpload";
 import {
   deleteDocument, documentLink, fetchDocuments, uploadDocument,
   type FleetDocument, type FleetOwnerType,
@@ -52,7 +54,7 @@ export function PendingPhotos({ files, onChange, label = "Photos et documents" }
           {files.map((f, i) => (
             <div key={`${f.name}-${i}`} className="relative rounded-lg border border-border overflow-hidden bg-card">
               {f.type.startsWith("image/") ? (
-                <img src={URL.createObjectURL(f)} alt={f.name} className="w-full h-20 object-cover" />
+                <LocalFilePreview file={f} className="w-full h-20 object-cover" />
               ) : (
                 <div className="w-full h-20 flex items-center justify-center">
                   <FileText className="w-6 h-6 text-muted-foreground" />
@@ -82,14 +84,14 @@ export async function uploadPendingDocuments(
 ) {
   let ok = 0;
   const errors: string[] = [];
-  for (const file of files) {
+  await runLimited(files, 3, async (file) => {
     try {
       await uploadDocument(ownerType, ownerId, file, file.type.startsWith("image/") ? "photo" : "document");
       ok++;
     } catch (e) {
       errors.push(`${file.name} : ${(e as Error).message}`);
     }
-  }
+  });
   return { ok, errors };
 }
 
@@ -98,8 +100,11 @@ export default function FleetDocuments({ ownerType, ownerId, label = "Photos et 
 }) {
   const { toast } = useToast();
   const [docs, setDocs] = useState<FleetDocument[]>([]);
-  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState("");
+  const uploadLock = useRef(false);
+  const openingLock = useRef(false);
+  const [opening, setOpening] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const camRef = useRef<HTMLInputElement>(null);
 
@@ -107,41 +112,42 @@ export default function FleetDocuments({ ownerType, ownerId, label = "Photos et 
     try {
       const list = await fetchDocuments(ownerType, ownerId);
       setDocs(list);
-      const imgs = list.filter((d) => isImage(d) && !/^https?:\/\//.test(d.url));
-      if (imgs.length) {
-        const { data } = await supabase.storage.from("crm-docs").createSignedUrls(imgs.map((d) => d.url), 3600);
-        const map: Record<string, string> = {};
-        imgs.forEach((d, i) => { const u = data?.[i]?.signedUrl; if (u) map[d.id] = u; });
-        list.filter((d) => isImage(d) && /^https?:\/\//.test(d.url)).forEach((d) => { map[d.id] = d.url; });
-        setThumbs(map);
-      } else setThumbs({});
-    } catch { /* silencieux */ }
+      // Pas de transfert d'originaux pour une liste; ouverture explicite uniquement.
+    } catch (e) { toast({ title: "Liste indisponible", description: (e as Error).message, variant: "destructive" }); }
   }, [ownerType, ownerId]);
 
   useEffect(() => { if (ownerId) load(); }, [ownerId, load]);
 
   const upload = async (files?: FileList | null) => {
-    if (!files?.length) return;
+    if (!files?.length || uploadLock.current) return;
+    uploadLock.current = true;
     setBusy(true);
+    setProgress(`0/${files.length}`);
     let ok = 0;
-    for (const file of Array.from(files)) {
+    await runLimited(Array.from(files), 3, async (file) => {
       try {
         await uploadDocument(ownerType, ownerId, file, file.type.startsWith("image/") ? "photo" : "document");
         ok++;
       } catch (e) {
         toast({ title: `Ajout impossible : ${file.name}`, description: (e as Error).message, variant: "destructive" });
       }
-    }
+    }, (done, total) => setProgress(`${done}/${total}`));
     if (ok) toast({ title: ok > 1 ? `${ok} fichiers ajoutés` : "Fichier ajouté" });
     await load();
     setBusy(false);
+    uploadLock.current = false;
     if (fileRef.current) fileRef.current.value = "";
     if (camRef.current) camRef.current.value = "";
   };
 
   const open = async (doc: FleetDocument) => {
-    try { window.open(thumbs[doc.id] ?? await documentLink(doc), "_blank", "noopener"); }
-    catch (e) { toast({ title: "Ouverture impossible", description: (e as Error).message, variant: "destructive" }); }
+    if (openingLock.current) return;
+    openingLock.current = true; setOpening(true);
+    const tab = window.open("", "_blank");
+    if (tab) tab.opener = null;
+    try { const url = await documentLink(doc); if (tab) tab.location.href = url; }
+    catch (e) { tab?.close(); toast({ title: "Ouverture impossible", description: (e as Error).message, variant: "destructive" }); }
+    finally { openingLock.current = false; setOpening(false); }
   };
 
   const rename = async (doc: FleetDocument) => {
@@ -158,8 +164,8 @@ export default function FleetDocuments({ ownerType, ownerId, label = "Photos et 
     catch (e) { toast({ title: "Suppression impossible", description: (e as Error).message, variant: "destructive" }); }
   };
 
-  const photos = docs.filter((d) => thumbs[d.id]);
-  const others = docs.filter((d) => !thumbs[d.id]);
+  const photos = docs.filter(isImage);
+  const others = docs.filter((d) => !isImage(d));
 
   return (
     <div className="space-y-3">
@@ -178,15 +184,14 @@ export default function FleetDocuments({ ownerType, ownerId, label = "Photos et 
         <input ref={fileRef} type="file" className="hidden" multiple accept="image/*,application/pdf"
           onChange={(e) => upload(e.target.files)} />
       </div>
-      {busy && <p className="text-xs text-muted-foreground font-body">Envoi en cours…</p>}
+      {busy && <p role="status" className="text-xs text-muted-foreground font-body">Envoi : {progress} fichier(s) traités…</p>}
+      {opening && <p role="status" className="text-xs text-muted-foreground">Ouverture…</p>}
 
       {photos.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {photos.map((d) => (
             <figure key={d.id} className="rounded-lg border border-border overflow-hidden bg-card">
-              <button type="button" onClick={() => open(d)} className="block w-full">
-                <img src={thumbs[d.id]} alt={d.title ?? "Photo"} loading="lazy" className="w-full h-28 object-cover" />
-              </button>
+              <Button variant="ghost" disabled={opening} onClick={() => open(d)} aria-label={`Ouvrir ${d.title ?? "la photo"}`} className="h-28 w-full"><Camera className="h-8 w-8 text-muted-foreground" /></Button>
               <figcaption className="flex items-center gap-1 px-2 py-1">
                 <span className="flex-1 truncate text-xs font-body">{d.title ?? "Photo"}</span>
                 <button type="button" onClick={() => rename(d)} aria-label="Modifier la description"

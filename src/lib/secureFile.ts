@@ -1,6 +1,7 @@
 // Téléchargement contrôlé : chaque ouverture repasse par la fonction secure-file, qui
 // revérifie la session et les droits. Aucun lien signé réutilisable n'est créé.
 import { supabase } from "@/integrations/supabase/client";
+import { readFileResponse, type FileProgress } from "@/lib/uploads/readProgress";
 
 export type SecureBucket = "company-docs" | "asr-files";
 
@@ -15,7 +16,7 @@ export function secureFileMessage(status: number): string {
   return "Document temporairement indisponible.";
 }
 
-export async function fetchSecureFile(bucket: SecureBucket, path: string, mime?: string | null): Promise<Blob> {
+export async function fetchSecureFile(bucket: SecureBucket, path: string, mime?: string | null, onProgress?: (progress: FileProgress) => void): Promise<Blob> {
   const { data: s } = await supabase.auth.getSession();
   const token = s.session?.access_token;
   if (!token) throw new SecureFileError(401, secureFileMessage(401));
@@ -29,6 +30,6 @@ export async function fetchSecureFile(bucket: SecureBucket, path: string, mime?:
     });
   } catch { throw new SecureFileError(0, secureFileMessage(0)); }
   if (!res.ok) throw new SecureFileError(res.status, secureFileMessage(res.status));
-  const b = await res.blob();
-  return mime ? new Blob([b], { type: mime }) : b;
+  const b = await readFileResponse(res, onProgress);
+  return mime && b.type !== mime ? b.slice(0, b.size, mime) : b;
 }

@@ -1,5 +1,6 @@
 // ASSUR-01 — fiche de police : période, coûts, garanties, biens, documents, renouvellement, soumissions, questions, historique.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { fileProgressLabel } from "@/lib/uploads/readProgress";
 import { fetchSecureFile } from "@/lib/secureFile";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,8 @@ export default function PolicyDetail({ companyId, policyId, canWrite, tab }: { c
   const [d, setD] = useState<any>(null);
   const [periodId, setPeriodId] = useState<string | null>(null);
   const [viewer, setViewer] = useState<any>(null);
+  const fileLock = useRef(false);
+  const [fileProgress, setFileProgress] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [pol, per, cov, as, docs, ren, q, ev, del, trucks, cats, m] = await Promise.all([
@@ -74,9 +77,12 @@ export default function PolicyDetail({ companyId, policyId, canWrite, tab }: { c
 
   const run = async (p: Promise<any>, ok: string) => { const { error } = await p; if (error) { toast({ title: "Refusé", description: error.message, variant: "destructive" }); return false; } toast({ title: ok }); await load(); return true; };
   const openDoc = async (doc: any, download = false) => {
+    if (fileLock.current) return;
+    fileLock.current = true; setFileProgress("Vérification de l’accès…");
     let blob: Blob;
-    try { blob = await fetchSecureFile(BUCKET, doc.storage_path, doc.mime_type); }
+    try { blob = await fetchSecureFile(BUCKET, doc.storage_path, doc.mime_type, p => setFileProgress(fileProgressLabel(p))); }
     catch (e: any) { return toast({ title: "Ouverture impossible", description: e?.message, variant: "destructive" }); }
+    finally { fileLock.current = false; setFileProgress(null); }
     const url = URL.createObjectURL(blob);
     if (download) { const a = document.createElement("a"); a.href = url; a.download = doc.file_name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 5000); }
     else setViewer({ doc, url });
@@ -95,6 +101,7 @@ export default function PolicyDetail({ companyId, policyId, canWrite, tab }: { c
 
   return (
     <div className="space-y-4">
+      {fileProgress && <p role="status" className="text-sm text-muted-foreground">Ouverture : {fileProgress}</p>}
       <section className="rounded-lg border border-border bg-card p-3">
         <h2 className="break-words text-lg font-semibold">{pol.title}</h2>
         <p className="break-words text-sm">N° de police : <strong>{pol.policy_number || "non renseigné"}</strong> · {pol.insurer || "Assureur non renseigné"}</p>
