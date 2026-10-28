@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { attachPublicationFile, listPublicationFiles, readPublicationFile, type FileJob, type PublicationFile } from "@/lib/facebook-groups/files";
 import { fileProgressLabel } from "@/lib/uploads/readProgress";
+import PrivatePdfPreview from "@/components/files/PrivatePdfPreview";
 
 const canPreview = (mime: string) => ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"].includes(mime);
 
@@ -16,7 +17,7 @@ export default function PublicationFiles({ publicationId }: { publicationId: str
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
-  const [preview, setPreview] = useState<{ url: string; file: PublicationFile } | null>(null);
+  const [preview, setPreview] = useState<{ url: string; file: PublicationFile; blob: Blob } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -54,7 +55,7 @@ export default function PublicationFiles({ publicationId }: { publicationId: str
       if (download || !canPreview(file.mime)) {
         const a = document.createElement("a"); a.href = url; a.download = file.name; a.click();
         window.setTimeout(() => URL.revokeObjectURL(url), 60000);
-      } else setPreview({ url, file });
+      } else setPreview({ url, file, blob });
       setStatus("");
     } catch (e) { setError(e instanceof Error ? e.message : "Ouverture impossible. Réessayez."); }
     finally { locked.current = false; setBusy(false); }
@@ -76,7 +77,7 @@ export default function PublicationFiles({ publicationId }: { publicationId: str
     </div>)}
     {preview && <div className="space-y-2">
       <Button size="sm" variant="outline" onClick={() => setPreview(null)}><X className="h-4 w-4 mr-1" />Fermer l’aperçu</Button>
-      {preview.file.mime === "application/pdf" ? <iframe title={preview.file.name} src={preview.url} className="w-full h-[50vh] border rounded" /> : <img src={preview.url} alt={preview.file.name} className="max-h-[50vh] max-w-full object-contain" />}
+      {preview.file.mime === "application/pdf" ? <PrivatePdfPreview blob={preview.blob} name={preview.file.name} /> : <img src={preview.url} alt={preview.file.name} className="max-h-[50vh] max-w-full object-contain" />}
     </div>}
   </section>;
 }
