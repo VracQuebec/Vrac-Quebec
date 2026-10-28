@@ -8,7 +8,7 @@ def sql(s):
  return r.stdout.strip()
 assert '/tmp/r4k-select-pg/data' in sql("select current_setting('data_directory')")
 a=json.load(open(ROOT/'docs/audit/r4k-select-preuves/serveur-avant.json'))
-setup="""CREATE ROLE authenticated; CREATE SCHEMA auth;
+setup="""CREATE SCHEMA auth;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
 GRANT USAGE ON SCHEMA auth TO authenticated;
 CREATE TYPE app_role AS ENUM('admin','user');
@@ -31,8 +31,9 @@ setup+='CREATE POLICY "missions read" ON drv_missions FOR SELECT TO authenticate
 # Existing ordinary RPCs copied byte-for-byte from server snapshot.
 deps=(ROOT/'docs/audit/r4k-select-preuves/dependances-avant.sql').read_text()
 setup+=deps[:deps.index('CREATE OR REPLACE FUNCTION public.entcrm_can_write')].replace('$function$\n','$function$;\n')
-sql('CREATE DATABASE select_matrix_2;')
-cmd[-2]='select_matrix_2'
+dbname='matrix_'+uuid.uuid4().hex
+sql('CREATE DATABASE '+dbname+';')
+cmd[-2]=dbname
 sql(setup)
 u=[str(uuid.uuid4()) for _ in range(10)];driver,driver2,manager,other,admin,entA,entB,ca,cb,da=u; db=str(uuid.uuid4()); rq,rqb,normal,ownbad,otherm,rm,rmb=[str(uuid.uuid4()) for _ in range(7)]
 sql(f"""INSERT INTO user_roles VALUES('{admin}','admin',true);
