@@ -85,7 +85,7 @@ BEGIN
       v_alerts := v_alerts || t.key;
       PERFORM public.crm_notify(
         'capacity:' || t.key || ':' || v_week, 'systeme', 'capacity_alert',
-        CASE WHEN t.key = 'db_crit' THEN 'haute' ELSE 'normale' END,
+        CASE WHEN t.key = 'db_crit' THEN 'urgente' ELSE 'normale' END,
         'Capacité : ' || t.label,
         format('Base %s Mo, journal tâches %s Mo, fichiers %s Mo (seuil %s Mo).',
                v_db/1000000, coalesce(v_cron,0)/1000000, coalesce(v_sto,0)/1000000, t.bytes/1000000),
