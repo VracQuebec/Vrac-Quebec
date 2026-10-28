@@ -33,6 +33,7 @@ export default function CrmFiles({ companyId, ownerType, ownerId, canWrite, canA
   useEffect(() => { if (!ups.some((u) => u.status !== "done")) return; const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; }; window.addEventListener("beforeunload", h); return () => window.removeEventListener("beforeunload", h); }, [ups]);
   const forgetLost = (n?: string) => { const next = n ? lost.filter((x) => x !== n) : []; setLost(next); try { next.length ? localStorage.setItem(lk, JSON.stringify(next)) : localStorage.removeItem(lk); } catch { /* ignore */ } };
   const cam = useRef<HTMLInputElement>(null); const pick = useRef<HTMLInputElement>(null);
+  const jobs = useRef(new Map<string, { path: string; uploaded: boolean; thumb: string | null; fileId: string | null; active: boolean }>());
 
   const load = useCallback(async () => {
     const { data } = await db.from("ent_crm_file_links").select("id, client_visible, file:ent_crm_files(*)")
@@ -57,25 +58,48 @@ export default function CrmFiles({ companyId, ownerType, ownerId, canWrite, canA
   };
 
   const uploadOne = async (u: Up) => {
+    const ext = u.file.name.split(".").pop()?.toLowerCase() ?? "";
+    let job = jobs.current.get(u.key);
+    if (!job) {
+      job = { path: `company/${companyId}/${u.key}.${ext}`, uploaded: false, thumb: null, fileId: null, active: false };
+      jobs.current.set(u.key, job);
+    }
+    if (job.active) return;
+    job.active = true;
+    try {
     setUps((l) => l.map((x) => x.key === u.key ? { ...x, status: "uploading", error: undefined } : x));
     const err = validate(u.file);
     const fail = (e: string) => setUps((l) => l.map((x) => x.key === u.key ? { ...x, status: "error", error: e } : x));
     if (err) return fail(err);
-    const ext = u.file.name.split(".").pop()!.toLowerCase();
-    const path = `company/${companyId}/${crypto.randomUUID()}.${ext}`;
+    const path = job.path;
     // Original envoyé tel quel (pièces pouvant servir de preuve) avec reprise automatique.
-    try { await withRetry(async () => { const r = await supabase.storage.from(BUCKET).upload(path, u.file, { contentType: FILE_MIME[ext], upsert: false }); if (r.error && !/exists/i.test(r.error.message)) throw r.error; }); }
+    try { if (!job.uploaded) { await withRetry(async () => { const r = await supabase.storage.from(BUCKET).upload(path, u.file, { contentType: FILE_MIME[ext], upsert: false }); if (r.error && !/exists|duplicate/i.test(r.error.message)) throw r.error; }); job.uploaded = true; } }
     catch (e: any) { return fail(`Envoi refusé : ${e?.message ?? "réseau"}`); }
-    let thumb_path: string | null = null;
-    const tb = await makeThumb(u.file);
-    if (tb) { const tp = `company/${companyId}/thumbs/${crypto.randomUUID()}.jpg`; const t = await supabase.storage.from(BUCKET).upload(tp, tb, { contentType: "image/jpeg", upsert: false }); if (!t.error) thumb_path = tp; }
+    let thumb_path: string | null = job.thumb;
+    if (!thumb_path && !job.fileId) {
+      const tb = await makeThumb(u.file);
+      if (tb) { const tp = `company/${companyId}/thumbs/${u.key}.jpg`; const t = await supabase.storage.from(BUCKET).upload(tp, tb, { contentType: "image/jpeg", upsert: false }); if (!t.error || /exists|duplicate/i.test(t.error.message)) { thumb_path = tp; job.thumb = tp; } }
+    }
     // La fiche n'est créée qu'après la confirmation de l'envoi.
-    const { data: f, error } = await db.from("ent_crm_files").insert({ company_id: companyId, storage_path: path, thumb_path, file_name: u.file.name, mime_type: FILE_MIME[ext], size_bytes: u.file.size, title: u.file.name.replace(/\.[^.]+$/, ""), category: newCat, is_field: ownerType === "project" && ["avant_travaux", "apres_travaux", "bon_livraison", "billet_pesee"].includes(newCat) }).select("id").single();
-    if (error) { await supabase.storage.from(BUCKET).remove([path]); return fail(`Enregistrement refusé : ${error.message}`); }
-    const l = await db.from("ent_crm_file_links").insert({ company_id: companyId, file_id: f.id, owner_type: ownerType, owner_id: ownerId });
-    if (l.error) return fail(`Rattachement refusé : ${l.error.message}`);
+    if (!job.fileId) {
+      const { data: f, error } = await db.from("ent_crm_files").insert({ id: u.key, company_id: companyId, storage_path: path, thumb_path, file_name: u.file.name, mime_type: FILE_MIME[ext], size_bytes: u.file.size, title: u.file.name.replace(/\.[^.]+$/, ""), category: newCat, is_field: ownerType === "project" && ["avant_travaux", "apres_travaux", "bon_livraison", "billet_pesee"].includes(newCat) }).select("id").single();
+      if (error) {
+        const existing = await db.from("ent_crm_files").select("id").eq("id", u.key).eq("company_id", companyId).eq("storage_path", path).maybeSingle();
+        if (!existing.data) return fail(`Enregistrement refusé : ${error.message}`);
+        job.fileId = existing.data.id;
+      } else job.fileId = f.id;
+    }
+    const prior = await db.from("ent_crm_file_links").select("id").eq("company_id", companyId).eq("file_id", job.fileId).eq("owner_type", ownerType).eq("owner_id", ownerId).maybeSingle();
+    if (prior.error) return fail(`Rattachement indisponible : ${prior.error.message}`);
+    if (!prior.data) {
+      const l = await db.from("ent_crm_file_links").insert({ id: u.key, company_id: companyId, file_id: job.fileId, owner_type: ownerType, owner_id: ownerId });
+      if (l.error) return fail(`Rattachement refusé : ${l.error.message}`);
+    }
     setUps((l2) => l2.filter((x) => x.key !== u.key));
     setLost((l) => { const n = l.filter((x) => x !== u.file.name); try { n.length ? localStorage.setItem(lk, JSON.stringify(n)) : localStorage.removeItem(lk); } catch { /* ignore */ } return n; });
+    } catch (e) {
+      setUps(l => l.map(x => x.key === u.key ? { ...x, status: "error", error: `Envoi interrompu : ${e instanceof Error ? e.message : "réessayez"}` } : x));
+    } finally { job.active = false; }
   };
 
   const add = async (list?: FileList | null) => {

@@ -101,6 +101,7 @@ export default function PolicyDetail({ companyId, policyId, canWrite, tab }: { c
 
   return (
     <div className="space-y-4">
+      {fileProgress && <p role="status" className="text-sm text-muted-foreground">Ouverture : {fileProgress}</p>}
       <section className="rounded-lg border border-border bg-card p-3">
         <h2 className="break-words text-lg font-semibold">{pol.title}</h2>
         <p className="break-words text-sm">N° de police : <strong>{pol.policy_number || "non renseigné"}</strong> · {pol.insurer || "Assureur non renseigné"}</p>
