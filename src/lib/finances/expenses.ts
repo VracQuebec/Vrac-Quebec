@@ -75,7 +75,8 @@ export async function uploadFile(c: string, file: File | Blob, name: string) {
   const ext = (name.split(".").pop() || "").toLowerCase();
   if (!MIME[ext]) throw new Error("Format non pris en charge (JPG, PNG, WEBP, HEIC ou PDF)");
   if (file.size > MAX_BYTES) throw new Error("Fichier trop lourd (20 Mo au maximum)");
-  const me = await uid(); const sha = await sha256(file); const path = await put(c, me, file, ext);
+  const me = await uid();
+  const [sha, path] = await Promise.all([sha256(file), put(c, me, file, ext)]);
   const r = await call<{ id: string }>("fin_exp_file_add", { _company: c, _path: path, _name: name.slice(0, 200), _mime: MIME[ext], _size: file.size, _sha: sha, _converted: null });
   return { id: r.id, mime: MIME[ext], name };
 }
