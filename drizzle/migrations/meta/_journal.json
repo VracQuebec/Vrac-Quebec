@@ -1723,6 +1723,13 @@
       "when": 1793115005509,
       "tag": "0245_rattachement_demandes",
       "breakpoints": true
+    },
+    {
+      "idx": 246,
+      "version": "7",
+      "when": 1793208974731,
+      "tag": "0246_driver_ordinary_mission_read_scope",
+      "breakpoints": true
     }
   ]
 }
