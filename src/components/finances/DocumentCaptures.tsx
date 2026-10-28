@@ -82,8 +82,15 @@ function CaptureReview({ companyId, id, sups, canWrite, onBack, onSwitch, onOpen
         const d = x.extraction?.documents?.[0] ?? null; return C.editsFrom(d, 0, C.matchSupplier(d?.supplier_name ?? null, sups).exact ?? ""); });
     } catch (er: any) { if (alive.current) setLoadErr(er.message); }
   }, [id, lk, sups]);
-  useEffect(() => { void load(); C.detail(id).then((x) => P.openFile(x.file_id)).then((u) => { if (alive.current) setUrl(u); }).catch(() => {}); }, [load, id]);
-  useEffect(() => { const v = c?.converted_file_id; if (!v) { setConvUrl(null); return; } P.openFile(v).then((u) => { if (alive.current) setConvUrl(u); }).catch(() => setConvUrl(null)); }, [c?.converted_file_id]);
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const fid = c?.file_id;
+    if (!showSrc || !fid) return;
+    let active = true;
+    P.openFile(fid).then(u => { if (active && alive.current) setUrl(u); }).catch(() => {});
+    return () => { active = false; };
+  }, [showSrc, c?.file_id]);
+  useEffect(() => { const v = c?.converted_file_id; if (!showSrc || !v) { setConvUrl(null); return; } let active = true; P.openFile(v).then((u) => { if (active && alive.current) setConvUrl(u); }).catch(() => { if (active) setConvUrl(null); }); return () => { active = false; }; }, [showSrc, c?.converted_file_id]);
   useEffect(() => { if (!dirty || !e) return; try { localStorage.setItem(lk, JSON.stringify(e)); } catch { /* indisponible */ } }, [e, dirty, lk]);
   useEffect(() => { if (!e?.supplier_id) { setBills([]); return; } P.overview(companyId, { supplier_id: e.supplier_id, status: "active" }, 100, 0).then((d) => { if (alive.current) setBills(d.rows); }).catch(() => setBills([])); }, [companyId, e?.supplier_id]);
   useEffect(() => { if (!e || e.kind !== "bill" || !e.supplier_id) { setDups(null); return; }
