@@ -45,7 +45,7 @@ L'inventaire de motifs a repéré 57 fichiers sources, listés dans `fichiers-pl
 - Règles Storage et crm_documents réelles consultées : permissions admin-only expliquent le refus entrepreneur flotte. Ce mandat ne les élargit pas.
 - Trois petits/fictifs ajouts conservés : PDF reprise CRM, PDF Documents ~1 Mo, PDF flotte administratif. Les photos/PDF TEST existants ont été lus sans suppression ni modification d'original.
 - Capture miniatures acquise non rejouée; ouverture grande image 3000×2000 et listes CRM revérifiées.
-- Régression : 19 tests de fichiers/finances ciblés réussis, puis 3 nouveaux tests de reprise/auth réussis; autre lot 17 réussis, 8 tests SQL règlements ignorés. Ne pas additionner sans dédupliquer les suites qui se recouvrent.
+- Régression finale dédupliquée : **35 tests réussis dans 13 fichiers** (fichiers, reprises, autorisation, factures, achats, reçus, frais). Les 8 tests SQL règlements restent ignorés faute de fixture configurée; ils ne sont pas comptés parmi les succès.
 - `deno check` secure-file streaming réussi, pas preuve d'exécution hébergée. Dernières compilations aperçu OK.
 
 ## Travaux restants, pas un blocage téléphone
