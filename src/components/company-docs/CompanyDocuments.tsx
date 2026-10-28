@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { fetchSecureFile } from "@/lib/secureFile";
+import { fileProgressLabel } from "@/lib/uploads/readProgress";
 import { supabase } from "@/integrations/supabase/client";
 
 const db = supabase as any;
@@ -45,6 +46,8 @@ export default function CompanyDocuments({ companyId, canWrite }: { companyId: s
   const [filter, setFilter] = useState("");
   const [showArch, setShowArch] = useState(false);
   const [viewer, setViewer] = useState<{ doc: any; url: string } | null>(null);
+  const [opening, setOpening] = useState<string | null>(null);
+  const openingLock = useRef(false);
   const pick = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -71,7 +74,7 @@ export default function CompanyDocuments({ companyId, canWrite }: { companyId: s
     if (!file || busy) return;
     if (!form.title.trim()) return toast({ title: "Titre requis", variant: "destructive" });
     setBusy(true);
-    const ext = file.name.split(".").pop()!.toLowerCase();
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
     const path = `${companyId}/${crypto.randomUUID()}.${ext}`;
     const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: MIME[ext], upsert: false });
     if (up.error) { setBusy(false); return toast({ title: "Envoi refusé", description: up.error.message, variant: "destructive" }); }
@@ -88,10 +91,14 @@ export default function CompanyDocuments({ companyId, canWrite }: { companyId: s
   };
 
   const open = async (d: any) => {
+    if (openingLock.current) return;
+    openingLock.current = true;
+    setOpening("Vérification de l’accès…");
     try {
-      const blob = await fetchSecureFile(BUCKET, d.storage_path, d.mime_type);
+      const blob = await fetchSecureFile(BUCKET, d.storage_path, d.mime_type, p => setOpening(fileProgressLabel(p)));
       setViewer({ doc: d, url: URL.createObjectURL(blob) });
     } catch (e: any) { toast({ title: "Ouverture impossible", description: e?.message, variant: "destructive" }); }
+    finally { openingLock.current = false; setOpening(null); }
   };
   const closeViewer = () => { if (viewer) URL.revokeObjectURL(viewer.url); setViewer(null); };
   const toggleArchive = async (d: any) => {
@@ -148,6 +155,7 @@ export default function CompanyDocuments({ companyId, canWrite }: { companyId: s
       )}
 
       <section className="space-y-3">
+        {opening && <p role="status" className="text-sm text-muted-foreground">Ouverture : {opening}</p>}
         <div className="flex flex-wrap items-center gap-2">
           <select aria-label="Filtrer par type" className="h-10 rounded-md border border-border bg-background px-2 text-sm" value={filter} onChange={(e) => setFilter(e.target.value)}>
             <option value="">Tous les documents</option>
@@ -166,7 +174,7 @@ export default function CompanyDocuments({ companyId, canWrite }: { companyId: s
                   {ex && <Badge variant={ex.variant} className="mt-1">{ex.label}</Badge>}
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => open(d)}><Eye className="mr-1 h-4 w-4" />Consulter</Button>
+                  <Button size="sm" disabled={!!opening} onClick={() => open(d)}><Eye className="mr-1 h-4 w-4" />Consulter</Button>
                   {canWrite && <Button size="sm" variant="outline" onClick={() => toggleArchive(d)}><Archive className="mr-1 h-4 w-4" />{d.archived_at ? "Restaurer" : "Archiver"}</Button>}
                 </div>
               </li>); })}
