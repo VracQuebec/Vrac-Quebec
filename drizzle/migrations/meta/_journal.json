@@ -1758,6 +1758,13 @@
       "when": 1793223651298,
       "tag": "0250_fb_groups_directory",
       "breakpoints": true
+    },
+    {
+      "idx": 251,
+      "version": "7",
+      "when": 1793225132479,
+      "tag": "0251_fb_publication_files_atomic_assignments",
+      "breakpoints": true
     }
   ]
 }

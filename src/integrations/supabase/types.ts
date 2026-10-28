@@ -5409,6 +5409,50 @@ export type Database = {
           },
         ]
       }
+      fb_publication_files: {
+        Row: {
+          bucket: string
+          created_at: string
+          created_by: string
+          id: string
+          mime: string
+          name: string
+          path: string
+          publication_id: string
+          size: number
+        }
+        Insert: {
+          bucket?: string
+          created_at?: string
+          created_by?: string
+          id: string
+          mime: string
+          name: string
+          path: string
+          publication_id: string
+          size: number
+        }
+        Update: {
+          bucket?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          mime?: string
+          name?: string
+          path?: string
+          publication_id?: string
+          size?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fb_publication_files_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "fb_publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fb_publications: {
         Row: {
           account_used: string | null
@@ -32637,6 +32681,14 @@ export type Database = {
       }
       exec02_message_current: { Args: { p: Json }; Returns: boolean }
       exec02_message_delay: { Args: { p: Json }; Returns: number }
+      fb_claim_group: {
+        Args: { p_campaign: string; p_cycle: number; p_group: string }
+        Returns: Json
+      }
+      fb_release_group: {
+        Args: { p_campaign: string; p_cycle: number; p_group: string }
+        Returns: undefined
+      }
       fin__alloc: {
         Args: {
           _allocs: Json
