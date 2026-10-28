@@ -1,8 +1,12 @@
 ## Fichiers partout — 28 octobre 2026
-- [ ] Recenser toutes les surfaces actives et leurs opérations dans un tableau dédié.
-- [ ] Corriger transferts répétés, chargements inutiles, progression et reprises sans altérer les originaux/droits.
-- [ ] Mesurer et vérifier les parcours TEST disponibles; distinguer ceux encore non vérifiés et les dépendances serveur.
-- [ ] Livrer tableau avant/après et état aperçu/serveur, sans publication ni suppression.
+- [x] Recensement transversal des pipelines et 57 sources; tableau docs/audit/fichiers-plateforme-2026-10-28.md, couverture non certifiée exhaustive.
+- [x] Corriger reprises CRM, liste/originals flotte, URL locales, progression Documents/Assurances, hash/uploads financiers, aperçu reçus à la demande; tests ciblés et TEST UI réussis.
+- [x] Mesurer PDF TEST 1/15 Mo, Documents ajout/aperçu/téléchargement, reprise CRM unique, flotte admin et aperçu reçus; originaux inchangés.
+- [x] Livrer tableau avant/après/état et preuves; aucune publication/suppression ni droits modifiés.
+- [ ] Streaming secure-file : préparé et Deno vérifié, installation partagée attend autorisation distincte et comparaison hébergée.
+- [ ] Documents flotte entrepreneur : refus RLS confirmé; évolution des droits attend décision/autorisation ciblée, aucun contournement.
+- Suite non terminée : miniatures admin/flotte, pipelines encore inchangés, HEIC, factures/avoirs/imports/exports et progression d'envoi en octets, listés dans le tableau; aucune promesse de correction universelle.
+- [ ] Téléphone physique : appareil/réseau réels non accessibles aux outils; QR existant seulement, sans nouveau mécanisme.
 
 ## R4K — SELECT ciblé (28 octobre 2026)
 - [x] Archive serveur, défaut reproduit, 12 contrôles RLS isolés, retour exact; seul SELECT installé par 0246 (préparation 0245), droits inchangés et HTTP anonyme vide.
