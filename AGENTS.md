@@ -52,3 +52,4 @@
 - secure-file reads Storage through /object/authenticated with a unique query parameter: the plain object endpoint can serve cached copies after revocation.
 - Installed driver invitation RPCs are exposed only in development preview through the existing capture-only adapter, independently of the disabled punch extension; requisition mission links use the existing tracking route and server-projected driver company.
 - File performance helpers preserve original bytes and per-open authorization; local previews release object URLs, and CRM retries retain stable object/record identities to resume partial writes without duplicating files.
+- Facebook publication attachments reuse private admin-only crm-docs objects and authenticated per-open reads; metadata and atomic assignment RPCs remain platform-admin scoped to avoid company-role leakage or silent reassignment.

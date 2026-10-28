@@ -203,22 +203,10 @@ export async function claimGroup(
   cycle: number,
   userId: string,
 ): Promise<{ ok: boolean; heldBy: string | null }> {
-  const { data: existing } = await supabase
-    .from("fb_assignments")
-    .select("assigned_to")
-    .eq("group_id", groupId)
-    .eq("campaign_id", campaignId)
-    .eq("cycle", cycle)
-    .maybeSingle();
-  if (existing && existing.assigned_to !== userId) return { ok: false, heldBy: existing.assigned_to };
-  if (!existing) {
-    const { error } = await supabase
-      .from("fb_assignments")
-      .insert({ group_id: groupId, campaign_id: campaignId, cycle, assigned_to: userId });
-    if (error) throw error;
-    await logEvent(userId, "attribution", groupId, null, { campagne: campaignId, cycle });
-  }
-  return { ok: true, heldBy: null };
+  const { data, error } = await supabase.rpc("fb_claim_group", { p_group: groupId, p_campaign: campaignId, p_cycle: cycle });
+  if (error) throw error;
+  const result = data as { ok: boolean; heldBy: string | null };
+  return result;
 }
 
 export async function releaseGroup(
@@ -227,14 +215,8 @@ export async function releaseGroup(
   cycle: number,
   userId: string,
 ): Promise<void> {
-  await supabase
-    .from("fb_assignments")
-    .delete()
-    .eq("group_id", groupId)
-    .eq("campaign_id", campaignId)
-    .eq("cycle", cycle)
-    .eq("assigned_to", userId);
-  await logEvent(userId, "attribution_retiree", groupId, null, { campagne: campaignId, cycle });
+  const { error } = await supabase.rpc("fb_release_group", { p_group: groupId, p_campaign: campaignId, p_cycle: cycle });
+  if (error) throw error;
 }
 
 export function exportCsv(filename: string, rows: Record<string, unknown>[]): void {

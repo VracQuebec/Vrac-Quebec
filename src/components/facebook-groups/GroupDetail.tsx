@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import PublicationFiles from "./PublicationFiles";
 import {
   fetchGroupEvents,
   fetchPublications,
@@ -44,6 +45,19 @@ export default function GroupDetail(props: {
   const [realDate, setRealDate] = useState(todayIso());
   const [postUrl, setPostUrl] = useState("");
   const [content, setContent] = useState("");
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
+
+  const saveDraft = async () => {
+    if (actionBusy) return;
+    setActionBusy(true);
+    try {
+      const id = await upsertPublication({ ...(draftId ? { id: draftId } : {}), group_id: g.id, content_text: content || null, status: "a_preparer" }, props.actor);
+      setDraftId(id);
+      await load();
+    } catch { toast({ title: "Brouillon non enregistré", description: "Réessayez avant d’ajouter les pièces.", variant: "destructive" }); }
+    finally { setActionBusy(false); }
+  };
 
   const load = useCallback(async () => {
     const [p, e] = await Promise.all([
@@ -93,7 +107,8 @@ export default function GroupDetail(props: {
 
   const doSubmit = async () => {
     try {
-      await markSubmitted({ group_id: g.id, content_text: content || null }, realDate, props.actor);
+      await markSubmitted({ ...(draftId ? { id: draftId } : {}), group_id: g.id, content_text: content || null }, realDate, props.actor);
+      setDraftId(null);
       toast({ title: "Tentative enregistrée", description: "Soumission notée — pas encore une publication." });
       load();
     } catch (e) {
@@ -104,12 +119,13 @@ export default function GroupDetail(props: {
   const doPublish = async () => {
     try {
       await markPublished(
-        { group_id: g.id, content_text: content || null },
+        { ...(draftId ? { id: draftId } : {}), group_id: g.id, content_text: content || null },
         realDate,
         postUrl || null,
         props.actor,
       );
       toast({ title: "Publication confirmée" });
+      setDraftId(null);
       load();
     } catch (e) {
       toast({ title: "Action impossible", description: String(e), variant: "destructive" });
@@ -139,11 +155,11 @@ export default function GroupDetail(props: {
 
   return (
     <Dialog open onOpenChange={(o) => !o && props.onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-sm">{g.source_id ?? "manuel"}</span>
-            {g.name}
+            <span className="min-w-0 break-words">{g.name}</span>
             {g.name_incomplete && <Badge variant="destructive">Nom à compléter</Badge>}
           </DialogTitle>
         </DialogHeader>
@@ -255,6 +271,8 @@ export default function GroupDetail(props: {
             value={content}
             onChange={(e) => setContent(e.target.value)}
           />
+          <Button size="sm" variant="outline" disabled={actionBusy} onClick={saveDraft}>Enregistrer le brouillon</Button>
+          {draftId && <PublicationFiles key={draftId} publicationId={draftId} />}
           <div className="flex flex-wrap items-end gap-2">
             <div className="space-y-1">
               <Label className="text-xs">Date réelle de l'action</Label>
@@ -286,7 +304,7 @@ export default function GroupDetail(props: {
             Dernière tentative : {lastAttempt ? `${PUBLICATION_STATUS_LABEL[lastAttempt.status]} le ${(lastAttempt.submitted_real_date ?? lastAttempt.published_real_date ?? lastAttempt.updated_at).slice(0, 10)}` : "jamais"}
             {" — "}Dernière publication confirmée : {lastPublished ? (lastPublished.published_real_date ?? lastPublished.published_at ?? "").slice(0, 10) : "jamais"}
           </p>
-          {pubs.map((p) => (
+          {pubs.filter((p) => p.id !== draftId).map((p) => (
             <div key={p.id} className="flex flex-wrap items-center gap-2 rounded border p-2 text-sm">
               <Badge>{PUBLICATION_STATUS_LABEL[p.status]}</Badge>
               <span className="text-xs text-muted-foreground">
@@ -309,6 +327,7 @@ export default function GroupDetail(props: {
                   <Button size="sm" variant="outline" onClick={() => setStatus(p, "planifie")}>Replanifier</Button>
                 )}
               </div>
+              <PublicationFiles publicationId={p.id} />
             </div>
           ))}
           {pubs.length === 0 && <p className="text-sm text-muted-foreground">Aucune publication enregistrée.</p>}

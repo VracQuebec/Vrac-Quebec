@@ -21,6 +21,7 @@ export default function NextGroupsTab(props: { actor: string; onOpenGroup: (g: F
   const [campaigns, setCampaigns] = useState<FbCampaign[]>([]);
   const [campaignId, setCampaignId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   const [data, setData] = useState<Awaited<ReturnType<typeof loadAll>> | null>(null);
 
   const campaign = campaigns.find((c) => c.id === campaignId) ?? null;
@@ -86,7 +87,9 @@ export default function NextGroupsTab(props: { actor: string; onOpenGroup: (g: F
   }, [data, campaign]);
 
   const doClaim = async (groupId: string) => {
-    if (!campaign) return;
+    if (!campaign || assigning) return;
+    setAssigning(true);
+    try {
     const res = await claimGroup(groupId, campaign.id, campaign.cycle, props.actor);
     if (!res.ok) {
       toast({
@@ -97,13 +100,15 @@ export default function NextGroupsTab(props: { actor: string; onOpenGroup: (g: F
     } else {
       toast({ title: "Fiche attribuée" });
     }
-    load();
+    await load();
+    } catch { toast({ title: "Attribution impossible", description: "Actualisez la file et réessayez.", variant: "destructive" }); }
+    finally { setAssigning(false); }
   };
 
   const doRelease = async (groupId: string) => {
     if (!campaign) return;
-    await releaseGroup(groupId, campaign.id, campaign.cycle, props.actor);
-    load();
+    try { await releaseGroup(groupId, campaign.id, campaign.cycle, props.actor); await load(); }
+    catch { toast({ title: "Libération impossible", variant: "destructive" }); }
   };
 
   const newCycle = async () => {
@@ -204,7 +209,7 @@ export default function NextGroupsTab(props: { actor: string; onOpenGroup: (g: F
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => window.open(item.group.fb_url!, "_blank", "noopener")}
+                    onClick={() => { if (item.group.fb_url) window.open(item.group.fb_url, "_blank", "noopener"); }}
                   >
                     <ExternalLink className="h-4 w-4 mr-1" /> Ouvrir le groupe
                   </Button>
@@ -214,7 +219,8 @@ export default function NextGroupsTab(props: { actor: string; onOpenGroup: (g: F
                     size="sm"
                     variant="outline"
                     onClick={async () => {
-                      await navigator.clipboard.writeText(campaign.content_text!);
+                      if (!campaign.content_text) return;
+                      await navigator.clipboard.writeText(campaign.content_text);
                       toast({ title: "Texte copié", description: "Aucune publication n'a été marquée." });
                     }}
                   >
@@ -222,7 +228,7 @@ export default function NextGroupsTab(props: { actor: string; onOpenGroup: (g: F
                   </Button>
                 )}
                 {!item.assignedTo && (
-                  <Button size="sm" variant="secondary" onClick={() => doClaim(item.group.id)}>
+                  <Button size="sm" variant="secondary" disabled={assigning} onClick={() => doClaim(item.group.id)}>
                     <UserPlus className="h-4 w-4 mr-1" /> Prendre en charge
                   </Button>
                 )}
