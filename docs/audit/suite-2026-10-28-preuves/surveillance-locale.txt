@@ -1,0 +1,10 @@
+run0 sans dépassement|{}
+run1|{db_warn,cron_log}
+run2|{db_warn,cron_log}
+snapshots|1
+notifs|capacity:cron_log:2026-44|2|normale
+notifs|capacity:db_warn:2026-44|2|normale
+crit|{cron_log,db_crit}
+taille ligne octets|473
+lecture non-admin|0
+NOTICE:  appel non-admin refusé

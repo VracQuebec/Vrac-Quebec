@@ -253,3 +253,9 @@ Non exécuté (vraies sessions TEST) : connexion gestionnaire/chauffeur, téléc
 - **Bloqués précisément** : invitation capturée avec propriétaire connecté, activation compte chauffeur confirmé, destination fictive approuvée puis affectation, acceptation/démarrage/positions/clôture/isolation/révocation même session. Compte chauffeur inexistant et session actuelle signed_out. Première connexion utile : `test-a-proprietaire@test.invalid` à `/login` dans l'aperçu. Création personnelle sur le document invitation; incompatibilité à résoudre honnêtement entre capture réservée `.invalid` et confirmation par boîte normale, sans confirmation forcée.
 - **Protections** : 0 mission, 0 réservation, 0 invitation pour le nouveau profil; `exec02_dispatch(jsonb)` et les quatre auxiliaires financiers fermés à authenticated. 0231/0232/0233 conservés, aucun déploiement/migration/publication/courriel/SMS.
 - **Bilan détaillé et identification consultables dans le projet, non publics** : [Clôture de préparation chauffeur](r4k-preuves/CLOTURE-CHAUFFEUR.md). Préparation indépendante close; validation R4K chauffeur non close. SEO, abonnement et campagnes hors verdict.
+
+## 2026-10-28 — Consentement, capacité, miniatures (voir `suite-consentement-capacite-2026-10-28.md`)
+- Aperçu : bandeau Accepter/Refuser/Personnaliser, GA chargé seulement après accord, politique mise à jour, bouton miniatures anciennes photos CRM.
+- Préparé (non installé) : `prepared/stockage-2026-10-28/02_surveillance_alertes.sql`, testé sur base jetable locale.
+- Mesuré serveur avec TEST A : PDF 1 Mo et 15 Mo via secure-file (0,5–1 s à chaud, ≈4 s à froid).
+- Bloqué/à approuver : installation surveillance, purge journaux techniques, publication; essai téléphone réel; durée de conservation GA à confirmer.
