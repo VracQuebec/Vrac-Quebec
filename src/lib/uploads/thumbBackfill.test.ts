@@ -21,10 +21,10 @@ const files = (): LegacyFile[] => [
 
 describe("miniatures des anciennes photos", () => {
   it("crée les miniatures sans toucher aux originaux ni aux PDF", async () => {
-    const f = fake(); const before = await f.objects.get("orig/a.jpg")!.text();
+    const f = fake(); const before = f.objects.get("orig/a.jpg");
     const r = await backfillThumbs("c1", files(), f.deps);
     expect(r).toEqual({ created: 2, reused: 0, skipped: 2, failed: 0 });
-    expect(await f.objects.get("orig/a.jpg")!.text()).toBe(before);
+    expect(f.objects.get("orig/a.jpg")).toBe(before);
     expect(f.rows.get("a")).toBe(legacyThumbPath("c1", "a"));
     expect(f.rows.has("p")).toBe(false);
   });
