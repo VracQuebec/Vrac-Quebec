@@ -52,18 +52,16 @@
       fonts.rel = 'stylesheet';
       fonts.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap';
       document.head.appendChild(fonts);
-      var gaScript = document.createElement('script');
-      gaScript.async = true;
-      gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-T6HYZVY8E0';
-      document.head.appendChild(gaScript);
       window.dataLayer = window.dataLayer || [];
       function gtag(){ dataLayer.push(arguments); }
       window.gtag = gtag;
-      if (location.pathname.indexOf('/entrepreneur/crm') === 0) { window['ga-disable-G-T6HYZVY8E0'] = true; }
+      // Loi 25 : tout refusé par défaut; le script GA n'est chargé qu'après accord (src/lib/analytics/consent.ts).
+      gtag('consent', 'default', { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+      window['ga-disable-G-T6HYZVY8E0'] = true;
       gtag('js', new Date());
       // send_page_view:false — le routeur SPA (src/lib/analytics/ga4.ts) envoie
       // page_view manuellement à chaque changement de route pour éviter les doublons.
-      gtag('config', 'G-T6HYZVY8E0', { send_page_view: false, anonymize_ip: true });
+      gtag('config', 'G-T6HYZVY8E0', { send_page_view: false, anonymize_ip: true, allow_google_signals: false, allow_ad_personalization_signals: false });
       }
     </script>
     <title>Vrac Québec | Terre, Sable, Gravier &amp; Remblai</title>

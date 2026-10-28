@@ -1,6 +1,7 @@
 // Pied de page public commun : coordonnée publique unique de Vrac Québec.
 // Masqué dans les espaces connectés et sur les pages qui ont déjà leur propre pied de page.
 import { Link, useLocation } from "react-router-dom";
+import { openConsentSettings } from "@/lib/analytics/consent";
 import { Phone } from "lucide-react";
 import { PUBLIC_PHONE, PUBLIC_PHONE_E164 } from "@/lib/public-phone";
 
@@ -30,6 +31,7 @@ export default function PublicContactFooter() {
           <Link to="/remblai" className="inline-flex min-h-11 items-center hover:text-foreground">Je veux du remblai</Link>
           <Link to="/contact" className="inline-flex min-h-11 items-center hover:text-foreground">Contact</Link>
           <Link to="/confidentialite" className="inline-flex min-h-11 items-center hover:text-foreground">Confidentialité</Link>
+          <button type="button" onClick={openConsentSettings} className="inline-flex min-h-11 items-center hover:text-foreground">Témoins</button>
         </div>
       </div>
     </footer>

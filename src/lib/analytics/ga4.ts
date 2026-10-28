@@ -31,11 +31,12 @@ function canSend(path: string): boolean {
 
 /** Événements autorisés : aucun champ libre, aucune coordonnée, aucun numéro de dossier. */
 const ALLOWED_EVENTS: Record<string, readonly string[]> = {
-  cta_click: ['cta_id'],
-  form_start: ['form_id'],
-  form_submit_success: ['form_id'],
-  calculator_use: ['calculator_id'],
-  city_page_cta: ['cta_id'],
+  lead_created: ['form', 'service', 'variant'],
+  intent_select: ['intent'],
+  home_cta: ['cta'],
+  phone_click: ['page_slug'],
+  whatsapp_click: ['page_slug'],
+  form_submit: ['page_slug'],
 };
 
 /** Envoie un page_view GA4 pour la route SPA courante. */
@@ -60,7 +61,7 @@ export function trackEvent(name: string, params: Record<string, unknown> = {}): 
   const safe: Record<string, string> = {};
   for (const k of keys) {
     const v = params[k];
-    if (typeof v === 'string' && /^[a-z0-9_-]{1,40}$/i.test(v)) safe[k] = v;
+    if (typeof v === 'string' && /^[a-z0-9_/-]{1,80}$/i.test(v)) safe[k] = v;
   }
   try {
     window.gtag!("event", name, { send_to: GA4_MEASUREMENT_ID, ...safe });
