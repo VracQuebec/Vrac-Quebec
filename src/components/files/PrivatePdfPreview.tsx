@@ -39,10 +39,12 @@ export default function PrivatePdfPreview({ blob, name }: { blob: Blob; name: st
       if (!active) return;
       const view = pdfPage.getViewport({ scale: 1.5 });
       element.width = view.width; element.height = view.height;
-      render = pdfPage.render({ canvas: element, viewport: view });
+      const context = element.getContext("2d");
+      if (!context) throw new Error("Canvas indisponible");
+      render = pdfPage.render({ canvas: element, canvasContext: context, viewport: view });
       await render.promise;
       if (active) setLoading(false);
-    })().catch(() => { if (active) { setError("Aperçu PDF indisponible. Téléchargez le document."); setLoading(false); } });
+    })().catch((cause: unknown) => { if (active) { setError(`Aperçu PDF indisponible. Téléchargez le document.${cause instanceof Error ? ` (${cause.message})` : ""}`); setLoading(false); } });
     return () => { active = false; render?.cancel(); };
   }, [page, ready]);
   return <div className="space-y-2">
