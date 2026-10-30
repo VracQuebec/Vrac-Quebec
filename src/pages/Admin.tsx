@@ -258,6 +258,11 @@ const Admin = () => {
   const [serverRows, setServerRows] = useState<Submission[]>([]);
   const [serverTotal, setServerTotal] = useState(0);
   const [pageLoading, setPageLoading] = useState(false);
+  // Relecture de la page serveur seulement si des demandes apparaissent/disparaissent;
+  // une modification met à jour la ligne localement (pas de rechargement complet).
+  const [pageRefresh, setPageRefresh] = useState(0);
+  const patchServerRow = (id: string, patch: Partial<Submission>) =>
+    setServerRows((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
 
   useEffect(() => {
     if (!authReady || roleLoading) return;
@@ -306,10 +311,13 @@ const Admin = () => {
         (payload: any) => {
           if (payload.eventType === "INSERT" && payload.new) {
             setSubmissions((prev) => (prev.find((s) => s.id === payload.new.id) ? prev : [payload.new as any, ...prev]));
+            setPageRefresh((n) => n + 1);
           } else if (payload.eventType === "UPDATE" && payload.new) {
             setSubmissions((prev) => prev.map((s) => (s.id === payload.new.id ? { ...s, ...payload.new } : s)));
+            patchServerRow(payload.new.id, payload.new);
           } else if (payload.eventType === "DELETE" && payload.old) {
             setSubmissions((prev) => prev.filter((s) => s.id !== payload.old.id));
+            setPageRefresh((n) => n + 1);
           }
         }
       )
@@ -354,7 +362,7 @@ const Admin = () => {
     if (!confirm("Supprimer définitivement cette demande ?")) return;
     const { error } = await supabase.from("submissions").delete().eq("id", id);
     if (error) toast({ title: "Erreur", description: "Impossible de supprimer.", variant: "destructive" });
-    else { setSubmissions((prev) => prev.filter((s) => s.id !== id)); toast({ title: "Supprimée" }); }
+    else { setSubmissions((prev) => prev.filter((s) => s.id !== id)); setPageRefresh((n) => n + 1); toast({ title: "Supprimée" }); }
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -376,8 +384,9 @@ const Admin = () => {
       });
       return;
     }
-    setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
-    toast({ title: "Statut mis à jour", description: status });
+    setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, status: data.status } : s)));
+    patchServerRow(id, { status: data.status });
+    toast({ title: "Statut mis à jour", description: data.status });
   };
 
   const updateField = async (id: string, patch: Partial<Submission>) => {
@@ -400,6 +409,7 @@ const Admin = () => {
       return;
     }
     setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    patchServerRow(id, patch);
     toast({ title: "Enregistré" });
   };
 
@@ -668,13 +678,18 @@ const Admin = () => {
       .catch(() => { if (!cancelled) toast({ title: "Erreur", description: "Impossible de charger cette page.", variant: "destructive" }); })
       .finally(() => { if (!cancelled) setPageLoading(false); });
     return () => { cancelled = true; };
-  }, [isAdmin, tab, view, clientMode, leadFilters, sort, page, submissions]);
+  }, [isAdmin, tab, view, clientMode, leadFilters, sort, page, pageRefresh]);
 
+  // Les modifications locales (statut, champs, géocodage) s'appliquent à la page affichée sans relecture.
+  const serverRowsMerged = useMemo(() => {
+    const byId = new globalThis.Map<string, Submission>(submissions.map((s) => [s.id, s] as [string, Submission]));
+    return serverRows.map((r) => byId.get(r.id) ?? r);
+  }, [serverRows, submissions]);
   const totalResults = clientMode ? filtered.length : serverTotal;
   const totalPages = Math.max(1, Math.ceil(totalResults / LEADS_PAGE_SIZE));
   const pageItems = clientMode
     ? filtered.slice((page - 1) * LEADS_PAGE_SIZE, page * LEADS_PAGE_SIZE)
-    : serverRows;
+    : serverRowsMerged;
   const activeFilters = [
     filterStatus !== "all" && `Statut : ${findStatus(leadStatuses, filterStatus)?.label ?? filterStatus}`,
     filterType !== "all" && `Type : ${requestTypeMeta(filterType).label}`,

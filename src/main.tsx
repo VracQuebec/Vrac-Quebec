@@ -45,6 +45,9 @@ function maybeReloadOnChunkError(msg: string) {
   } catch { /* noop */ }
   window.location.reload();
 }
+// Une fois l'application stable, on réarme la reprise : un prochain déploiement
+// dans le même onglet pourra encore recharger une fois au lieu de rester bloqué.
+window.setTimeout(() => { try { sessionStorage.removeItem(CHUNK_RELOAD_KEY); } catch { /* noop */ } }, 15000);
 window.addEventListener("error", (e) => {
   maybeReloadOnChunkError(e?.message ?? "");
 });
