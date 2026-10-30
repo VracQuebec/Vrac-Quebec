@@ -825,7 +825,7 @@ const Admin = () => {
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
-              Demandes ({filtered.length})
+              Demandes ({loading ? (serverPageReady && !clientMode ? `${serverTotal}` : "chargement…") : filtered.length})
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">Recherchez, filtrez et traitez les demandes reçues.</p>
           </div>
@@ -854,12 +854,12 @@ const Admin = () => {
                 <DropdownMenuItem asChild><Link to="/admin/donnees"><DatabaseIcon /> Données importées</Link></DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Exportation</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={exportCSVAdmin}><Download /> Exporter CSV administrateur</DropdownMenuItem>
-                <DropdownMenuItem onSelect={exportCSVEntrepreneur}><Download /> Exporter CSV entrepreneur</DropdownMenuItem>
+                <DropdownMenuItem disabled={loading} onSelect={exportCSVAdmin}><Download /> {loading ? "Export disponible après chargement complet…" : "Exporter CSV administrateur"}</DropdownMenuItem>
+                <DropdownMenuItem disabled={loading} onSelect={exportCSVEntrepreneur}><Download /> Exporter CSV entrepreneur</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Adresses</DropdownMenuLabel>
-                <DropdownMenuItem disabled={!!geocoding} onSelect={geocodeMissing}><MapPin /> {geocoding ? `Géocodage ${geocoding.done}/${geocoding.total}…` : "Géocoder les adresses"}</DropdownMenuItem>
-                <DropdownMenuItem disabled={!!rechecking || !!geocoding} onSelect={recheckAllAddresses}><MapPin /> {rechecking ? `Vérification ${rechecking.done}/${rechecking.total}…` : "Re-vérifier les adresses"}</DropdownMenuItem>
+                <DropdownMenuItem disabled={loading || !!geocoding} onSelect={geocodeMissing}><MapPin /> {geocoding ? `Géocodage ${geocoding.done}/${geocoding.total}…` : "Géocoder les adresses"}</DropdownMenuItem>
+                <DropdownMenuItem disabled={loading || !!rechecking || !!geocoding} onSelect={recheckAllAddresses}><MapPin /> {rechecking ? `Vérification ${rechecking.done}/${rechecking.total}…` : "Re-vérifier les adresses"}</DropdownMenuItem>
                 <DropdownMenuItem onSelect={fetchSubmissions}><RefreshCw /> Actualiser la liste</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
