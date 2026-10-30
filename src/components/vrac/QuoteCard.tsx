@@ -20,7 +20,7 @@ function truckLabel(quote: PublicQuote): string {
   return name ?? (capacity ? `${capacity} tonnes` : "Déterminé par notre équipe");
 }
 
-const UNIT_LABEL: Record<string, string> = { tonne: "tonnes", m3: "m³", verge: "verges³" };
+const UNIT_LABEL: Record<string, string> = { tonne: "tonnes", m3: "m³", verge: "verges³", voyage: "voyage(s)" };
 
 /** Quantité affichée : ce que le client a demandé, converti en tonnes si nécessaire. */
 function quantityLabel(quote: PublicQuote): string {
@@ -179,19 +179,19 @@ export default function QuoteCard({
             <Phone className="mr-2 h-4 w-4" /> Appeler maintenant
           </a>
         </Button>
-        <Button onClick={onEmail} disabled={pending !== null} className="h-auto w-full whitespace-normal py-3 text-center">
+        {!result && <Button onClick={onEmail} disabled={pending !== null} className="h-auto w-full whitespace-normal py-3 text-center">
           {pending === "submit"
             ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Envoi…</>
             : <><Check className="mr-2 h-4 w-4" /> Confirmer ma demande</>}
-        </Button>
-        <Button onClick={onCallback} variant="outline" disabled={pending !== null} className="h-auto w-full whitespace-normal py-3 text-center">
+        </Button>}
+        {!result && <Button onClick={onCallback} variant="outline" disabled={pending !== null} className="h-auto w-full whitespace-normal py-3 text-center">
           {pending === "callback"
             ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Envoi…</>
             : <><PhoneCall className="mr-2 h-4 w-4" /> Demander un rappel</>}
-        </Button>
-        <Button onClick={onEdit} variant="ghost" className="h-auto w-full whitespace-normal py-3 text-center">
+        </Button>}
+        {!result && <Button onClick={onEdit} variant="ghost" className="h-auto w-full whitespace-normal py-3 text-center">
           <Pencil className="mr-2 h-4 w-4" /> Modifier ma demande
-        </Button>
+        </Button>}
         {onRefuse && !result && (
           <Button onClick={onRefuse} variant="ghost" disabled={pending !== null || refused}
             className="h-auto w-full whitespace-normal py-3 text-center text-muted-foreground sm:col-span-2">

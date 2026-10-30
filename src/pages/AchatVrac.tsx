@@ -26,6 +26,7 @@ import { buildQuoteRequest, useVracEstimate } from "@/lib/vrac/estimate";
 import { useQuoteSubmit } from "@/lib/vrac/submit";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
 import { PUBLIC_PHONE } from "@/lib/public-phone";
+import { readQuoteReceipt, saveQuoteReceipt } from '@/lib/vrac/receipt';
 import {
   recommendedTruckId, unitLabel, unitsForSlug, useMaterialUnits, usePublicTrucks, useTruckCapacity,
 } from "@/lib/vrac/units";
@@ -51,6 +52,7 @@ export default function AchatVrac() {
   };
   const estimate = useVracEstimate();
   const submission = useQuoteSubmit();
+  const [receipt, setReceipt] = useState(() => readQuoteReceipt('achat-vrac'));
 
   // NAV-01 : brouillon commun (données + étape, versionné). L'ancienne clé locale sert de
   // point de départ une seule fois puis est retirée : aucune double sauvegarde.
@@ -93,7 +95,15 @@ export default function AchatVrac() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.ready]);
   // Demande transmise : le brouillon est finalisé et ne peut plus revenir.
-  useEffect(() => { if (submission.result) store.finalize(); }, [submission.result]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!submission.result) return;
+    const number = submission.result.quote_number ?? submission.result.request_number;
+    if (number && estimate.quote) {
+      const saved = { number: String(number), quote: estimate.quote, result: submission.result };
+      saveQuoteReceipt('achat-vrac', saved); setReceipt(saved);
+    }
+    store.finalize();
+  }, [submission.result]); // eslint-disable-line react-hooks/exhaustive-deps
   const startOver = () => {
     store.discard(); setDraft(EMPTY_VRAC_DRAFT); estimate.reset();
     setParams((p) => { const q = new URLSearchParams(p); q.delete("etape"); return q; });
@@ -186,7 +196,7 @@ export default function AchatVrac() {
   // Reprise sur une étape dont une condition précédente n'est plus remplie : on ramène à la
   // première étape à corriger (jamais systématiquement à l'étape 1), les autres saisies restent.
   useEffect(() => {
-    if (!store.ready || submission.result) return;
+    if (!store.ready || submission.result || receipt) return;
     const bad = valid.findIndex((v, i) => i < step && !v);
     if (bad < 0) return;
     setParams((p) => { const q = new URLSearchParams(p); if (bad === 0) q.delete("etape"); else q.set("etape", String(bad + 1)); return q; }, { replace: true });
@@ -198,6 +208,20 @@ export default function AchatVrac() {
   const manualReview = !!estimateBlocked && "unsupported" in estimateBlocked;
   const blockedReason = estimateBlocked && "unsupported" in estimateBlocked ? estimateBlocked.unsupported : null;
   const blockedStep = estimateBlocked && "unsupported" in estimateBlocked ? estimateBlocked.fixStep ?? 0 : 0;
+
+  if (receipt) return (
+    <div className="min-h-screen bg-background">
+      <TransportBanner />
+      <main className="mx-auto w-full max-w-3xl px-4 py-8">
+        <h1 className="text-2xl font-bold text-foreground">Votre demande est enregistrée</h1>
+        <p className="my-4 text-muted-foreground">Référence {receipt.number}.</p>
+        <QuoteCard quote={receipt.quote} address={receipt.quote.delivery_address ?? ''}
+          onEmail={() => {}} onCallback={() => {}} onEdit={() => {}} pending={null} error={null}
+          result={receipt.result ?? null} />
+        <Button asChild className="mt-6"><Link to="/">Retour à l'accueil</Link></Button>
+      </main>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
