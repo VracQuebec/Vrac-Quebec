@@ -60,3 +60,30 @@ describe("registre de consentement", () => {
   });
   it("aucun identifiant créé avant un choix", () => { expect(localStorage.getItem(CONSENT_ID_KEY)).toBeNull(); });
 });
+
+import { isAnalyticsHit, CONSENT_KEY } from "./consent";
+describe("retrait et preuves", () => {
+  it("ancien accord local sans preuve du registre : choix redemandé", () => {
+    localStorage.setItem(CONSENT_KEY, JSON.stringify({ v: 1, analytics: true, advertising: false, decidedAt: "x", policy: "p" }));
+    expect(readConsent()).toBeNull(); expect(analyticsAllowed()).toBe(false);
+  });
+  it("une ancienne acceptation en cours ne réactive jamais un refus plus récent", async () => {
+    let release!: () => void;
+    setConsentRecorder(({ analytics }) => analytics ? new Promise<void>((r) => { release = r; }) : Promise.resolve());
+    const accept = decideConsent(true, "banniere");
+    await decideConsent(false, "preferences");
+    release(); expect((await accept).ok).toBe(false);
+    expect(analyticsAllowed()).toBe(false);
+  });
+  it("refus appliqué même si le registre refuse (limite atteinte)", async () => {
+    setConsentRecorder(() => Promise.reject(new Error("consent_rate_limited")));
+    await decideConsent(false, "banniere");
+    expect(analyticsAllowed()).toBe(false); expect(readConsent()?.pending).toBe("banniere");
+  });
+  it("transmissions GA bloquées après retrait", async () => {
+    expect(isAnalyticsHit("https://region1.google-analytics.com/g/collect?v=2")).toBe(true);
+    expect(isAnalyticsHit("https://kenduhxscnynugpvktin.supabase.co/rest")).toBe(false);
+    saveConsent(false, undefined, false);
+    expect(navigator.sendBeacon?.("https://www.google-analytics.com/g/collect", "x") ?? true).toBe(true);
+  });
+});
