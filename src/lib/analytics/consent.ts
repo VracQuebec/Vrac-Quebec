@@ -3,6 +3,10 @@ import { GA4_MEASUREMENT_ID } from './ga4-id';
 /** Choix de témoins (Loi 25) : aucune mesure d'audience sans accord explicite. */
 export const CONSENT_KEY = 'vq_consent_v1';
 export const CONSENT_POLICY_VERSION = '2026-10-28';
+/** Version du texte du bandeau présenté (à changer quand le texte ou les catégories changent). */
+export const CONSENT_BANNER_VERSION = 'banniere-2026-10-30';
+export const CONSENT_ID_KEY = 'vq_consent_id';
+export type ConsentSource = 'banniere' | 'preferences';
 export const CONSENT_EVENT = 'vq:consent-change';
 export const OPEN_SETTINGS_EVENT = 'vq:consent-open';
 
@@ -13,6 +17,9 @@ export type ConsentChoice = {
   advertising: false;
   decidedAt: string;
   policy: string;
+  banner?: string;
+  /** Refus appliqué localement mais pas encore inscrit au registre. */
+  pending?: ConsentSource;
 };
 
 export function readConsent(): ConsentChoice | null {
@@ -31,19 +38,80 @@ export function analyticsAllowed(): boolean {
   return readConsent()?.analytics === true;
 }
 
-export function saveConsent(analytics: boolean): ConsentChoice {
+export function saveConsent(analytics: boolean, pending?: ConsentSource, reloadOnWithdraw = true): ConsentChoice {
   const choice: ConsentChoice = {
     v: 1, analytics, advertising: false,
-    decidedAt: new Date().toISOString(), policy: CONSENT_POLICY_VERSION,
+    decidedAt: new Date().toISOString(), policy: CONSENT_POLICY_VERSION, banner: CONSENT_BANNER_VERSION,
+    ...(pending ? { pending } : {}),
   };
   const wasAllowed = analyticsAllowed();
   window.localStorage.setItem(CONSENT_KEY, JSON.stringify(choice));
   applyConsent();
   // Retrait après accord : recharger pour décharger complètement la balise déjà active
   // (sinon un événement déjà mis en file pourrait encore partir).
-  if (wasAllowed && !analytics) { window.setTimeout(() => window.location.reload(), 0); }
-  window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: choice }));
+  if (reloadOnWithdraw && wasAllowed && !analytics) { window.setTimeout(() => window.location.reload(), 0); }
+  window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: { ...choice, granted: analytics && !wasAllowed } }));
   return choice;
+}
+
+/** Identifiant aléatoire propre au navigateur (aucune empreinte) + secret pour qu'un autre navigateur ne puisse pas le modifier. */
+export function consentIdentity(): { id: string; secret: string } {
+  try {
+    const raw = window.localStorage.getItem(CONSENT_ID_KEY);
+    const v = raw ? JSON.parse(raw) : null;
+    if (v && /^[0-9a-f-]{36}$/.test(v.id) && typeof v.secret === 'string' && v.secret.length >= 32) return v;
+  } catch { /* nouvel identifiant */ }
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  const secret = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  const v = { id: crypto.randomUUID(), secret };
+  window.localStorage.setItem(CONSENT_ID_KEY, JSON.stringify(v));
+  return v;
+}
+
+export type ConsentRecorder = (args: {
+  id: string; secret: string; analytics: boolean; banner: string; policy: string; source: ConsentSource;
+}) => Promise<void>;
+
+let recorder: ConsentRecorder | null = null;
+export function setConsentRecorder(r: ConsentRecorder): void { recorder = r; }
+
+async function record(analytics: boolean, source: ConsentSource): Promise<void> {
+  if (!recorder) throw new Error('registre indisponible');
+  const { id, secret } = consentIdentity();
+  await recorder({ id, secret, analytics, banner: CONSENT_BANNER_VERSION, policy: CONSENT_POLICY_VERSION, source });
+}
+
+/**
+ * Choix du visiteur. Accepter n'active la mesure qu'APRÈS inscription réussie au registre
+ * (un échec n'est jamais un consentement). Refuser s'applique immédiatement, même si
+ * l'inscription échoue (elle sera retentée au prochain chargement).
+ */
+export async function decideConsent(analytics: boolean, source: ConsentSource): Promise<{ ok: boolean }> {
+  if (analytics) {
+    try { await record(true, source); } catch { return { ok: false }; }
+    saveConsent(true);
+    return { ok: true };
+  }
+  const wasAllowed = analyticsAllowed();
+  saveConsent(false, source, false); // GA désactivé et témoins _ga effacés tout de suite
+  try {
+    await Promise.race([record(false, source), new Promise((_, rej) => setTimeout(() => rej(new Error('délai')), 5000))]);
+    saveConsent(false, undefined, false);
+  } catch { /* refus conservé localement, inscription retentée plus tard */ }
+  // Retrait : recharger pour décharger complètement la balise déjà active.
+  if (wasAllowed) window.setTimeout(() => window.location.reload(), 0);
+  return { ok: true };
+}
+
+/** Retente l'inscription d'un refus resté en attente. */
+export async function flushPendingConsent(): Promise<void> {
+  const c = readConsent();
+  if (!c?.pending || c.analytics) return;
+  try { await record(false, c.pending); } catch { return; }
+  const cur = readConsent();
+  if (cur && !cur.analytics && cur.pending) {
+    window.localStorage.setItem(CONSENT_KEY, JSON.stringify({ ...cur, pending: undefined }));
+  }
 }
 
 export function openConsentSettings(): void {

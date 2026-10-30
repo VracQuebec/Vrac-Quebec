@@ -11,8 +11,8 @@ import { ReturnToTracker } from "./lib/navigation/returnTo";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 import UniversalNav from "./components/UniversalNav";
 import PublicContactFooter from "./components/PublicContactFooter";
-import { trackPageView } from "./lib/analytics/ga4";
-import { applyConsent, CONSENT_EVENT } from "./lib/analytics/consent";
+import { trackPageView, isPrivateAnalyticsPath, sanitizeSearch } from "./lib/analytics/ga4";
+import { applyConsent, analyticsAllowed, CONSENT_EVENT } from "./lib/analytics/consent";
 import ConsentBanner from "./components/ConsentBanner";
 import { privateTelemetryBlocked } from './lib/analytics/privacy';
 import { useAdminNotifications } from "./hooks/useAdminNotifications";
@@ -92,6 +92,7 @@ const BlogGuides = lazy(() => import("./pages/BlogGuides"));
 const BlogFaq = lazy(() => import("./pages/BlogFaq"));
 const AdminBlacklist = lazy(() => import("./pages/AdminBlacklist"));
 const AdminFacebookGroups = lazy(() => import("./pages/AdminFacebookGroups"));
+const AdminConsents = lazy(() => import("./pages/AdminConsents"));
 const ZonesIndex = lazy(() => import("./pages/ZonesIndex"));
 const ZoneCityIndex = lazy(() => import("./pages/ZoneCityIndex"));
 const AdminSeoManager = lazy(() => import("./pages/AdminSeoManager"));
@@ -204,11 +205,17 @@ const Ga4RouteTracker = () => {
     const inCrm = privateTelemetryBlocked() || location.pathname.startsWith("/entrepreneur/crm");
     if (inCrm) { (window as unknown as Record<string, boolean>)["ga-disable-G-T6HYZVY8E0"] = true; return; }
     applyConsent();
+    // Espaces connectés et liens personnels : GA désactivé aussi pour ses événements automatiques
+    // (défilement, clics), et l'adresse transmise est toujours nettoyée des jetons.
+    const w = window as unknown as Record<string, unknown> & { gtag?: (...a: unknown[]) => void };
+    if (isPrivateAnalyticsPath(location.pathname)) { w["ga-disable-G-T6HYZVY8E0"] = true; return; }
+    if (analyticsAllowed()) w.gtag?.("set", { page_location: window.location.origin + location.pathname + sanitizeSearch(location.search), page_referrer: "" });
     // Laisse le temps au titre de se mettre à jour (Helmet) avant d'envoyer le page_view.
     const t = window.setTimeout(() => {
       trackPageView(location.pathname + location.search, document.title);
     }, 50);
-    const onConsent = () => trackPageView(location.pathname + location.search, document.title);
+    // Page vue envoyée seulement au moment où l'accord est donné (pas lors d'un même choix réenregistré).
+    const onConsent = (e: Event) => { if ((e as CustomEvent).detail?.granted) trackPageView(location.pathname + location.search, document.title); };
     window.addEventListener(CONSENT_EVENT, onConsent);
     return () => { window.clearTimeout(t); window.removeEventListener(CONSENT_EVENT, onConsent); };
   }, [location.pathname, location.search]);
@@ -339,6 +346,7 @@ const App = () => {
             <Route path="/admin/blogue/editer/:id" element={<AdminBlogEditor />} />
             <Route path="/admin/liste-noire" element={<AdminBlacklist />} />
             <Route path="/admin/groupes-facebook" element={<AdminFacebookGroups />} />
+            <Route path="/admin/temoins" element={<AdminConsents />} />
             <Route path="/admin/seo" element={<AdminSeoManager />} />
             <Route path="/demande-transport" element={<TransportRequest />} />
             <Route path="/acces-dompe" element={<TransportRequest />} />

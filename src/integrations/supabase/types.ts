@@ -2432,6 +2432,122 @@ export type Database = {
           },
         ]
       }
+      consent_events: {
+        Row: {
+          action: string
+          advertising: boolean
+          analytics: boolean
+          banner_version: string
+          consent_id: string
+          created_at: string
+          id: string
+          policy_version: string
+          previous_analytics: boolean | null
+          source: string
+        }
+        Insert: {
+          action: string
+          advertising?: boolean
+          analytics: boolean
+          banner_version: string
+          consent_id: string
+          created_at?: string
+          id?: string
+          policy_version: string
+          previous_analytics?: boolean | null
+          source: string
+        }
+        Update: {
+          action?: string
+          advertising?: boolean
+          analytics?: boolean
+          banner_version?: string
+          consent_id?: string
+          created_at?: string
+          id?: string
+          policy_version?: string
+          previous_analytics?: boolean | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_events_consent_id_fkey"
+            columns: ["consent_id"]
+            isOneToOne: false
+            referencedRelation: "consent_records"
+            referencedColumns: ["consent_id"]
+          },
+        ]
+      }
+      consent_records: {
+        Row: {
+          advertising: boolean
+          analytics: boolean
+          banner_version: string
+          consent_id: string
+          first_decided_at: string
+          last_changed_at: string
+          policy_version: string
+          secret_hash: string
+          source: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          advertising?: boolean
+          analytics: boolean
+          banner_version: string
+          consent_id: string
+          first_decided_at?: string
+          last_changed_at?: string
+          policy_version: string
+          secret_hash: string
+          source: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          advertising?: boolean
+          analytics?: boolean
+          banner_version?: string
+          consent_id?: string
+          first_decided_at?: string
+          last_changed_at?: string
+          policy_version?: string
+          secret_hash?: string
+          source?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: []
+      }
+      consent_settings: {
+        Row: {
+          id: number
+          max_events_per_browser_hour: number
+          max_events_per_minute: number
+          notes: string | null
+          retention_days: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: number
+          max_events_per_browser_hour?: number
+          max_events_per_minute?: number
+          notes?: string | null
+          retention_days?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: number
+          max_events_per_browser_hour?: number
+          max_events_per_minute?: number
+          notes?: string | null
+          retention_days?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       cpn_book_events: {
         Row: {
           action: string
@@ -32297,6 +32413,18 @@ export type Database = {
       }
       catalog_propose: {
         Args: { _company: string; _kind: string; _source: string }
+        Returns: string
+      }
+      consent_purge_expired: { Args: never; Returns: number }
+      consent_record_choice: {
+        Args: {
+          p_analytics: boolean
+          p_banner_version: string
+          p_consent_id: string
+          p_policy_version: string
+          p_secret: string
+          p_source: string
+        }
         Returns: string
       }
       count_active_dumps_by_city: {

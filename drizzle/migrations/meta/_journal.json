@@ -1786,6 +1786,13 @@
       "when": 1793374458354,
       "tag": "0254_vrac_public_lead_tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 255,
+      "version": "7",
+      "when": 1793383104396,
+      "tag": "0255_consent_registry",
+      "breakpoints": true
     }
   ]
 }

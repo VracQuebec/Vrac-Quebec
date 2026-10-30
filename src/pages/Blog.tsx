@@ -199,7 +199,7 @@ export default function Blog() {
           {" · "}
           <Link to="/confidentialite" className="hover:text-foreground">Confidentialité</Link>
           {" · "}
-          <button type="button" onClick={openConsentSettings} className="hover:text-foreground">Témoins</button>
+          <button type="button" onClick={openConsentSettings} className="hover:text-foreground">Gérer mes témoins</button>
         </div>
       </footer>
     </div>
