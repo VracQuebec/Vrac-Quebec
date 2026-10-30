@@ -171,6 +171,16 @@ async function computeQuote(sb: any, args: QuoteArgs) {
 
 // ---------- 4. Confirmation : client + demande + estimation ----------
 async function submit(sb: any, body: any, req: Request) {
+  // Nouveau parcours : même service durable et réservation que l'achat de vrac.
+  if (validLeadToken(body?.lead_token)) {
+    const response = await fetchWithTimeout(`${Deno.env.get('SUPABASE_URL')}/functions/v1/quote-submit`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+      body: JSON.stringify({ ...body, action: 'submit', source: 'soumission' }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error('Confirmation impossible : réessayez.');
+    return result;
+  }
   const args = readQuoteArgs(body);
   const name = clean(body?.contact?.name, 160);
   const phone = clean(body?.contact?.phone, 40);

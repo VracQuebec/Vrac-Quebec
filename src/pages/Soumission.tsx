@@ -224,7 +224,7 @@ export default function Soumission() {
   };
 
   const submit = async () => {
-    if (!material || !quantityPayload || sending.current) return;
+    if (!material || !quantityPayload || !quote || sending.current) return;
     sending.current = true;
     setSubmitting(true);
     try {
@@ -243,7 +243,7 @@ export default function Soumission() {
         website: honeypot,
         form_started_at: startedAt.current,
       });
-      setConfirmation({ number: res.request_number, quote: res.quote.public });
+      setConfirmation({ number: res.request_number, quote: res.quote?.public ?? quote });
       draft.finalize(); // demande confirmée : le brouillon ne peut plus revenir
       trackEvent("lead_created", { form: "soumission" });
     } catch (e) {

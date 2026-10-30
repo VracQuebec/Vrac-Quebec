@@ -18,6 +18,7 @@ import { clientIp, GuardError } from '../_shared/public-guard.ts';
 import { claimQuote, completeQuote, quoteFingerprint, releaseQuote, SCOPE } from './dedupe.ts';
 import { cleanAnswers, findLead, patchLead, upsertLead, validLeadToken } from '../_shared/public-lead.ts';
 import { handleEstimate } from './estimate.ts';
+import { isReservedTestEmail } from '../_shared/test-identity.ts';
 import { fetchWithTimeout } from '../_shared/http.ts';
 import { logEvent, logEventAsync } from '../_shared/observability.ts';
 
@@ -151,6 +152,7 @@ Deno.serve(async (req) => {
     if (!name) throw new Error('Votre nom est requis.');
     if (!phone || phone.replace(/\D/g, '').length < 10) throw new Error('Un numéro de téléphone valide est requis.');
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new Error('Un courriel valide est requis.');
+    const testIdentity = isReservedTestEmail(email);
 
     const materialId = await resolveMaterialId(sb, body);
     const catalogId = typeof body?.material_catalog_id === 'string' && body.material_catalog_id.length >= 10 ? body.material_catalog_id : null;
@@ -179,7 +181,7 @@ Deno.serve(async (req) => {
     // Mécanisme partagé avec submit-parcours (guard_claim/complete/release).
     const fingerprint = await quoteFingerprint({
       email, action, quantity, unit, address,
-      material: String(body?.material_id ?? body?.material_slug ?? ''),
+      material: `${body?.material_id ?? body?.material_slug ?? ''}|${leadToken ?? ''}|${body?.truck_id ?? ''}`,
       catalogId, variantId, granulometryId, customMaterial,
     });
     const claim = await claimQuote(sb, {
@@ -388,8 +390,7 @@ Deno.serve(async (req) => {
     }).select('id,quote_number,valid_until').single();
     if (quoteError) throw new Error(quoteError.message);
     // La soumission EXISTE : on mémorise sa référence avant tout envoi.
-    recorded = { request_number: request.request_number, quote_number: quote.quote_number, valid_until: quote.valid_until };
-    await completeQuote(sb, claimId!, { submission_id: quote.id, request_id: request.id, ...recorded });
+    const createdRef = { request_number: request.request_number, quote_number: quote.quote_number, valid_until: quote.valid_until };
 
     // ---------- Courriels : client + administration ----------
     // Le courriel doit afficher exactement la même information que la page.
@@ -487,13 +488,16 @@ Deno.serve(async (req) => {
       }
       logEventAsync({ source: 'quote_submit', event: 'crm.lead_created', refId: String(lead?.id ?? '') });
     } catch (e) {
-      // Le CRM ne doit jamais bloquer la soumission client : on journalise.
       await logEvent({
         source: 'quote_submit', event: 'crm.lead_failed', level: 'error',
         message: e instanceof Error ? e.message : String(e),
         refId: quote.quote_number ?? quote.id,
       });
+      // Ne pas annoncer une acceptation si sa décision n'a pas été enregistrée.
+      throw e;
     }
+    recorded = createdRef;
+    await completeQuote(sb, claimId ?? '', { submission_id: quote.id, request_id: request.id, ...recorded });
 
     const clientData = {
       quoteNumber: quote.quote_number, name, material: pub.material.name,
@@ -501,7 +505,7 @@ Deno.serve(async (req) => {
       address: publicPayload.delivery_address, total: money(pub.total), validUntil: validLabel,
     };
 
-    const clientMail = await sendEmail({
+    const clientMail = testIdentity ? { ok: true as const } : await sendEmail({
       templateName: 'soumission-client',
       recipientEmail: email,
       idempotencyKey: `soumission-client-${quote.id}`,
@@ -509,7 +513,7 @@ Deno.serve(async (req) => {
     });
 
     const adminEmail = await readSetting(sb, 'admin_notification_email');
-    if (adminEmail) {
+    if (adminEmail && !testIdentity) {
       const adminMail = await sendEmail({
         templateName: 'soumission-interne',
         recipientEmail: adminEmail,
@@ -584,11 +588,12 @@ Deno.serve(async (req) => {
 
     return json({
       ok: true,
-      email_sent: true,
+      email_sent: !testIdentity,
+      test_suppressed: testIdentity,
       quote_number: quote.quote_number,
       request_number: request.request_number,
       valid_until: quote.valid_until,
-      emailed_to: email,
+      emailed_to: testIdentity ? null : email,
     });
   } catch (e) {
     if (recorded) {

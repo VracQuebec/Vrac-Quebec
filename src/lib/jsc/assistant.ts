@@ -88,7 +88,7 @@ export const confirmEstimate = (input: {
   website?: string;
   form_started_at?: number;
 }) =>
-  call<{ request_number: string; submission_id?: string | null; deduplicated?: boolean; quote: { public: PublicQuote } }>(
+  call<{ request_number: string; submission_id?: string | null; deduplicated?: boolean; quote?: { public: PublicQuote } }>(
     { action: "submit", ...input },
   );
 
