@@ -17,3 +17,12 @@
 ## Publication
 - Publication demandée à 20:20 UTC. Les premiers contrôles sur vracquebec.ca servaient encore l’ancien écran; ils ne constituent pas une validation de la nouvelle version.
 - Analyse préalable terminée : aucun résultat critique; résultats connus ignorés conservés. Analyse approfondie distincte disponible sur demande.
+
+## Vérification publiée terminée
+- vracquebec.ca sert les nouveaux boutons : aucun appel/rappel sur les résultats, erreur sans faux prix, modification accessible.
+- Les deux parcours ont effectué erreur réelle → modification → recalcul → refus/acceptation. Les deux acceptations restent visibles après rechargement.
+- /acheter-materiaux : #881 `ea890567-1995-4cec-ba46-f5eb19aa2512` refusée, #882 `f1526be0-d793-46ab-ba4a-a8305124a9df` acceptée.
+- /soumission : #883 `57d1951f-fe54-4b25-9306-aa881ca8858d` refusée, #884 `3dddcf08-2411-4471-acf9-72d40d8ec71b` acceptée.
+- Lecture serveur exacte : quatre lignes (une par jeton), calcul réussi et décisions attendues, statut CRM `nouveau` inchangé; 14 notifications fictives `skipped`, aucune `pending`.
+- L’indicateur automatique `achat_*_fail_phone` vaut true parce que le résumé contient le téléphone fictif saisi; la capture confirme l’absence de bouton ou invitation à téléphoner.
+- Aucun consentement choisi pendant les essais, aucune permission modifiée. La session Lovable entrepreneur n’a pas été utilisée comme administrateur; conservation vérifiée en lecture serveur, pas par une session propriétaire CRM.
