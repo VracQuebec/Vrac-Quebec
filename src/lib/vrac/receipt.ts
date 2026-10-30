@@ -1,6 +1,7 @@
 import type { PublicQuote } from '@/lib/jsc/engine';
+import type { SubmitResult } from './submit';
 
-export interface QuoteReceipt { number: string; quote: PublicQuote }
+export interface QuoteReceipt { number: string; quote: PublicQuote; result?: SubmitResult }
 const key = (form: string) => `vq.quote-receipt.${form}`;
 
 /** Same-tab confirmation only; never a bearer token or an authorization source. */

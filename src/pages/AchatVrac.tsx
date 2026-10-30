@@ -99,7 +99,7 @@ export default function AchatVrac() {
     if (!submission.result) return;
     const number = submission.result.quote_number ?? submission.result.request_number;
     if (number && estimate.quote) {
-      const saved = { number: String(number), quote: estimate.quote };
+      const saved = { number: String(number), quote: estimate.quote, result: submission.result };
       saveQuoteReceipt('achat-vrac', saved); setReceipt(saved);
     }
     store.finalize();
@@ -217,7 +217,7 @@ export default function AchatVrac() {
         <p className="my-4 text-muted-foreground">Référence {receipt.number}.</p>
         <QuoteCard quote={receipt.quote} address={receipt.quote.delivery_address ?? ''}
           onEmail={() => {}} onCallback={() => {}} onEdit={() => {}} pending={null} error={null}
-          result={{ quote_number: receipt.number, request_number: receipt.number, valid_until: null, emailed_to: null, action: 'submit', email_sent: false }} />
+          result={receipt.result ?? null} />
         <Button asChild className="mt-6"><Link to="/">Retour à l'accueil</Link></Button>
       </main>
     </div>
