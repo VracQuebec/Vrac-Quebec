@@ -36,3 +36,27 @@ describe("consentement GA", () => {
     expect(sent()[1][2]).toEqual({ send_to: "G-T6HYZVY8E0" });
   });
 });
+
+import { decideConsent, setConsentRecorder, CONSENT_ID_KEY } from "./consent";
+describe("registre de consentement", () => {
+  it("échec d'inscription d'un accord : la mesure reste désactivée", async () => {
+    setConsentRecorder(async () => { throw new Error("hors ligne"); });
+    const r = await decideConsent(true, "banniere");
+    expect(r.ok).toBe(false); expect(analyticsAllowed()).toBe(false); expect(document.getElementById("vq-ga4")).toBeNull();
+  });
+  it("refus appliqué même si l'inscription échoue, marqué en attente", async () => {
+    setConsentRecorder(async () => { throw new Error("hors ligne"); });
+    await decideConsent(false, "preferences");
+    expect(analyticsAllowed()).toBe(false); expect(readConsent()?.pending).toBe("preferences");
+  });
+  it("accord inscrit avec identifiant aléatoire stable et sans donnée personnelle", async () => {
+    const seen: Record<string, unknown>[] = [];
+    setConsentRecorder(async (a) => { seen.push(a); });
+    await decideConsent(true, "banniere"); await decideConsent(true, "preferences");
+    expect(analyticsAllowed()).toBe(true);
+    expect(seen[0].id).toBe(seen[1].id);
+    expect(Object.keys(seen[0]).sort()).toEqual(["analytics", "banner", "id", "policy", "secret", "source"]);
+    expect(JSON.parse(localStorage.getItem(CONSENT_ID_KEY)!).id).toBe(seen[0].id);
+  });
+  it("aucun identifiant créé avant un choix", () => { expect(localStorage.getItem(CONSENT_ID_KEY)).toBeNull(); });
+});
