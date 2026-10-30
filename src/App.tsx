@@ -209,7 +209,8 @@ const Ga4RouteTracker = () => {
     const t = window.setTimeout(() => {
       trackPageView(location.pathname + location.search, document.title);
     }, 50);
-    const onConsent = () => trackPageView(location.pathname + location.search, document.title);
+    // Page vue envoyée seulement au moment où l'accord est donné (pas lors d'un même choix réenregistré).
+    const onConsent = (e: Event) => { if ((e as CustomEvent).detail?.granted) trackPageView(location.pathname + location.search, document.title); };
     window.addEventListener(CONSENT_EVENT, onConsent);
     return () => { window.clearTimeout(t); window.removeEventListener(CONSENT_EVENT, onConsent); };
   }, [location.pathname, location.search]);

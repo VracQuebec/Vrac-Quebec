@@ -50,7 +50,7 @@ export function saveConsent(analytics: boolean, pending?: ConsentSource, reloadO
   // Retrait après accord : recharger pour décharger complètement la balise déjà active
   // (sinon un événement déjà mis en file pourrait encore partir).
   if (reloadOnWithdraw && wasAllowed && !analytics) { window.setTimeout(() => window.location.reload(), 0); }
-  window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: choice }));
+  window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: { ...choice, granted: analytics && !wasAllowed } }));
   return choice;
 }
 
