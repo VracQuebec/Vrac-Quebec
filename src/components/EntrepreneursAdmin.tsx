@@ -96,7 +96,7 @@ const fmtMoney = (n: number) =>
 
 const PAGE_SIZE = 20;
 type EntrepreneurSort = "newest" | "oldest" | "az" | "za";
-type AccountFilter = "all" | "active" | "pending";
+type AccountFilter = "all" | "active" | "suspended";
 type VisibilityFilter = "all" | "visible" | "hidden";
 
 export default function EntrepreneursAdmin() {
@@ -109,7 +109,8 @@ export default function EntrepreneursAdmin() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const search = searchParams.get("entrepreneurs_q") ?? "";
   const sort = (searchParams.get("entrepreneurs_sort") as EntrepreneurSort) || "az";
-  const accountFilter = (searchParams.get("entrepreneurs_account") as AccountFilter) || "all";
+  const rawAccountFilter = searchParams.get("entrepreneurs_account");
+  const accountFilter: AccountFilter = rawAccountFilter === "active" || rawAccountFilter === "suspended" ? rawAccountFilter : "all";
   const visibilityFilter = (searchParams.get("entrepreneurs_visibility") as VisibilityFilter) || "all";
   const page = Math.max(1, Number(searchParams.get("entrepreneurs_page")) || 1);
 
@@ -264,7 +265,7 @@ export default function EntrepreneursAdmin() {
           <div className="grid gap-3 rounded-lg border border-border bg-card p-3 sm:grid-cols-2">
             <label className="text-sm font-medium">Statut du compte
               <select value={accountFilter} onChange={(e) => updateCriteria("entrepreneurs_account", e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-input bg-background px-3 font-normal">
-                <option value="all">Tous les statuts</option><option value="active">Actif</option><option value="pending">En attente</option>
+                <option value="all">Tous les statuts</option><option value="active">Actif</option><option value="suspended">Suspendu</option>
               </select>
             </label>
             <label className="text-sm font-medium">Visibilité réseau
@@ -287,7 +288,7 @@ export default function EntrepreneursAdmin() {
               <article key={r.user_id} className="min-w-0 rounded-lg border border-border bg-card p-4">
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="min-w-0 break-words font-display text-lg font-bold leading-snug">{r.company || "Non renseigné"}</h2>
-                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${r.approved ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{r.approved ? "Actif" : "En attente"}</span>
+                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${r.approved ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{r.approved ? "Actif" : "Suspendu"}</span>
                 </div>
                 {(r.city || r.sectors.length > 0) && <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">{r.city && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{r.city}</span>}{r.sectors.map((sector) => <span key={sector} className="rounded-full bg-secondary px-2 py-0.5">{sector}</span>)}</div>}
                 <dl className="mt-4 space-y-3 text-sm">
@@ -329,7 +330,7 @@ export default function EntrepreneursAdmin() {
                     <td className="px-4 py-3">{fmtDate(r.created_at)}</td>
                     <td className="px-4 py-3">
                       <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
-                        {r.approved ? "Actif" : "En attente"}
+                        {r.approved ? "Actif" : "Suspendu"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right font-mono">{r.jobs}</td>
