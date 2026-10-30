@@ -207,8 +207,8 @@ export default function Soumission() {
         return;
       }
       setRecordedNumber(res.request_number ?? null);
-      if (res.ok && res.quote) setQuote(res.quote);
-      else setQuoteError(`${res.error ?? "Estimation indisponible."} Votre demande est enregistrée : notre équipe vous recontactera.`);
+      if (res.ok && res.quote) { setQuote(res.quote); setDeclined(false); }
+      else setQuoteError(`${res.error ?? "Estimation indisponible."} Votre demande est conservée. Réessayez ou modifiez vos renseignements.`);
     } catch (e) {
       setRecordFailed(true);
       setQuoteError(e instanceof Error ? e.message : "Estimation indisponible.");
@@ -216,9 +216,15 @@ export default function Soumission() {
   };
 
   const decline = async () => {
-    const res = await declineEstimate(leadToken);
-    if (res.ok) setDeclined(true);
-    else toast({ title: "Action impossible", description: res.error ?? "Veuillez réessayer.", variant: "destructive" });
+    if (sending.current) return;
+    sending.current = true; setSubmitting(true);
+    try {
+      const res = await declineEstimate(leadToken);
+      if (res.ok) setDeclined(true);
+      else throw new Error(res.error ?? "Veuillez réessayer.");
+    } catch (e) {
+      toast({ title: "Refus non enregistré", description: e instanceof Error ? e.message : "Veuillez réessayer.", variant: "destructive" });
+    } finally { sending.current = false; setSubmitting(false); }
   };
 
   const next = async () => {
@@ -381,12 +387,12 @@ export default function Soumission() {
                       {!recordFailed && recordedNumber != null && (
                         <p className="text-sm text-muted-foreground">Demande enregistrée — référence {recordedNumber}.</p>
                       )}
-                      <Button variant="outline" onClick={runEstimate}>Réessayer</Button>
+                      <Button variant="outline" onClick={runEstimate} disabled={quoting}>Réessayer</Button>
                     </div>
                   )}
                   {quote && declined && (
-                    <p className="rounded-xl bg-muted p-4 text-sm text-foreground">
-                      Nous avons noté que vous ne retenez pas cette estimation. Votre demande reste enregistrée{recordedNumber != null ? ` (référence ${recordedNumber})` : ""}.
+                    <p role="status" className="rounded-xl bg-muted p-4 text-sm text-foreground">
+                      Votre refus est enregistré. Votre demande est conservée{recordedNumber != null ? ` (référence ${recordedNumber})` : ""}. Vous pouvez modifier vos renseignements et recalculer.
                     </p>
                   )}
                   {quote && !declined && (
@@ -394,12 +400,18 @@ export default function Soumission() {
                       <QuoteCard quote={quote} />
                       <Button className="w-full" size="lg" onClick={submit} disabled={submitting}>
                         {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-                        Confirmer ma demande
+                        Accepter cette soumission
                       </Button>
-                      <Button variant="ghost" className="w-full" onClick={decline} disabled={submitting}>
-                        Je ne retiens pas cette estimation
+                      <Button variant="outline" className="h-auto w-full whitespace-normal" onClick={decline} disabled={submitting}>
+                        Cette soumission ne me convient pas
                       </Button>
                     </>
+                  )}
+                  {!quoting && (
+                    <Button variant="ghost" className="h-auto w-full whitespace-normal" disabled={submitting}
+                      onClick={() => { setQuote(null); setQuoteError(null); setStep(0); }}>
+                      Modifier mes renseignements et recalculer
+                    </Button>
                   )}
                 </div>
               )}
