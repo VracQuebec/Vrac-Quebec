@@ -2440,6 +2440,7 @@ export type Database = {
           banner_version: string
           consent_id: string
           created_at: string
+          environment: string
           id: string
           policy_version: string
           previous_analytics: boolean | null
@@ -2452,6 +2453,7 @@ export type Database = {
           banner_version: string
           consent_id: string
           created_at?: string
+          environment?: string
           id?: string
           policy_version: string
           previous_analytics?: boolean | null
@@ -2464,6 +2466,7 @@ export type Database = {
           banner_version?: string
           consent_id?: string
           created_at?: string
+          environment?: string
           id?: string
           policy_version?: string
           previous_analytics?: boolean | null
@@ -2485,7 +2488,9 @@ export type Database = {
           analytics: boolean
           banner_version: string
           consent_id: string
+          environment: string
           first_decided_at: string
+          is_test: boolean
           last_changed_at: string
           policy_version: string
           secret_hash: string
@@ -2497,7 +2502,9 @@ export type Database = {
           analytics: boolean
           banner_version: string
           consent_id: string
+          environment?: string
           first_decided_at?: string
+          is_test?: boolean
           last_changed_at?: string
           policy_version: string
           secret_hash: string
@@ -2509,7 +2516,9 @@ export type Database = {
           analytics?: boolean
           banner_version?: string
           consent_id?: string
+          environment?: string
           first_decided_at?: string
+          is_test?: boolean
           last_changed_at?: string
           policy_version?: string
           secret_hash?: string
@@ -32421,6 +32430,7 @@ export type Database = {
           p_analytics: boolean
           p_banner_version: string
           p_consent_id: string
+          p_environment?: string
           p_policy_version: string
           p_secret: string
           p_source: string
