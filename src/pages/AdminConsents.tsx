@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 
-type Rec = { consent_id: string; analytics: boolean; banner_version: string; policy_version: string; source: string; first_decided_at: string; last_changed_at: string; withdrawn_at: string | null };
+type Rec = { consent_id: string; analytics: boolean; banner_version: string; policy_version: string; source: string; first_decided_at: string; last_changed_at: string; withdrawn_at: string | null; is_test: boolean; environment: string };
 type Ev = { id: string; action: string; analytics: boolean; previous_analytics: boolean | null; banner_version: string; policy_version: string; source: string; created_at: string };
 type Settings = { retention_days: number | null; max_events_per_browser_hour: number; max_events_per_minute: number; notes: string | null; updated_at: string };
 
@@ -37,10 +37,10 @@ export default function AdminConsents() {
 
   const load = async () => {
     const [list, total, acc, wd, st] = await Promise.all([
-      supabase.from("consent_records").select("consent_id,analytics,banner_version,policy_version,source,first_decided_at,last_changed_at,withdrawn_at").order("last_changed_at", { ascending: false }).limit(200),
-      supabase.from("consent_records").select("consent_id", { count: "exact", head: true }),
-      supabase.from("consent_records").select("consent_id", { count: "exact", head: true }).eq("analytics", true),
-      supabase.from("consent_records").select("consent_id", { count: "exact", head: true }).not("withdrawn_at", "is", null),
+      supabase.from("consent_records").select("consent_id,analytics,banner_version,policy_version,source,first_decided_at,last_changed_at,withdrawn_at,is_test,environment").order("last_changed_at", { ascending: false }).limit(200),
+      supabase.from("consent_records").select("consent_id", { count: "exact", head: true }).eq("is_test", false).eq("environment", "publie"),
+      supabase.from("consent_records").select("consent_id", { count: "exact", head: true }).eq("is_test", false).eq("environment", "publie").eq("analytics", true),
+      supabase.from("consent_records").select("consent_id", { count: "exact", head: true }).eq("is_test", false).eq("environment", "publie").not("withdrawn_at", "is", null),
       supabase.from("consent_settings").select("retention_days,max_events_per_browser_hour,max_events_per_minute,notes,updated_at").eq("id", 1).maybeSingle(),
     ]);
     setRows((list.data ?? []) as Rec[]);
@@ -69,6 +69,11 @@ export default function AdminConsents() {
     setMsg(error ? "Purge refusée : " + error.message : `${data ?? 0} navigateur(s) supprimé(s) du registre.`);
     void load();
   };
+  const toggleTest = async (r: Rec) => {
+    const { error } = await supabase.from("consent_records").update({ is_test: !r.is_test }).eq("consent_id", r.consent_id);
+    setMsg(error ? "Modification refusée : " + error.message : r.is_test ? "Navigateur remis dans les compteurs." : "Navigateur marqué comme essai (conservé, exclu des compteurs).");
+    void load();
+  };
 
   if (!isReady || loading) return <FullPageState message="Chargement…" />;
   if (!user || !isAdmin) return null;
@@ -89,7 +94,7 @@ export default function AdminConsents() {
         </header>
 
         <section className="grid gap-3 sm:grid-cols-3">
-          {[["Navigateurs inscrits", counts.total], ["Mesure d'audience acceptée", counts.accepted], ["Avec un retrait", counts.withdrawn]].map(([l, n]) => (
+          {[["Navigateurs inscrits (site publié, hors essais)", counts.total], ["Mesure d'audience acceptée", counts.accepted], ["Avec un retrait", counts.withdrawn]].map(([l, n]) => (
             <div key={l as string} className="rounded-lg border border-border bg-card p-3"><div className="text-xs text-muted-foreground">{l}</div><div className="text-2xl font-bold">{n}</div></div>
           ))}
         </section>
@@ -98,7 +103,7 @@ export default function AdminConsents() {
           <h2 className="font-semibold">Durée de conservation</h2>
           <p className="text-sm text-muted-foreground">
             Durée choisie par votre administration, comptée depuis la dernière modification du choix. Vide = non définie :
-            rien n'est supprimé. Aucune durée n'est présentée ici comme une obligation légale. La suppression n'est jamais
+            rien n'est supprimé. Durée actuellement à définir par votre administration. Aucune durée n'est présentée ici comme une obligation légale. La suppression n'est jamais
             automatique : elle se fait avec le bouton ci-dessous.
           </p>
           <div className="flex flex-wrap items-center gap-2">
@@ -115,10 +120,10 @@ export default function AdminConsents() {
           <table className="w-full text-sm">
             <thead className="text-left text-xs text-muted-foreground"><tr>
               <th className="p-2">Identifiant</th><th className="p-2">Mesure d'audience</th><th className="p-2">Source</th>
-              <th className="p-2">Bandeau / politique</th><th className="p-2">Premier choix</th><th className="p-2">Dernier changement</th><th className="p-2">Retrait</th>
+              <th className="p-2">Bandeau / politique</th><th className="p-2">Premier choix</th><th className="p-2">Dernier changement</th><th className="p-2">Retrait</th><th className="p-2">Origine</th>
             </tr></thead>
             <tbody>
-              {rows.length === 0 && <tr><td className="p-3 text-muted-foreground" colSpan={7}>Aucun choix inscrit.</td></tr>}
+              {rows.length === 0 && <tr><td className="p-3 text-muted-foreground" colSpan={8}>Aucun choix inscrit.</td></tr>}
               {rows.map((r) => (
                 <tr key={r.consent_id} className={`cursor-pointer border-t border-border hover:bg-muted ${selected === r.consent_id ? "bg-muted" : ""}`} onClick={() => setSelected(r.consent_id)}>
                   <td className="p-2 font-mono text-xs">{r.consent_id.slice(0, 8)}…</td>
@@ -128,6 +133,8 @@ export default function AdminConsents() {
                   <td className="p-2">{fmt(r.first_decided_at)}</td>
                   <td className="p-2">{fmt(r.last_changed_at)}</td>
                   <td className="p-2">{r.withdrawn_at ? fmt(r.withdrawn_at) : "—"}</td>
+                  <td className="p-2 text-xs">{r.environment === "publie" ? "Site publié" : r.environment === "apercu" ? "Aperçu" : "Inconnue"}
+                    {" · "}<button type="button" className="underline" onClick={(e) => { e.stopPropagation(); void toggleTest(r); }}>{r.is_test ? "Essai" : "Réel"}</button></td>
                 </tr>
               ))}
             </tbody>
