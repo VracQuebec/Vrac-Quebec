@@ -15,6 +15,11 @@ export default function ConsentBanner() {
   const [source, setSource] = useState<ConsentSource>("banniere");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const visible = open && (!isPrivateAnalyticsPath(pathname) || custom);
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-consent-open", visible);
+    return () => document.documentElement.removeAttribute("data-consent-open");
+  }, [visible]);
 
   useEffect(() => {
     applyConsent();
@@ -36,7 +41,8 @@ export default function ConsentBanner() {
 
   return (
     <div role="dialog" aria-modal="false" aria-labelledby="vq-consent-title"
-      className="fixed inset-x-0 bottom-0 z-[70] border-t border-border bg-card px-4 py-4 shadow-2xl sm:inset-x-auto sm:bottom-4 sm:right-4 sm:max-w-md sm:rounded-xl sm:border">
+      className="consent-panel fixed inset-x-0 bottom-0 z-[70] flex flex-col border-t border-border bg-card shadow-2xl sm:inset-x-auto sm:bottom-4 sm:right-4 sm:max-w-md sm:rounded-xl sm:border">
+      <div className="consent-body min-h-0 overflow-y-auto px-4 pt-3">
       <h2 id="vq-consent-title" className="font-display text-base font-bold text-foreground">Gérer mes témoins</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Les témoins essentiels gardent votre session et vos saisies. Avec votre accord, Google Analytics mesure
@@ -59,7 +65,8 @@ export default function ConsentBanner() {
         </div>
       )}
       {error && <p role="alert" className="mt-2 text-sm text-destructive">{error}</p>}
-      <div className="mt-3 flex flex-wrap gap-2">
+      </div>
+      <div className="consent-actions flex shrink-0 flex-wrap gap-2 bg-card px-4 pt-3">
         <Button variant="outline" disabled={busy} onClick={() => decide(false)}>Refuser</Button>
         {custom
           ? <Button variant="outline" disabled={busy} onClick={() => decide(analytics)}>Enregistrer mon choix</Button>

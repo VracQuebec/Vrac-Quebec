@@ -40,7 +40,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="public-home min-h-dvh bg-background">
       <Helmet>
         <title>Matériaux en vrac à Québec — terre, gravier, pierre concassée</title>
         <meta name="description" content="Livraison de terre, gravier, pierre concassée, sable et remblai à Québec et Lévis. Trouvez aussi une dompe pour disposer de vos surplus. Soumission gratuite." />
@@ -64,10 +64,10 @@ const Index = () => {
         })}</script>
       </Helmet>
       {/* 1. Bandeau Vrac Québec — haut de page */}
-      <TransportBanner />
+      <div className="safe-top bg-foreground"><TransportBanner /></div>
 
       {/* 2. Navigation principale — logo Vrac Québec + accès entrepreneur */}
-      <nav className="w-full bg-foreground/95 text-background">
+      <nav className="safe-x w-full bg-foreground/95 text-background">
         <div className="container mx-auto flex items-center justify-between gap-2 px-4 py-2 sm:px-6">
           <LogoVracQuebec />
           <a
@@ -358,7 +358,7 @@ const Index = () => {
       <Suspense fallback={null}><SiteAssistant /></Suspense>
 
       {/* Barre mobile : 4 boutons qui tiennent toujours à l'écran; Texto et WhatsApp dans « Plus ». */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 px-2 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md md:hidden">
+      <div className="public-bottom-bar pointer-events-none fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 px-2 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md md:hidden">
         {moreOpen && (
           <div id="plus-contact" className="pointer-events-auto mb-2 grid grid-cols-2 gap-2">
             <a href={`sms:${PUBLIC_PHONE_E164.slice(1)}?body=${SMS_BODY}`} className="flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-foreground px-3 font-display text-xs font-semibold text-background shadow-lg">

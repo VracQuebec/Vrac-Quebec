@@ -1,3 +1,9 @@
+## Zones de sécurité mobiles — 30 octobre 2026
+- [ ] Corriger accueil, navigation, panneaux et bandeau des témoins sans changer les fonctions.
+- [ ] Vérifier formats iPhone/Android, portrait/paysage, clavier simulé et espaces connectés fictifs.
+- [ ] Publier après validation et vérifier la version servie sur vracquebec.ca.
+- [ ] Appareils physiques et mode installé natif : appareils non disponibles; distinguer simulations.
+
 ## Écrans finaux automatisés — 30 octobre 2026
 - [x] Retirer les appels, harmoniser acceptation/refus et modification/recalcul sur les deux formulaires.
 - [x] 64 tests réussis et navigateur fictif : erreur, reprise, refus, acceptation après rechargement, même dossier et aucun envoi réel.

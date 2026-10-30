@@ -18,6 +18,9 @@ import {isPunchLocal} from "@/lib/punch/runtime";
 import {isExec05Local} from "@/lib/finances/exec05";
 import { startRdsOutbox } from "@/lib/fleet/rdsOutbox";
 import { privateTelemetryBlocked } from '@/lib/analytics/privacy';
+import { startVisibleViewport } from '@/lib/navigation/visibleViewport';
+
+startVisibleViewport();
 
 // EXEC-01 isolation: visiting a fictitious dossier must not flush a real outbox.
 const personalFollowup = privateTelemetryBlocked() || isolatedSearch() || isExec04Local() || isHelpLocal() || isPunchLocal() || isExec05Local();
