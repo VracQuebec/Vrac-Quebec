@@ -38,7 +38,7 @@ export function analyticsAllowed(): boolean {
   return readConsent()?.analytics === true;
 }
 
-export function saveConsent(analytics: boolean, pending?: ConsentSource): ConsentChoice {
+export function saveConsent(analytics: boolean, pending?: ConsentSource, reloadOnWithdraw = true): ConsentChoice {
   const choice: ConsentChoice = {
     v: 1, analytics, advertising: false,
     decidedAt: new Date().toISOString(), policy: CONSENT_POLICY_VERSION, banner: CONSENT_BANNER_VERSION,
@@ -49,7 +49,7 @@ export function saveConsent(analytics: boolean, pending?: ConsentSource): Consen
   applyConsent();
   // Retrait après accord : recharger pour décharger complètement la balise déjà active
   // (sinon un événement déjà mis en file pourrait encore partir).
-  if (wasAllowed && !analytics) { window.setTimeout(() => window.location.reload(), 0); }
+  if (reloadOnWithdraw && wasAllowed && !analytics) { window.setTimeout(() => window.location.reload(), 0); }
   window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: choice }));
   return choice;
 }
@@ -92,9 +92,14 @@ export async function decideConsent(analytics: boolean, source: ConsentSource): 
     saveConsent(true);
     return { ok: true };
   }
-  saveConsent(false, source);
-  try { await record(false, source); } catch { return { ok: true }; }
-  saveConsent(false);
+  const wasAllowed = analyticsAllowed();
+  saveConsent(false, source, false); // GA désactivé et témoins _ga effacés tout de suite
+  try {
+    await Promise.race([record(false, source), new Promise((_, rej) => setTimeout(() => rej(new Error('délai')), 5000))]);
+    saveConsent(false, undefined, false);
+  } catch { /* refus conservé localement, inscription retentée plus tard */ }
+  // Retrait : recharger pour décharger complètement la balise déjà active.
+  if (wasAllowed) window.setTimeout(() => window.location.reload(), 0);
   return { ok: true };
 }
 
