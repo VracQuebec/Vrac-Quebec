@@ -91,16 +91,9 @@ export function buildQuoteRequest(draft: VracDraft, ctx: QuoteContext = {}): Quo
     if (!(trips > 0)) {
       return { unsupported: "Nombre de voyages invalide : entrez un nombre supérieur à 0.", fixStep: 1 };
     }
-    // Logique d'origine rétablie : un voyage = capacité (tonnes) du camion choisi
-    // ou recommandé, configurée en administration; tarifs/transport existants ensuite.
-    const capacity = Number(ctx.truckCapacityTonnes);
-    if (!(capacity > 0)) {
-      return {
-        unsupported: "Capacité de camion non configurée : impossible de convertir des voyages en tonnes. Indiquez plutôt une quantité.",
-        fixStep: 1,
-      };
-    }
-    return { ...base, quantity: Number((trips * capacity).toFixed(3)), unit: "tonne" };
+    // Conversion historique rétablie côté serveur : voyages × capacité du camion
+    // configuré en tonnes; tarifs matériau et transport existants ensuite.
+    return { ...base, quantity: trips, unit: "voyage" };
   }
 
   // Quantité réellement inconnue : aucune donnée à calculer.

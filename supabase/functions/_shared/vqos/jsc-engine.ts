@@ -16,7 +16,7 @@ import {
   type DistanceProvider, type EngineConfig, type QuoteInput, type TaxRow,
   readNumberSetting, roundMoney,
 } from "./core.ts";
-import { prepareQuoteContext } from "./supply.ts";
+import { pickTruck, prepareQuoteContext } from "./supply.ts";
 
 // La sélection du camion vit désormais dans le module d'approvisionnement.
 export { pickTruck } from "./supply.ts";
@@ -387,7 +387,7 @@ export async function runJscQuote(
  * Point d'entrée multi-transporteur (évolutivité).
  * Un seul profil est actif aujourd'hui : Transport JSC.
  */
-export function runCarrierQuote(
+export async function runCarrierQuote(
   input: QuoteInput,
   config: EngineConfig,
   distance: DistanceProvider,
@@ -395,6 +395,17 @@ export function runCarrierQuote(
 ): Promise<JscQuoteResult> {
   if (carrierProfile !== "transport_jsc") {
     throw new Error(`Profil transporteur non configuré : ${carrierProfile}`);
+  }
+  // Logique historique : voyages × capacité du camion configuré → tonnes,
+  // puis prix du matériau et transport existants. Jamais un nouveau tarif « voyage ».
+  if (input.unit === 'voyage') {
+    const truck = pickTruck(config.trucks, 0, input.truck_id);
+    if (input.truck_id && truck.id !== input.truck_id) {
+      throw new Error('Camion choisi inactif ou capacité / tarif horaire manquant.');
+    }
+    const tonnage = Number((input.quantity * Number(truck.capacity_tonnes)).toFixed(3));
+    const result = await runJscQuote({ ...input, quantity: tonnage, unit: 'tonne', truck_id: truck.id }, config, distance);
+    return { ...result, public: { ...result.public, quantity: input.quantity, unit: 'voyage' } };
   }
   return runJscQuote(input, config, distance);
 }
