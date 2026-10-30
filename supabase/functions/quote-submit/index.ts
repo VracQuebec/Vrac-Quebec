@@ -19,7 +19,7 @@ import { claimQuote, completeQuote, quoteFingerprint, releaseQuote, SCOPE } from
 import { fetchWithTimeout } from '../_shared/http.ts';
 import { logEvent, logEventAsync } from '../_shared/observability.ts';
 
-const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
+const UNITS: Unit[] = ['tonne', 'verge', 'm3', 'voyage'];
 const VALIDITY_SETTING = 'quote_validity_days';
 const DEFAULT_VALIDITY_DAYS = 7;
 
