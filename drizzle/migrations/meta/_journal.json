@@ -1772,6 +1772,13 @@
       "when": 1793365487081,
       "tag": "0252_fix_entr_notify_submission_material",
       "breakpoints": true
+    },
+    {
+      "idx": 253,
+      "version": "7",
+      "when": 1793366416544,
+      "tag": "0253_perf_indexes_notifications_seo",
+      "breakpoints": true
     }
   ]
 }
