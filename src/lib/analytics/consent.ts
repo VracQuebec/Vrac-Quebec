@@ -20,6 +20,8 @@ export type ConsentChoice = {
   banner?: string;
   /** Refus appliqué localement mais pas encore inscrit au registre. */
   pending?: ConsentSource;
+  /** Acceptation confirmée par le registre. Sans cette preuve, un ancien accord local est redemandé. */
+  recorded?: true;
 };
 
 export function readConsent(): ConsentChoice | null {
@@ -28,6 +30,8 @@ export function readConsent(): ConsentChoice | null {
     if (!raw) return null;
     const c = JSON.parse(raw) as ConsentChoice;
     if (c?.v !== 1 || typeof c.analytics !== 'boolean') return null;
+    // Ancien accord local sans preuve d'inscription au registre : on redemande le choix.
+    if (c.analytics && c.recorded !== true) return null;
     return c;
   } catch {
     return null;
@@ -43,6 +47,7 @@ export function saveConsent(analytics: boolean, pending?: ConsentSource, reloadO
     v: 1, analytics, advertising: false,
     decidedAt: new Date().toISOString(), policy: CONSENT_POLICY_VERSION, banner: CONSENT_BANNER_VERSION,
     ...(pending ? { pending } : {}),
+    ...(analytics ? { recorded: true as const } : {}),
   };
   const wasAllowed = analyticsAllowed();
   window.localStorage.setItem(CONSENT_KEY, JSON.stringify(choice));
@@ -86,9 +91,13 @@ async function record(analytics: boolean, source: ConsentSource): Promise<void> 
  * (un échec n'est jamais un consentement). Refuser s'applique immédiatement, même si
  * l'inscription échoue (elle sera retentée au prochain chargement).
  */
+let decisionSeq = 0;
 export async function decideConsent(analytics: boolean, source: ConsentSource): Promise<{ ok: boolean }> {
+  const mine = ++decisionSeq;
   if (analytics) {
     try { await record(true, source); } catch { return { ok: false }; }
+    // Une décision plus récente (refus/retrait) l'emporte toujours sur une ancienne tentative.
+    if (mine !== decisionSeq) return { ok: false };
     saveConsent(true);
     return { ok: true };
   }
@@ -96,7 +105,7 @@ export async function decideConsent(analytics: boolean, source: ConsentSource): 
   saveConsent(false, source, false); // GA désactivé et témoins _ga effacés tout de suite
   try {
     await Promise.race([record(false, source), new Promise((_, rej) => setTimeout(() => rej(new Error('délai')), 5000))]);
-    saveConsent(false, undefined, false);
+    if (mine === decisionSeq && !analyticsAllowed()) saveConsent(false, undefined, false);
   } catch { /* refus conservé localement, inscription retentée plus tard */ }
   // Retrait : recharger pour décharger complètement la balise déjà active.
   if (wasAllowed) window.setTimeout(() => window.location.reload(), 0);
@@ -140,13 +149,36 @@ export function applyConsent(): void {
     analytics_storage: allowed ? 'granted' : 'denied',
     ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied',
   });
-  if (!allowed) { clearGaCookies(); return; }
+  if (!allowed) { clearGaCookies(); document.getElementById('vq-ga4')?.remove(); return; }
   if (document.getElementById('vq-ga4')) return;
   const s = document.createElement('script');
   s.id = 'vq-ga4';
   s.async = true;
   s.src = `https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`;
   document.head.appendChild(s);
+}
+
+/** Bloque toute transmission de mesure d'audience non autorisée (y compris un événement déjà en file). */
+export function isAnalyticsHit(url: string): boolean {
+  return /^https:\/\/([a-z0-9-]+\.)*(google-analytics\.com|analytics\.google\.com)\//i.test(url)
+    || /^https:\/\/www\.googletagmanager\.com\/(g|[a-z]\/)?collect/i.test(url);
+}
+function hitBlocked(url: unknown): boolean {
+  const u = typeof url === 'string' ? url : url instanceof URL ? url.href : (url as Request)?.url ?? '';
+  return isAnalyticsHit(String(u)) && (!analyticsAllowed() || !!(window as unknown as Record<string, unknown>).__vqPersonalDocument);
+}
+if (typeof window !== 'undefined' && !(window as unknown as Record<string, unknown>).__vqHitGuard) {
+  (window as unknown as Record<string, unknown>).__vqHitGuard = true;
+  const beacon = navigator.sendBeacon?.bind(navigator);
+  if (beacon) navigator.sendBeacon = (url, data) => (hitBlocked(url) ? true : beacon(url, data));
+  const f = window.fetch.bind(window);
+  window.fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
+    hitBlocked(input) ? Promise.resolve(new Response(null, { status: 204 })) : f(input, init)) as typeof fetch;
+  const open = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (this: XMLHttpRequest, m: string, url: string | URL, ...rest: unknown[]) {
+    if (hitBlocked(url)) url = 'data:,';
+    return (open as (...a: unknown[]) => void).call(this, m, url, ...rest);
+  } as typeof XMLHttpRequest.prototype.open;
 }
 
 if (typeof window !== 'undefined') {
