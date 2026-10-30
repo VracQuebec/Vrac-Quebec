@@ -425,6 +425,7 @@ Deno.serve(async (req) => {
       ].filter(Boolean).join('\n');
 
       const quoteFields = {
+        ...(body?.source === 'soumission' ? { request_type: 'transport', service_type: 'transport_livraison', deliver_or_remove: 'À livrer', property_type: 'Livraison de matériaux' } : {}),
         client_id: null,
         quote_number: quote.quote_number ?? null,
         quote_id: quote.id,
@@ -451,7 +452,7 @@ Deno.serve(async (req) => {
           lat: delivery.lat, lng: delivery.lng,
           materialLabel: pub.material.name, quantityLabel,
           quantityValue: quantity, quantityUnit: unit, desiredDate, description,
-          answers: cleanAnswers(body?.form_answers),
+          answers: null, // Le snapshot et les réponses du calcul sont conservés.
         }, quoteFields);
       } else {
         const { data, error: leadError } = await sb.from('submissions').insert({

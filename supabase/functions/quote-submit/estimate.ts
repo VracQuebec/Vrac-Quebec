@@ -137,6 +137,7 @@ export async function handleEstimate(req: Request, sb: any, body: any, c: Estima
       truck_id: typeof body?.truck_id === 'string' && body.truck_id.length >= 10 ? body.truck_id : null,
     }, config, distanceProvider);
     const pub = result.public as Record<string, any>;
+    const { pickup: _p, base: _b, margin_amount: _m, ...clientPublic } = pub;
     const truckLabel = pub.truck?.name
       ? (pub.truck?.capacity_tonnes ? `${pub.truck.name} (${pub.truck.capacity_tonnes} tonnes)` : pub.truck.name) : null;
     await patchLead(sb, lead.id, {
@@ -146,10 +147,10 @@ export async function handleEstimate(req: Request, sb: any, body: any, c: Estima
       quote_distance_km: pub.distance_km ?? null,
       quote_duration_minutes: Number(pub.estimated_duration_minutes) || null,
       quote_total: pub.total,
+      form_answers: { ...(cleanAnswers(body?.form_answers) ?? {}), quote_result: clientPublic },
     });
     logEventAsync({ source: 'quote_submit', event: 'estimate.computed', durationMs: Date.now() - started, refId: lead.id });
     // Confidentialité : jamais le lieu de chargement, la base ni la marge.
-    const { pickup: _p, base: _b, margin_amount: _m, ...clientPublic } = pub;
     return json({ ok: true, ...ref, quote: clientPublic, engine_version: result.engine_version, computed_at: result.computed_at });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Estimation indisponible.';
