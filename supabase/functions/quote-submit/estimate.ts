@@ -83,8 +83,13 @@ export async function handleEstimate(req: Request, sb: any, body: any, c: Estima
   }
 
   const materialLabel = await materialLabelOf(sb, c, body);
+  // Origine du parcours : /soumission (assistant) ou /acheter-materiaux.
+  const fromAssistant = body?.source === 'soumission';
+  const origin = fromAssistant
+    ? { request_type: 'transport', service_type: 'transport_livraison', deliver_or_remove: 'À livrer', property_type: 'Livraison de matériaux' }
+    : {};
   const description = [
-    'Demande de prix — parcours « J’ai besoin de matériel en vrac »',
+    fromAssistant ? 'Demande de prix — assistant /soumission' : 'Demande de prix — parcours « J’ai besoin de matériel en vrac »',
     `Matériau : ${materialLabel}`,
     `Quantité : ${quantityLabel}`,
     c.desiredDate ? `Date souhaitée : ${c.desiredDate}` : '',
@@ -102,6 +107,7 @@ export async function handleEstimate(req: Request, sb: any, body: any, c: Estima
       quantityValue: hasQty ? quantity : null, quantityUnit: unitOk ? unit : null,
       desiredDate: c.desiredDate, description, answers: cleanAnswers(body?.form_answers),
     }, {
+      ...origin,
       quote_calc_status: manualReason ? 'manuel' : 'en_cours',
       quote_calc_error: manualReason, quote_calc_at: new Date().toISOString(),
     });
