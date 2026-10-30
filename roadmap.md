@@ -1,7 +1,7 @@
 ## Écrans finaux automatisés — 30 octobre 2026
-- [ ] Retirer les appels, harmoniser acceptation/refus et modification/recalcul sur les deux formulaires.
-- [ ] Tester avec demandes fictives : erreur, reprise, refus, acceptation, même dossier et aucun envoi réel.
-- [ ] Publier après vérification puis contrôler les deux parcours sur vracquebec.ca.
+- [x] Retirer les appels, harmoniser acceptation/refus et modification/recalcul sur les deux formulaires.
+- [x] 64 tests réussis et navigateur fictif : erreur, reprise, refus, acceptation après rechargement, même dossier et aucun envoi réel.
+- [x] Publication et deux parcours vérifiés sur vracquebec.ca; dossiers fictifs #881–884 persistés, décisions séparées du statut CRM.
 
 ## Entrepreneurs sans approbation — 30 octobre 2026
 - [x] Inscription serveur active sans approbation ni notification de validation; suspension explicite, blacklist et abonnement conservés.
