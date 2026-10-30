@@ -14,7 +14,7 @@ import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
 import { clientIp, enforceIpQuota, GuardError } from '../_shared/public-guard.ts';
 import { logEvent, logEventAsync } from '../_shared/observability.ts';
-import { cleanAnswers, patchLead, upsertLead } from './lead.ts';
+import { cleanAnswers, patchLead, upsertLead } from '../_shared/public-lead.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3', 'voyage'];
 const UNIT_LABEL: Record<string, string> = { tonne: 'tonnes', m3: 'm³', verge: 'verges³', voyage: 'voyage(s)' };
