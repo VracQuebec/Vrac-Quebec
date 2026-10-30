@@ -57,3 +57,4 @@
 - CRM notifications: useCrmNotifications shares one module-level fetch/realtime channel across all instances with debounced reloads; never add per-component crm_notifications subscriptions (each reloaded 170 KB per event).
 - Both public bulk quote forms reuse _shared/public-lead to upsert ONE submissions row per browser lead token before running the engine; calc result and client decision stay separate from CRM status so retries never duplicate and a price request is never acceptance.
 - Voyage quantities are normalized in runCarrierQuote using the configured active truck capacity, then priced by the existing material and transport engine; this restores historical conversion without inventing trip tariffs.
+- Public accepted quote confirmations retain a same-tab receipt separate from finalized drafts; reload displays the receipt without recalculating or resending, and the CRM remains authoritative.

@@ -29,6 +29,7 @@ import { useDraft } from "@/lib/drafts/useDraft";
 import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { getAttribution } from "@/lib/analytics/attribution";
 import { trackEvent } from "@/lib/analytics/ga4";
+import { readQuoteReceipt, saveQuoteReceipt } from '@/lib/vrac/receipt';
 
 const STEPS = ["Matériau", "Type", "Quantité", "Livraison", "Date", "Coordonnées", "Estimation"];
 const money = (n: number) =>
@@ -81,7 +82,7 @@ export default function Soumission() {
   const [quoting, setQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [confirmation, setConfirmation] = useState<{ number: string; quote: PublicQuote } | null>(null);
+  const [confirmation, setConfirmation] = useState(() => readQuoteReceipt('soumission'));
   // Jeton de la demande CRM : un seul dossier par parcours (calculs, reprises, décision).
   const [leadToken, setLeadToken] = useState<string>(() => crypto.randomUUID());
   const [recordedNumber, setRecordedNumber] = useState<number | null>(null);
@@ -245,7 +246,9 @@ export default function Soumission() {
         website: honeypot,
         form_started_at: startedAt.current,
       });
-      setConfirmation({ number: res.request_number, quote: res.quote?.public ?? quote });
+      const receipt = { number: res.request_number, quote: res.quote?.public ?? quote };
+      saveQuoteReceipt('soumission', receipt);
+      setConfirmation(receipt);
       draft.finalize(); // demande confirmée : le brouillon ne peut plus revenir
       trackEvent("lead_created", { form: "soumission" });
     } catch (e) {
