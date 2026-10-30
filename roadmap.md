@@ -1,6 +1,6 @@
 ## Zones de sécurité mobiles — 30 octobre 2026
-- [ ] Corriger accueil, navigation, panneaux et bandeau des témoins sans changer les fonctions.
-- [ ] Vérifier formats iPhone/Android, portrait/paysage, clavier simulé et espaces connectés fictifs.
+- [x] Corriger accueil, navigation, panneaux et bandeau des témoins sans changer les fonctions.
+- [x] Vérifier quatre formats simulés, portrait/paysage, clavier simulé, entrepreneur en lecture seule et CRM admin fictif; 27 tests ciblés réussis.
 - [ ] Publier après validation et vérifier la version servie sur vracquebec.ca.
 - [ ] Appareils physiques et mode installé natif : appareils non disponibles; distinguer simulations.
 
