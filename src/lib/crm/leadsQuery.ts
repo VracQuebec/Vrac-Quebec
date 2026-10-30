@@ -41,6 +41,29 @@ export const needsClientMode = (filters: LeadFilters, sort: LeadSort): boolean =
 
 export const LEADS_PAGE_SIZE = 50;
 
+/**
+ * Colonnes minimales de la liste complète de l'admin : filtres, tris, compteurs,
+ * marqueurs de carte, exports et géolocalisation. La fiche complète (`*`) n'est
+ * lue que pour les demandes affichées.
+ */
+export const ADMIN_LIST_COLUMNS = [
+  "id", "submission_number", "dompe_number", "created_at", "updated_at", "name", "phone", "email",
+  "address", "postal_code", "latitude", "longitude", "status", "request_type", "lead_source",
+  "priority", "assigned_entrepreneur", "materials", "quantity", "quantity_value", "tonnage",
+  "desired_date", "next_follow_up_at", "availability_status", "quote_distance_km", "quote_trips",
+  "visible_to_entrepreneur", "show_on_admin_map", "accessibility", "property_type",
+  "machinery_available", "machinery_description", "other_material", "budget_max", "budget_unit",
+  "geocoding_status", "description", "internal_notes",
+].join(",");
+
+/** Fiches complètes pour une liste d'identifiants (une page affichée). */
+export async function fetchFullLeads(ids: string[]): Promise<any[]> {
+  if (!ids.length) return [];
+  const { data, error } = await supabase.from("submissions").select("*").in("id", ids);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
 export async function fetchLeadsPage(
   filters: LeadFilters, sort: LeadSort, page: number, pageSize = LEADS_PAGE_SIZE,
 ): Promise<{ rows: any[]; total: number }> {
