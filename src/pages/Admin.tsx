@@ -176,7 +176,20 @@ interface Submission {
   quote_truck?: string | null;
   quote_distance_km?: number | null;
   quote_duration_minutes?: number | null;
+  quote_total?: number | null;
+  quote_number?: string | null;
+  quote_calc_status?: string | null;
+  quote_calc_error?: string | null;
+  quote_calc_at?: string | null;
+  quote_client_decision?: string | null;
 }
+
+const CALC_LABEL: Record<string, string> = {
+  en_cours: "Calcul en cours / interrompu", calculee: "Prix calculé", echec: "Échec du calcul", manuel: "Traitement manuel requis",
+};
+const DECISION_LABEL: Record<string, string> = {
+  en_attente: "En attente (non acceptée)", acceptee: "Acceptée par le client", refusee: "Refusée par le client", rappel: "Rappel demandé",
+};
 
 interface LeadNote {
   id: string;
@@ -1514,6 +1527,22 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
             </div>
           </div>
           </LeadSection>
+          {sub.quote_calc_status && (
+            <LeadSection title="Soumission automatique (site public)" defaultOpen>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 text-xs font-body min-w-0">
+                <D label="Résultat du calcul" v={CALC_LABEL[sub.quote_calc_status] ?? sub.quote_calc_status} />
+                <D label="Décision du client" v={DECISION_LABEL[sub.quote_client_decision ?? "en_attente"] ?? sub.quote_client_decision ?? "En attente"} />
+                <D label="Total estimé" v={sub.quote_total != null ? `${Number(sub.quote_total).toFixed(2)} $` : "—"} />
+                <D label="Quantité demandée" v={sub.quote_quantity != null ? `${sub.quote_quantity} ${sub.quote_unit || ""}`.trim() : (sub.quantity || "—")} />
+                <D label="N° de soumission" v={sub.quote_number || "Non confirmée"} />
+                <D label="Calculé le" v={sub.quote_calc_at ? formatDate(sub.quote_calc_at) : "—"} />
+                {sub.quote_calc_error && <D label="Motif / erreur" v={sub.quote_calc_error} />}
+              </div>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Le statut de suivi CRM reste indépendant : une demande de prix n'est jamais une acceptation.
+              </p>
+            </LeadSection>
+          )}
           <LeadSection title="Transport" defaultOpen={false}>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 text-xs font-body min-w-0">
               <D label="Type de camion" v={sub.quote_truck || "Non renseigné"} />
