@@ -54,7 +54,7 @@ export async function upsertLead(sb: any, token: string, f: LeadFields, extra: R
     address: f.address, postal_code: f.postal_code ?? '', city: f.city ?? null,
     name: f.name, email: f.email, phone: f.phone, company: f.company,
     description: f.description, desired_date: f.desiredDate,
-    form_answers: f.answers,
+    ...(f.answers ? { form_answers: f.answers } : {}),
     ...extra,
   };
   let lead = await findLead(sb, token);
