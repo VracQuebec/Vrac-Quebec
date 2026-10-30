@@ -117,8 +117,8 @@ export default function Soumission() {
   };
   // Retour sur l'étape Estimation (rechargement, Avance natif) : estimation recalculée, jamais inventée.
   useEffect(() => {
-    if (step === 6 && material && quantityPayload && !quote && !quoting && !quoteError && !confirmation) void runEstimate();
-  }, [step, material]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (draft.ready && step === 6 && material && quantityPayload && valid[5] && !quote && !quoting && !quoteError && !confirmation) void runEstimate();
+  }, [step, material, draft.ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Bandeau de navigation universel : prévient avant de quitter une saisie en cours.
   useUnsavedChangesGuard(
@@ -179,7 +179,8 @@ export default function Soumission() {
 
 
   const runEstimate = async () => {
-    if (!material || !quantityPayload || estimating.current) return;
+    if (!draft.ready || !valid[5] || !material || !quantityPayload || estimating.current) return;
+    draft.flush();
     estimating.current = true;
     setQuoting(true); setQuoteError(null); setQuote(null); setRecordFailed(false);
     const quantityLabel = mode === "voyages"

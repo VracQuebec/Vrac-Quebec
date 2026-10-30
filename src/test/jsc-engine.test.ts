@@ -145,7 +145,23 @@ describe("moteur unique Transport JSC", () => {
     expect(r.public.total).toBe(r.public.subtotal);
   });
 
-  it("refuse un profil transporteur non configuré", () => {
-    expect(() => runCarrierQuote(input, makeConfig(), distance as any, "autre")).toThrow(/non configuré/);
+  it("refuse un profil transporteur non configuré", async () => {
+    await expect(runCarrierQuote(input, makeConfig(), distance as any, "autre")).rejects.toThrow(/non configuré/);
+  });
+
+  it("convertit deux voyages du camion configuré en 30 tonnes sans tarif voyage", async () => {
+    const config = makeConfig();
+    const voyages = await runCarrierQuote({ ...input, quantity: 2, unit: 'voyage', truck_id: 't10' }, config, distance as any);
+    const tonnes = await runCarrierQuote({ ...input, quantity: 30, truck_id: 't10' }, config, distance as any);
+    expect(voyages.public.tonnage).toBe(30);
+    expect(voyages.public.trips).toBe(2);
+    expect(voyages.public.material_amount).toBe(450);
+    expect(voyages.public.total).toBe(tonnes.public.total);
+    expect(voyages.public.tax_total).toBe(tonnes.public.tax_total);
+    expect(voyages.public.transport_amount).toBe(tonnes.public.transport_amount);
+  });
+
+  it("ne remplace pas silencieusement un camion voyage devenu indisponible", async () => {
+    await expect(runCarrierQuote({ ...input, quantity: 2, unit: 'voyage', truck_id: 'absent' }, makeConfig(), distance as any)).rejects.toThrow(/Camion choisi/);
   });
 });
