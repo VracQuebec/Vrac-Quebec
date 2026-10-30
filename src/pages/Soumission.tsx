@@ -65,6 +65,7 @@ export default function Soumission() {
   const [material, setMaterial] = useState<AssistantMaterial | null>(null);
   const [mode, setMode] = useState<QuantityMode>("tonnes");
   const [tonnes, setTonnes] = useState("");
+  const [quantityUnit, setQuantityUnit] = useState<"tonne" | "m3" | "verge">("tonne");
   const [dims, setDims] = useState({ length: "", width: "", depth: "" });
   const [dimUnits, setDimUnits] = useState<{ length: DimUnit; width: DimUnit; depth: DimUnit }>(
     { length: "pi", width: "pi", depth: "po" },
@@ -94,7 +95,7 @@ export default function Soumission() {
 
   // NAV-01 : brouillon local (même navigateur) — champs déclarés, aucun secret.
   const [pendingMaterialId, setPendingMaterialId] = useState<string | null>(null);
-  const draftData = { step, categoryId, materialId: material?.id ?? pendingMaterialId, mode, tonnes, dims, dimUnits, trips, truckId, address, date, contact, leadToken };
+  const draftData = { step, categoryId, materialId: material?.id ?? pendingMaterialId, mode, tonnes, quantityUnit, dims, dimUnits, trips, truckId, address, date, contact, leadToken };
   const draft = useDraft({
     id: loadingCatalog ? null : { module: "soumission-publique", form: "assistant", owner: "anon" },
     data: draftData,
@@ -103,6 +104,7 @@ export default function Soumission() {
       setCategoryId(d.categoryId); setMode(d.mode); setTonnes(d.tonnes); setDims(d.dims); setDimUnits(d.dimUnits);
       setTrips(d.trips); setTruckId(d.truckId); setAddress(d.address); setDate(d.date); setContact(d.contact);
       if (d.leadToken) setLeadToken(d.leadToken);
+      setQuantityUnit(d.quantityUnit ?? 'tonne');
       const m = materials.find((x) => x.id === d.materialId) ?? null;
       setMaterial(m); setPendingMaterialId(m ? null : d.materialId);
       // Nouvelle ouverture sans ?etape= : reprise de l'étape du brouillon (validée ensuite).
@@ -142,7 +144,7 @@ export default function Soumission() {
   const quantityPayload = useMemo(() => {
     if (mode === "tonnes") {
       const q = Number(tonnes);
-      return q > 0 ? { quantity: q, unit: "tonne" as const } : null;
+      return q > 0 ? { quantity: q, unit: quantityUnit } : null;
     }
     if (mode === "voyages") {
       const n = Number(trips);
@@ -154,7 +156,7 @@ export default function Soumission() {
     }
     const v = dimsToCubicMeters(dims, dimUnits);
     return v > 0 ? { quantity: Number(v.toFixed(3)), unit: "m3" as const } : null;
-  }, [mode, tonnes, dims, dimUnits, trips, truckId, trucks]);
+  }, [mode, tonnes, quantityUnit, dims, dimUnits, trips, truckId, trucks]);
 
   const valid = [
     Boolean(categoryId) || Boolean(material),
@@ -185,7 +187,7 @@ export default function Soumission() {
     setQuoting(true); setQuoteError(null); setQuote(null); setRecordFailed(false);
     const quantityLabel = mode === "voyages"
       ? `${trips} voyage(s) — ${trucks.find((t) => t.id === truckId)?.name ?? "camion"} (${quantityPayload.quantity} tonnes)`
-      : mode === "tonnes" ? `${tonnes} tonnes` : `${quantityPayload.quantity} m³`;
+      : mode === "tonnes" ? `${tonnes} ${quantityUnit}` : `${quantityPayload.quantity} m³`;
     try {
       const res = await recordAndEstimate({
         lead_token: leadToken, material_id: material.id, ...quantityPayload, address: address.trim(),
@@ -195,7 +197,7 @@ export default function Soumission() {
           company: contact.company.trim() || undefined, comments: contact.comments.trim() || undefined,
         },
         quantity_label: quantityLabel, material_label: material.name,
-        form_answers: { mode, tonnes, dims, dimUnits, trips, truckId, date },
+        form_answers: { mode, tonnes, quantityUnit, dims, dimUnits, trips, truckId, date },
         website: honeypot, form_started_at: startedAt.current,
       });
       if (!res.recorded) {
@@ -339,11 +341,20 @@ export default function Soumission() {
               )}
 
               {step === 2 && (
+                <>
                 <StepQuantity material={material} mode={mode} setMode={setMode}
                   tonnes={tonnes} setTonnes={setTonnes} dims={dims} setDims={setDims}
                   dimUnits={dimUnits} setDimUnits={setDimUnits}
                   trips={trips} setTrips={setTrips}
                   truckId={truckId} setTruckId={setTruckId} trucks={trucks} />
+                {mode === 'tonnes' && (
+                  <select aria-label="Unité de quantité" value={quantityUnit}
+                    className="mt-3 rounded-md border border-border bg-background p-2 text-foreground"
+                    onChange={(e) => setQuantityUnit(e.target.value as 'tonne' | 'm3' | 'verge')}>
+                    <option value="tonne">Tonnes</option><option value="m3">m³</option><option value="verge">Verges³</option>
+                  </select>
+                )}
+                </>
               )}
 
               {step === 3 && <StepAddress address={address} setAddress={setAddress} />}
