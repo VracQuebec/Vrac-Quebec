@@ -312,7 +312,7 @@ async function submit(sb: any, body: any, req: Request) {
     quantityValue: args.quantity, quantityUnit: args.unit, desiredDate, description, answers: null,
   }, {
     request_type: 'transport', service_type: 'transport_livraison', deliver_or_remove: 'À livrer',
-    property_type: 'Livraison de matériaux', ...calcFields,
+    property_type: 'Livraison de matériaux', ...attribution, ...calcFields,
   }).then((l) => ({ data: { id: l.id }, error: null }), (e) => ({ data: null, error: e as Error }))
     : null;
   const { data: lead, error: leadError } = tokenLead ?? await sb.from('submissions').insert({
