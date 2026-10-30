@@ -25,7 +25,6 @@ import CatalogPicker from "@/components/vrac/CatalogPicker";
 import { buildQuoteRequest, useVracEstimate } from "@/lib/vrac/estimate";
 import { useQuoteSubmit } from "@/lib/vrac/submit";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
-import { PUBLIC_PHONE } from "@/lib/public-phone";
 import { readQuoteReceipt, saveQuoteReceipt } from '@/lib/vrac/receipt';
 import {
   recommendedTruckId, unitLabel, unitsForSlug, useMaterialUnits, usePublicTrucks, useTruckCapacity,
@@ -216,7 +215,7 @@ export default function AchatVrac() {
         <h1 className="text-2xl font-bold text-foreground">Votre demande est enregistrée</h1>
         <p className="my-4 text-muted-foreground">Référence {receipt.number}.</p>
         <QuoteCard quote={receipt.quote} address={receipt.quote.delivery_address ?? ''}
-          onEmail={() => {}} onCallback={() => {}} onEdit={() => {}} pending={null} error={null}
+          onEmail={() => {}} onEdit={() => {}} pending={null} error={null}
           result={receipt.result ?? null} />
         <Button asChild className="mt-6"><Link to="/">Retour à l'accueil</Link></Button>
       </main>
@@ -294,10 +293,10 @@ export default function AchatVrac() {
                 quote={estimate.quote}
                 address={draft.address}
                 onEmail={() => { if (estimate.isFresh(draft, quoteContext)) submission.send(withToken(), "submit", quoteContext); }}
-                onCallback={() => submission.send(withToken(), "callback", quoteContext)}
                 onRefuse={() => submission.refuse(withToken())}
                 refused={submission.refused}
-                onEdit={() => setStep(0)}
+                deciding={submission.deciding}
+                onEdit={() => { estimate.reset(); submission.resetDecision(); setStep(0); }}
                 pending={submission.pending}
                 result={submission.result}
                 error={submission.error}
@@ -310,6 +309,7 @@ export default function AchatVrac() {
                 manualReview={manualReview}
                 blockedReason={blockedReason}
                 onFix={() => setStep(blockedStep)}
+                onEdit={() => setStep(0)}
                 recorded={estimate.recorded}
                 recordFailed={estimate.recordFailed}
                 engineManual={estimate.manual}
@@ -323,7 +323,7 @@ export default function AchatVrac() {
               variant="ghost"
               className="w-full sm:w-auto"
               onClick={() => setStep((s) => Math.max(0, s - 1))}
-              disabled={step === 0}
+              disabled={step === 0 || submission.pending !== null || submission.deciding}
             >
               <ArrowLeft className="mr-2 h-4 w-4" /> Retour
             </Button>
@@ -418,9 +418,10 @@ function Progress({ step }: { step: number }) {
 }
 
 /** Résumé du parcours avant le calcul. Aucune donnée interne n'est affichée. */
-function Recap({ draft, loading, error, manualReview, blockedReason, onFix, recorded, recordFailed, engineManual, onSendManual }: {
+function Recap({ draft, loading, error, manualReview, blockedReason, onFix, onEdit, recorded, recordFailed, engineManual, onSendManual }: {
   draft: VracDraft; loading: boolean; error: string | null; manualReview?: boolean;
   blockedReason?: string | null; onFix?: () => void;
+  onEdit: () => void;
   recorded?: { request_number: number | null } | null; recordFailed?: boolean; engineManual?: boolean;
   onSendManual?: () => void;
 }) {
@@ -432,8 +433,8 @@ function Recap({ draft, loading, error, manualReview, blockedReason, onFix, reco
       </strong>
       <br />
       {engineManual || manualReview
-        ? "Le prix ne peut pas être calculé automatiquement : notre équipe préparera votre soumission et vous contactera."
-        : "Le calcul automatique a échoué : votre demande est conservée et notre équipe vous contactera. Vous pouvez aussi relancer le calcul."}
+        ? "Le prix ne peut pas être calculé automatiquement. Votre demande est conservée; vous pouvez modifier vos renseignements."
+        : "Le calcul automatique a échoué : votre demande est conservée. Réessayez ou modifiez vos renseignements."}
     </Notice>
   ) : null;
   const material = findVracMaterial(draft.materialId);
@@ -473,7 +474,7 @@ function Recap({ draft, loading, error, manualReview, blockedReason, onFix, reco
             <br />
             {blockedReason ?? "Une information essentielle est manquante."}
             <br />
-            Corrigez cette information pour obtenir votre prix instantané, ou appelez-nous au {PUBLIC_PHONE}.
+            Corrigez cette information pour recalculer votre soumission.
           </Notice>
           {savedNotice}
           {recordFailed && error && (
@@ -520,8 +521,8 @@ function Recap({ draft, loading, error, manualReview, blockedReason, onFix, reco
         </p>
       )}
 
-      <Button variant="outline" asChild className="w-full sm:w-auto">
-        <Link to="/">Retour à l'accueil</Link>
+      <Button variant="outline" onClick={onEdit} disabled={loading} className="h-auto w-full whitespace-normal sm:w-auto">
+        Modifier mes renseignements
       </Button>
     </div>
   );

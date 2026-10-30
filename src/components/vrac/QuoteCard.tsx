@@ -3,14 +3,11 @@
 // Aucun calcul interne visible : matériau, quantité, transport,
 // adresse et estimation toutes taxes incluses.
 // ============================================================
-import { CalendarDays, Check, CheckCircle2, Loader2, Lock, Pencil, Phone, PhoneCall, ShieldCheck } from "lucide-react";
+import { CalendarDays, Check, CheckCircle2, Loader2, Lock, Pencil, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/vrac/estimate";
 import type { PublicQuote } from "@/lib/jsc/engine";
 import type { SubmitAction, SubmitResult } from "@/lib/vrac/submit";
-import { PUBLIC_PHONE } from "@/lib/public-phone";
-
-const PHONE = PUBLIC_PHONE;
 
 /** Camion recommandé, sans jamais exposer d'information interne. */
 function truckLabel(quote: PublicQuote): string {
@@ -33,9 +30,9 @@ interface Props {
   quote: PublicQuote;
   address: string;
   onEmail: () => void;
-  onCallback: () => void;
   onRefuse?: () => void;
   refused?: boolean;
+  deciding?: boolean;
   onEdit: () => void;
   pending: SubmitAction | null;
   result: SubmitResult | null;
@@ -43,7 +40,7 @@ interface Props {
 }
 
 export default function QuoteCard({
-  quote, address, onEmail, onCallback, onRefuse, refused, onEdit, pending, result, error,
+  quote, address, onEmail, onRefuse, refused, deciding, onEdit, pending, result, error,
 }: Props) {
   const rows: [string, string][] = [
     ["Matériau", quote.material.name],
@@ -142,7 +139,7 @@ export default function QuoteCard({
         <p>
           {result?.valid_until
             ? `Cette estimation est valide jusqu'au ${new Date(`${result.valid_until}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })}.`
-            : "Vous recevrez cette estimation par courriel. Notre équipe communiquera ensuite avec vous afin de confirmer les détails de votre commande ainsi que le montant final avant la livraison."}
+            : "Vous pouvez accepter cette soumission, la refuser ou modifier vos renseignements pour recalculer."}
         </p>
       </div>
 
@@ -150,10 +147,8 @@ export default function QuoteCard({
         <div className="mx-6 mb-6 flex items-start gap-3 rounded-2xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <p>
-            {result.action === "callback"
-              ? "Votre demande de rappel est enregistrée. Notre équipe vous contacte sous peu."
-              : result.email_sent === false
-                ? `Demande confirmée. Votre soumission ${result.quote_number ?? ""} a bien été enregistrée. Le courriel de confirmation n'a pas pu être envoyé — notre équipe vous contactera directement.`
+            {result.email_sent === false
+                ? `Soumission acceptée. Votre demande ${result.quote_number ?? ""} est enregistrée. Le courriel de confirmation n'a pas pu être envoyé; cette confirmation reste disponible à l'écran.`
                 : `Demande confirmée. Votre soumission ${result.quote_number ?? ""} a été enregistrée et envoyée à ${result.emailed_to ?? "votre courriel"}.`}
           </p>
         </div>
@@ -161,6 +156,11 @@ export default function QuoteCard({
 
       {error && (
         <p className="mx-6 mb-6 rounded-2xl bg-muted/60 p-4 text-sm text-muted-foreground">{error}</p>
+      )}
+      {refused && !result && (
+        <p role="status" className="mx-6 mb-6 rounded-lg bg-muted p-4 text-sm text-foreground">
+          Votre refus est enregistré. Votre demande est conservée. Vous pouvez modifier vos renseignements et recalculer.
+        </p>
       )}
 
       <div className="mx-6 mb-6 flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4">
@@ -174,30 +174,21 @@ export default function QuoteCard({
         className="grid gap-3 border-t border-border bg-muted/20 p-6 sm:grid-cols-2 animate-fade-in [animation-fill-mode:both]"
         style={{ animationDelay: "300ms", animationDuration: "400ms" }}
       >
-        <Button asChild variant="outline" className="h-auto w-full whitespace-normal py-3 text-center">
-          <a href={`tel:${PHONE.replace(/\D/g, "")}`}>
-            <Phone className="mr-2 h-4 w-4" /> Appeler maintenant
-          </a>
-        </Button>
-        {!result && <Button onClick={onEmail} disabled={pending !== null} className="h-auto w-full whitespace-normal py-3 text-center">
+        {!result && !refused && <Button onClick={onEmail} disabled={pending !== null || deciding} className="h-auto w-full whitespace-normal py-3 text-center">
           {pending === "submit"
             ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Envoi…</>
-            : <><Check className="mr-2 h-4 w-4" /> Confirmer ma demande</>}
+            : <><Check className="mr-2 h-4 w-4" /> Accepter cette soumission</>}
         </Button>}
-        {!result && <Button onClick={onCallback} variant="outline" disabled={pending !== null} className="h-auto w-full whitespace-normal py-3 text-center">
-          {pending === "callback"
-            ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Envoi…</>
-            : <><PhoneCall className="mr-2 h-4 w-4" /> Demander un rappel</>}
-        </Button>}
-        {!result && <Button onClick={onEdit} variant="ghost" className="h-auto w-full whitespace-normal py-3 text-center">
-          <Pencil className="mr-2 h-4 w-4" /> Modifier ma demande
-        </Button>}
-        {onRefuse && !result && (
-          <Button onClick={onRefuse} variant="ghost" disabled={pending !== null || refused}
-            className="h-auto w-full whitespace-normal py-3 text-center text-muted-foreground sm:col-span-2">
-            {refused ? "Réponse enregistrée : soumission refusée. Merci !" : "Cette soumission ne me convient pas"}
+        {onRefuse && !result && !refused && (
+          <Button onClick={onRefuse} variant="outline" disabled={pending !== null || deciding}
+            className="h-auto w-full whitespace-normal py-3 text-center">
+            {deciding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Cette soumission ne me convient pas
           </Button>
         )}
+        {!result && <Button onClick={onEdit} variant="ghost" disabled={pending !== null || deciding} className="h-auto w-full whitespace-normal py-3 text-center sm:col-span-2">
+          <Pencil className="mr-2 h-4 w-4" /> Modifier mes renseignements et recalculer
+        </Button>}
       </div>
 
       <div className="flex items-start gap-2 border-t border-border px-6 py-4 text-xs leading-relaxed text-muted-foreground">

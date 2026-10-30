@@ -133,9 +133,10 @@ export function useQuoteSubmit() {
 
   /** Refus explicite de la soumission : enregistré sur la même demande, sans courriel. */
   const [refused, setRefused] = useState(false);
+  const [deciding, setDeciding] = useState(false);
   const refuse = useCallback(async (draft: VracDraft) => {
     if (inFlight.current || done.current || !draft.leadToken) return;
-    inFlight.current = true; setError(null);
+    inFlight.current = true; setDeciding(true); setError(null);
     try {
       const { data, error: fnError } = await supabase.functions.invoke("quote-submit", {
         body: { action: "decision", decision: "refusee", lead_token: draft.leadToken },
@@ -144,8 +145,9 @@ export function useQuoteSubmit() {
       setRefused(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Envoi impossible pour le moment.");
-    } finally { inFlight.current = false; }
+    } finally { inFlight.current = false; setDeciding(false); }
   }, []);
 
-  return { result, pending, error, send, sendManual, refuse, refused, honeypot, setHoneypot, formStartedAt };
+  const resetDecision = useCallback(() => { setRefused(false); setError(null); }, []);
+  return { result, pending, error, send, sendManual, refuse, refused, deciding, resetDecision, honeypot, setHoneypot, formStartedAt };
 }
