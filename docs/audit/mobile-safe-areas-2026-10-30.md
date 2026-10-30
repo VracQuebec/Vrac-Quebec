@@ -18,4 +18,5 @@ Simulations Chromium et zones injectées, pas appareils physiques iPhone/Android
 Le worker ne cache pas les pages métier. Après publication, fermer complètement puis rouvrir l’application doit charger la version actuelle; aucun changement de manifeste ne justifie une réinstallation ni un effacement de données. Réouverture physique non vérifiée.
 
 ## Publication
-À vérifier sur vracquebec.ca après demande de publication.
+Publication demandée à 20:57 UTC; deux contrôles espacés sur vracquebec.ca ont reçu HTTP 200 mais encore l’ancienne présentation (classes public-home/consent-panel absentes). Le déploiement n’est donc pas confirmé terminé. Aucun nouvel essai de consentement enregistré sur le site publié.
+Vérifications locales complémentaires : 491×1072, 1280×1800 et paysage 667×320, boutons tous dans l’écran et aucun débordement horizontal.
