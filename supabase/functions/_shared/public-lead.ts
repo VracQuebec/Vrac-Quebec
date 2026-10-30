@@ -81,9 +81,10 @@ export async function upsertLead(sb: any, token: string, f: LeadFields, extra: R
     await sb.from('submissions').update({
       latitude: f.lat, longitude: f.lng, formatted_address: f.address,
       geocoding_status: 'ok', geocoding_provider: 'google',
-    }).eq('id', lead!.id);
+    }).eq('id', lead.id);
   }
-  return lead!;
+  if (!lead) throw new Error('Enregistrement CRM indisponible.');
+  return lead;
 }
 
 export async function patchLead(sb: any, id: string, patch: Record<string, unknown>) {
