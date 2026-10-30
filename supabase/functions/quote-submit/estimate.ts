@@ -155,6 +155,13 @@ export async function handleEstimate(req: Request, sb: any, body: any, c: Estima
       });
     } catch { /* la demande reste enregistrée avec l'état « en cours » */ }
     await logEvent({ source: 'quote_submit', event: 'estimate.failed', level: 'warn', message, refId: lead.id });
-    return json({ ok: false, ...ref, manual: isManual, error: message });
+    // Le détail exact reste dans le CRM ; le client ne voit jamais d'information
+    // interne (lieu de chargement, fournisseur) contenue dans le message moteur.
+    return json({
+      ok: false, ...ref, manual: isManual,
+      error: isManual
+        ? 'Soumission à confirmer : le prix ne peut pas être calculé automatiquement pour cette demande.'
+        : "Le calcul automatique n'a pas pu être effectué pour cette adresse ou cette quantité.",
+    });
   }
 }
