@@ -1,3 +1,8 @@
+## Écrans finaux automatisés — 30 octobre 2026
+- [ ] Retirer les appels, harmoniser acceptation/refus et modification/recalcul sur les deux formulaires.
+- [ ] Tester avec demandes fictives : erreur, reprise, refus, acceptation, même dossier et aucun envoi réel.
+- [ ] Publier après vérification puis contrôler les deux parcours sur vracquebec.ca.
+
 ## Entrepreneurs sans approbation — 30 octobre 2026
 - [x] Inscription serveur active sans approbation ni notification de validation; suspension explicite, blacklist et abonnement conservés.
 - [x] 10 comptes identifiés débloqués; contrôles serveur des 10 réussis sans session client; inscription/déconnexion/reconnexion fictives en ligne, 26 tests ciblés, publication et refus Facebook entrepreneur vérifiés.
