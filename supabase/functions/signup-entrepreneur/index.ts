@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { entrepreneurSignupRole } from "./role.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -115,7 +116,7 @@ Deno.serve(async (req) => {
 
     const { error: roleErr } = await admin
       .from("user_roles")
-      .insert({ user_id: userId, role: "entrepreneur", approved: true });
+      .insert(entrepreneurSignupRole(userId));
 
     if (roleErr) {
       if (createdNewUser) await admin.auth.admin.deleteUser(userId);
