@@ -205,6 +205,11 @@ const Ga4RouteTracker = () => {
     const inCrm = privateTelemetryBlocked() || location.pathname.startsWith("/entrepreneur/crm");
     if (inCrm) { (window as unknown as Record<string, boolean>)["ga-disable-G-T6HYZVY8E0"] = true; return; }
     applyConsent();
+    // Espaces connectés et liens personnels : GA désactivé aussi pour ses événements automatiques
+    // (défilement, clics), et l'adresse transmise est toujours nettoyée des jetons.
+    const w = window as unknown as Record<string, unknown> & { gtag?: (...a: unknown[]) => void };
+    if (isPrivateAnalyticsPath(location.pathname)) { w["ga-disable-G-T6HYZVY8E0"] = true; return; }
+    if (analyticsAllowed()) w.gtag?.("set", { page_location: window.location.origin + location.pathname + sanitizeSearch(location.search), page_referrer: "" });
     // Laisse le temps au titre de se mettre à jour (Helmet) avant d'envoyer le page_view.
     const t = window.setTimeout(() => {
       trackPageView(location.pathname + location.search, document.title);
