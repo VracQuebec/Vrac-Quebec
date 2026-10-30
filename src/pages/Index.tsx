@@ -404,7 +404,7 @@ const Index = () => {
                 Confidentialité
               </a>
               <button type="button" onClick={openConsentSettings} className="inline-flex min-h-11 items-center hover:text-foreground transition-colors text-xs">
-                Témoins
+                Gérer mes témoins
               </button>
             </div>
           </div>
