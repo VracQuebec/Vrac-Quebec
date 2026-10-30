@@ -288,3 +288,8 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [ ] Liens Facebook à fournir et vérifier fiche par fiche (580 « À fournir »); 7 noms à compléter.
 - [ ] Rattachement de pièces jointes aux publications via le système de fichiers existant (non branché).
 - [ ] Essai de conflit simultané entre deux administrateurs (attribution persistante livrée, essai à deux sessions non exécuté).
+
+## Soumissions publiques — 30 octobre 2026
+- [ ] Deux parcours : demande durable avant calcul, décisions séparées, reprises uniques.
+- [ ] Restaurer voyages × capacité documentée, sans changement de tarifs.
+- [ ] Tests fictifs et journaux de communications; publier et vérifier les deux parcours.
