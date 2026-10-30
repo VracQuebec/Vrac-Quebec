@@ -18,7 +18,7 @@ import {
   SORT_GROUPS, parseLeadSort, sortLabel, sortLeads, estimateMatchCounts,
   isClientOnlySort, type LeadSort,
 } from "@/lib/crm/leadSort";
-import { fetchLeadsPage, needsClientMode, LEADS_PAGE_SIZE, type LeadFilters } from "@/lib/crm/leadsQuery";
+import { fetchLeadsPage, fetchFullLeads, needsClientMode, LEADS_PAGE_SIZE, ADMIN_LIST_COLUMNS, type LeadFilters } from "@/lib/crm/leadsQuery";
 import { useLeadStatuses, findStatus, type LeadStatus } from "@/hooks/useLeadStatuses";
 import { Switch } from "@/components/ui/switch";
 import StatusManagerModal from "@/components/StatusManagerModal";
@@ -352,7 +352,7 @@ const Admin = () => {
   const fetchSubmissions = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("submissions").select("*").order("created_at", { ascending: false });
+      .from("submissions").select(ADMIN_LIST_COLUMNS).order("created_at", { ascending: false });
     if (error) toast({ title: "Erreur", description: "Impossible de charger les demandes.", variant: "destructive" });
     else setSubmissions((data as any) || []);
     setLoading(false);
@@ -683,12 +683,30 @@ const Admin = () => {
   // Les modifications locales (statut, champs, géocodage) s'appliquent à la page affichée sans relecture.
   const serverRowsMerged = useMemo(() => {
     const byId = new globalThis.Map<string, Submission>(submissions.map((s) => [s.id, s] as [string, Submission]));
-    return serverRows.map((r) => byId.get(r.id) ?? r);
+    return serverRows.map((r) => ({ ...r, ...(byId.get(r.id) ?? {}) }) as Submission);
   }, [serverRows, submissions]);
+  // Mode client (tri/filtre calculé) : la liste complète est allégée; les fiches
+  // complètes ne sont lues que pour les 50 demandes affichées.
+  const [fullRows, setFullRows] = useState<Record<string, Submission>>({});
+  const clientSlice = useMemo(
+    () => (clientMode ? filtered.slice((page - 1) * LEADS_PAGE_SIZE, page * LEADS_PAGE_SIZE) : []),
+    [clientMode, filtered, page],
+  );
+  useEffect(() => {
+    const missing = clientSlice.map((s) => s.id).filter((id) => !fullRows[id]);
+    if (!missing.length) return;
+    let cancelled = false;
+    setPageLoading(true);
+    fetchFullLeads(missing)
+      .then((rows) => { if (!cancelled) setFullRows((prev) => ({ ...prev, ...Object.fromEntries(rows.map((r: any) => [r.id, r])) })); })
+      .catch(() => { if (!cancelled) toast({ title: "Erreur", description: "Impossible de charger cette page.", variant: "destructive" }); })
+      .finally(() => { if (!cancelled) setPageLoading(false); });
+    return () => { cancelled = true; };
+  }, [clientSlice, fullRows]);
   const totalResults = clientMode ? filtered.length : serverTotal;
   const totalPages = Math.max(1, Math.ceil(totalResults / LEADS_PAGE_SIZE));
   const pageItems = clientMode
-    ? filtered.slice((page - 1) * LEADS_PAGE_SIZE, page * LEADS_PAGE_SIZE)
+    ? clientSlice.filter((s) => fullRows[s.id]).map((s) => ({ ...fullRows[s.id], ...s }) as Submission)
     : serverRowsMerged;
   const activeFilters = [
     filterStatus !== "all" && `Statut : ${findStatus(leadStatuses, filterStatus)?.label ?? filterStatus}`,
