@@ -17,6 +17,7 @@ import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
 import { fetchWithTimeout } from '../_shared/http.ts';
 import { clientIp, enforceIpQuota, GuardError, guardPublicRequest, rememberResult } from '../_shared/public-guard.ts';
+import { upsertLead, validLeadToken } from '../_shared/public-lead.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
 const EXCLUDED = /remblai/i; // Le module Remblai reste totalement indépendant.
@@ -170,6 +171,16 @@ async function computeQuote(sb: any, args: QuoteArgs) {
 
 // ---------- 4. Confirmation : client + demande + estimation ----------
 async function submit(sb: any, body: any, req: Request) {
+  // Nouveau parcours : même service durable et réservation que l'achat de vrac.
+  if (validLeadToken(body?.lead_token)) {
+    const response = await fetchWithTimeout(`${Deno.env.get('SUPABASE_URL')}/functions/v1/quote-submit`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+      body: JSON.stringify({ ...body, action: 'submit', source: 'soumission' }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error('Confirmation impossible : réessayez.');
+    return result;
+  }
   const args = readQuoteArgs(body);
   const name = clean(body?.contact?.name, 160);
   const phone = clean(body?.contact?.phone, 40);
@@ -294,7 +305,27 @@ async function submit(sb: any, body: any, req: Request) {
   ].filter(Boolean).join('\n');
 
   let submissionId: string | null = null;
-  const { data: lead, error: leadError } = await sb.from('submissions').insert({
+  const leadToken = validLeadToken(body?.lead_token);
+  const calcFields = {
+    quote_calc_status: 'calculee', quote_calc_error: null, quote_calc_at: new Date().toISOString(),
+    quote_material: result.public.material.name, quote_quantity: args.quantity, quote_unit: args.unit,
+    quote_tonnage: result.public.tonnage, quote_trips: result.public.trips, quote_total: result.public.total,
+    quote_distance_km: result.public.distance_km ?? null,
+    // Décision du client, distincte du statut de suivi CRM.
+    quote_client_decision: 'acceptee', quote_decision_at: new Date().toISOString(),
+  };
+  // Demande déjà enregistrée avant le calcul : même fiche, jamais une seconde.
+  const tokenLead = leadToken ? await upsertLead(sb, leadToken, {
+    name, email, phone, company, address: delivery.address ?? args.address,
+    city: delivery.city ?? null, postal_code: delivery.postal_code ?? null, lat: delivery.lat, lng: delivery.lng,
+    materialLabel: result.public.material.name, quantityLabel: `${args.quantity} ${args.unit}`,
+    quantityValue: args.quantity, quantityUnit: args.unit, desiredDate, description, answers: null,
+  }, {
+    request_type: 'transport', service_type: 'transport_livraison', deliver_or_remove: 'À livrer',
+    property_type: 'Livraison de matériaux', ...attribution, ...calcFields,
+  }).then((l) => ({ data: { id: l.id }, error: null }), (e) => ({ data: null, error: e as Error }))
+    : null;
+  const { data: lead, error: leadError } = tokenLead ?? await sb.from('submissions').insert({
     materials: [result.public.material.name],
     property_type: 'Livraison de matériaux',
     quantity: `${args.quantity} ${args.unit}`,
@@ -319,7 +350,7 @@ async function submit(sb: any, body: any, req: Request) {
   } else if (lead?.id) {
     submissionId = lead.id as string;
     // Le déclencheur public neutralise les coordonnées : on les réapplique.
-    if (typeof delivery.lat === 'number' && typeof delivery.lng === 'number') {
+    if (!tokenLead && typeof delivery.lat === 'number' && typeof delivery.lng === 'number') {
       await sb.from('submissions').update({
         latitude: delivery.lat,
         longitude: delivery.lng,

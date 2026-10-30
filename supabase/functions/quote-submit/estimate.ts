@@ -14,7 +14,7 @@ import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
 import { clientIp, enforceIpQuota, GuardError } from '../_shared/public-guard.ts';
 import { logEvent, logEventAsync } from '../_shared/observability.ts';
-import { cleanAnswers, patchLead, upsertLead } from './lead.ts';
+import { cleanAnswers, patchLead, upsertLead } from '../_shared/public-lead.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3', 'voyage'];
 const UNIT_LABEL: Record<string, string> = { tonne: 'tonnes', m3: 'm³', verge: 'verges³', voyage: 'voyage(s)' };
@@ -83,8 +83,13 @@ export async function handleEstimate(req: Request, sb: any, body: any, c: Estima
   }
 
   const materialLabel = await materialLabelOf(sb, c, body);
+  // Origine du parcours : /soumission (assistant) ou /acheter-materiaux.
+  const fromAssistant = body?.source === 'soumission';
+  const origin = fromAssistant
+    ? { request_type: 'transport', service_type: 'transport_livraison', deliver_or_remove: 'À livrer', property_type: 'Livraison de matériaux' }
+    : {};
   const description = [
-    'Demande de prix — parcours « J’ai besoin de matériel en vrac »',
+    fromAssistant ? 'Demande de prix — assistant /soumission' : 'Demande de prix — parcours « J’ai besoin de matériel en vrac »',
     `Matériau : ${materialLabel}`,
     `Quantité : ${quantityLabel}`,
     c.desiredDate ? `Date souhaitée : ${c.desiredDate}` : '',
@@ -102,6 +107,7 @@ export async function handleEstimate(req: Request, sb: any, body: any, c: Estima
       quantityValue: hasQty ? quantity : null, quantityUnit: unitOk ? unit : null,
       desiredDate: c.desiredDate, description, answers: cleanAnswers(body?.form_answers),
     }, {
+      ...origin,
       quote_calc_status: manualReason ? 'manuel' : 'en_cours',
       quote_calc_error: manualReason, quote_calc_at: new Date().toISOString(),
     });
@@ -131,6 +137,7 @@ export async function handleEstimate(req: Request, sb: any, body: any, c: Estima
       truck_id: typeof body?.truck_id === 'string' && body.truck_id.length >= 10 ? body.truck_id : null,
     }, config, distanceProvider);
     const pub = result.public as Record<string, any>;
+    const { pickup: _p, base: _b, margin_amount: _m, ...clientPublic } = pub;
     const truckLabel = pub.truck?.name
       ? (pub.truck?.capacity_tonnes ? `${pub.truck.name} (${pub.truck.capacity_tonnes} tonnes)` : pub.truck.name) : null;
     await patchLead(sb, lead.id, {
@@ -140,10 +147,10 @@ export async function handleEstimate(req: Request, sb: any, body: any, c: Estima
       quote_distance_km: pub.distance_km ?? null,
       quote_duration_minutes: Number(pub.estimated_duration_minutes) || null,
       quote_total: pub.total,
+      form_answers: { ...(cleanAnswers(body?.form_answers) ?? {}), quote_result: clientPublic },
     });
     logEventAsync({ source: 'quote_submit', event: 'estimate.computed', durationMs: Date.now() - started, refId: lead.id });
     // Confidentialité : jamais le lieu de chargement, la base ni la marge.
-    const { pickup: _p, base: _b, margin_amount: _m, ...clientPublic } = pub;
     return json({ ok: true, ...ref, quote: clientPublic, engine_version: result.engine_version, computed_at: result.computed_at });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Estimation indisponible.';

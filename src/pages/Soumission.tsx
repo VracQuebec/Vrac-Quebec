@@ -20,7 +20,7 @@ import {
   dimsToCubicMeters, type DimUnit, type QuantityMode,
 } from "@/components/soumission/AssistantSteps";
 import {
-  confirmEstimate, fetchCatalog, requestEstimate,
+  confirmEstimate, declineEstimate, fetchCatalog, recordAndEstimate,
   type AssistantCategory, type AssistantMaterial, type AssistantTruck,
 } from "@/lib/jsc/assistant";
 import type { PublicQuote } from "@/lib/jsc/engine";
@@ -65,6 +65,7 @@ export default function Soumission() {
   const [material, setMaterial] = useState<AssistantMaterial | null>(null);
   const [mode, setMode] = useState<QuantityMode>("tonnes");
   const [tonnes, setTonnes] = useState("");
+  const [quantityUnit, setQuantityUnit] = useState<"tonne" | "m3" | "verge">("tonne");
   const [dims, setDims] = useState({ length: "", width: "", depth: "" });
   const [dimUnits, setDimUnits] = useState<{ length: DimUnit; width: DimUnit; depth: DimUnit }>(
     { length: "pi", width: "pi", depth: "po" },
@@ -81,6 +82,12 @@ export default function Soumission() {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState<{ number: string; quote: PublicQuote } | null>(null);
+  // Jeton de la demande CRM : un seul dossier par parcours (calculs, reprises, décision).
+  const [leadToken, setLeadToken] = useState<string>(() => crypto.randomUUID());
+  const [recordedNumber, setRecordedNumber] = useState<number | null>(null);
+  const [recordFailed, setRecordFailed] = useState(false);
+  const [declined, setDeclined] = useState(false);
+  const estimating = useRef(false);
   // Verrou synchrone : un double clic ne peut jamais déclencher deux envois.
   const sending = useRef(false);
   const [honeypot, setHoneypot] = useState("");
@@ -88,7 +95,7 @@ export default function Soumission() {
 
   // NAV-01 : brouillon local (même navigateur) — champs déclarés, aucun secret.
   const [pendingMaterialId, setPendingMaterialId] = useState<string | null>(null);
-  const draftData = { step, categoryId, materialId: material?.id ?? pendingMaterialId, mode, tonnes, dims, dimUnits, trips, truckId, address, date, contact };
+  const draftData = { step, categoryId, materialId: material?.id ?? pendingMaterialId, mode, tonnes, quantityUnit, dims, dimUnits, trips, truckId, address, date, contact, leadToken };
   const draft = useDraft({
     id: loadingCatalog ? null : { module: "soumission-publique", form: "assistant", owner: "anon" },
     data: draftData,
@@ -96,6 +103,8 @@ export default function Soumission() {
     onRestore: (d) => {
       setCategoryId(d.categoryId); setMode(d.mode); setTonnes(d.tonnes); setDims(d.dims); setDimUnits(d.dimUnits);
       setTrips(d.trips); setTruckId(d.truckId); setAddress(d.address); setDate(d.date); setContact(d.contact);
+      if (d.leadToken) setLeadToken(d.leadToken);
+      setQuantityUnit(d.quantityUnit ?? 'tonne');
       const m = materials.find((x) => x.id === d.materialId) ?? null;
       setMaterial(m); setPendingMaterialId(m ? null : d.materialId);
       // Nouvelle ouverture sans ?etape= : reprise de l'étape du brouillon (validée ensuite).
@@ -106,12 +115,12 @@ export default function Soumission() {
     draft.discard();
     setCategoryId(null); setMaterial(null); setPendingMaterialId(null); setMode("tonnes"); setTonnes(""); setDims({ length: "", width: "", depth: "" });
     setTrips(""); setTruckId(null); setAddress(""); setDate(""); setContact({ name: "", phone: "", email: "", company: "", comments: "" });
-    setQuote(null); setStep(0);
+    setQuote(null); setStep(0); setLeadToken(crypto.randomUUID()); setRecordedNumber(null); setDeclined(false);
   };
   // Retour sur l'étape Estimation (rechargement, Avance natif) : estimation recalculée, jamais inventée.
   useEffect(() => {
-    if (step === 6 && material && quantityPayload && !quote && !quoting && !quoteError && !confirmation) void runEstimate();
-  }, [step, material]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (draft.ready && step === 6 && material && quantityPayload && valid[5] && !quote && !quoting && !quoteError && !confirmation) void runEstimate();
+  }, [step, material, draft.ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Bandeau de navigation universel : prévient avant de quitter une saisie en cours.
   useUnsavedChangesGuard(
@@ -135,7 +144,7 @@ export default function Soumission() {
   const quantityPayload = useMemo(() => {
     if (mode === "tonnes") {
       const q = Number(tonnes);
-      return q > 0 ? { quantity: q, unit: "tonne" as const } : null;
+      return q > 0 ? { quantity: q, unit: quantityUnit } : null;
     }
     if (mode === "voyages") {
       const n = Number(trips);
@@ -147,7 +156,7 @@ export default function Soumission() {
     }
     const v = dimsToCubicMeters(dims, dimUnits);
     return v > 0 ? { quantity: Number(v.toFixed(3)), unit: "m3" as const } : null;
-  }, [mode, tonnes, dims, dimUnits, trips, truckId, trucks]);
+  }, [mode, tonnes, quantityUnit, dims, dimUnits, trips, truckId, trucks]);
 
   const valid = [
     Boolean(categoryId) || Boolean(material),
@@ -172,16 +181,43 @@ export default function Soumission() {
 
 
   const runEstimate = async () => {
-    if (!material || !quantityPayload) return;
-    setQuoting(true); setQuoteError(null); setQuote(null);
+    if (!draft.ready || !valid[5] || !material || !quantityPayload || estimating.current) return;
+    draft.flush();
+    estimating.current = true;
+    setQuoting(true); setQuoteError(null); setQuote(null); setRecordFailed(false);
+    const quantityLabel = mode === "voyages"
+      ? `${trips} voyage(s) — ${trucks.find((t) => t.id === truckId)?.name ?? "camion"} (${quantityPayload.quantity} tonnes)`
+      : mode === "tonnes" ? `${tonnes} ${quantityUnit}` : `${quantityPayload.quantity} m³`;
     try {
-      const { quote } = await requestEstimate({
-        material_id: material.id, ...quantityPayload, address: address.trim(),
+      const res = await recordAndEstimate({
+        lead_token: leadToken, material_id: material.id, ...quantityPayload, address: address.trim(),
+        truck_id: mode === "voyages" ? truckId : null, desired_date: date || null,
+        contact: {
+          name: contact.name.trim(), phone: contact.phone.trim(), email: contact.email.trim(),
+          company: contact.company.trim() || undefined, comments: contact.comments.trim() || undefined,
+        },
+        quantity_label: quantityLabel, material_label: material.name,
+        form_answers: { mode, tonnes, quantityUnit, dims, dimUnits, trips, truckId, date },
+        website: honeypot, form_started_at: startedAt.current,
       });
-      setQuote(quote.public);
+      if (!res.recorded) {
+        setRecordFailed(true);
+        setQuoteError(res.error ?? "Votre demande n'a pas pu être enregistrée. Vos réponses sont conservées : réessayez.");
+        return;
+      }
+      setRecordedNumber(res.request_number ?? null);
+      if (res.ok && res.quote) setQuote(res.quote);
+      else setQuoteError(`${res.error ?? "Estimation indisponible."} Votre demande est enregistrée : notre équipe vous recontactera.`);
     } catch (e) {
+      setRecordFailed(true);
       setQuoteError(e instanceof Error ? e.message : "Estimation indisponible.");
-    } finally { setQuoting(false); }
+    } finally { setQuoting(false); estimating.current = false; }
+  };
+
+  const decline = async () => {
+    const res = await declineEstimate(leadToken);
+    if (res.ok) setDeclined(true);
+    else toast({ title: "Action impossible", description: res.error ?? "Veuillez réessayer.", variant: "destructive" });
   };
 
   const next = async () => {
@@ -190,7 +226,7 @@ export default function Soumission() {
   };
 
   const submit = async () => {
-    if (!material || !quantityPayload || sending.current) return;
+    if (!material || !quantityPayload || !quote || sending.current) return;
     sending.current = true;
     setSubmitting(true);
     try {
@@ -198,6 +234,8 @@ export default function Soumission() {
         material_id: material.id,
         ...quantityPayload,
         address: address.trim(),
+        lead_token: leadToken,
+        truck_id: mode === "voyages" ? truckId : null,
         desired_date: date || null,
         contact: {
           name: contact.name.trim(), phone: contact.phone.trim(), email: contact.email.trim(),
@@ -207,7 +245,7 @@ export default function Soumission() {
         website: honeypot,
         form_started_at: startedAt.current,
       });
-      setConfirmation({ number: res.request_number, quote: res.quote.public });
+      setConfirmation({ number: res.request_number, quote: res.quote?.public ?? quote });
       draft.finalize(); // demande confirmée : le brouillon ne peut plus revenir
       trackEvent("lead_created", { form: "soumission" });
     } catch (e) {
@@ -303,11 +341,20 @@ export default function Soumission() {
               )}
 
               {step === 2 && (
+                <>
                 <StepQuantity material={material} mode={mode} setMode={setMode}
                   tonnes={tonnes} setTonnes={setTonnes} dims={dims} setDims={setDims}
                   dimUnits={dimUnits} setDimUnits={setDimUnits}
                   trips={trips} setTrips={setTrips}
                   truckId={truckId} setTruckId={setTruckId} trucks={trucks} />
+                {mode === 'tonnes' && (
+                  <select aria-label="Unité de quantité" value={quantityUnit}
+                    className="mt-3 rounded-md border border-border bg-background p-2 text-foreground"
+                    onChange={(e) => setQuantityUnit(e.target.value as 'tonne' | 'm3' | 'verge')}>
+                    <option value="tonne">Tonnes</option><option value="m3">m³</option><option value="verge">Verges³</option>
+                  </select>
+                )}
+                </>
               )}
 
               {step === 3 && <StepAddress address={address} setAddress={setAddress} />}
@@ -328,15 +375,26 @@ export default function Soumission() {
                   {quoteError && (
                     <div className="space-y-3">
                       <p className="text-sm text-destructive">{quoteError}</p>
+                      {!recordFailed && recordedNumber != null && (
+                        <p className="text-sm text-muted-foreground">Demande enregistrée — référence {recordedNumber}.</p>
+                      )}
                       <Button variant="outline" onClick={runEstimate}>Réessayer</Button>
                     </div>
                   )}
-                  {quote && (
+                  {quote && declined && (
+                    <p className="rounded-xl bg-muted p-4 text-sm text-foreground">
+                      Nous avons noté que vous ne retenez pas cette estimation. Votre demande reste enregistrée{recordedNumber != null ? ` (référence ${recordedNumber})` : ""}.
+                    </p>
+                  )}
+                  {quote && !declined && (
                     <>
                       <QuoteCard quote={quote} />
                       <Button className="w-full" size="lg" onClick={submit} disabled={submitting}>
                         {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
                         Confirmer ma demande
+                      </Button>
+                      <Button variant="ghost" className="w-full" onClick={decline} disabled={submitting}>
+                        Je ne retiens pas cette estimation
                       </Button>
                     </>
                   )}

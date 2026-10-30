@@ -190,7 +190,7 @@ export function StepQuantity({
   const bestTruck = suggested.find((t) => t.capacity_tonnes >= approxTonnes) ?? suggested[suggested.length - 1];
 
   const OPTIONS: { value: QuantityMode; label: string }[] = [
-    { value: "tonnes", label: "Je connais le nombre de tonnes" },
+    { value: "tonnes", label: "Je connais la quantité" },
     { value: "voyages", label: "Je connais le nombre de voyages" },
     { value: "volume", label: "Je connais seulement les dimensions de mon projet" },
   ];
@@ -208,7 +208,7 @@ export function StepQuantity({
 
       {mode === "tonnes" && (
         <div className="space-y-1.5">
-          <Label htmlFor="tonnes">Quantité (tonnes métriques)</Label>
+          <Label htmlFor="tonnes">Quantité</Label>
           <Input id="tonnes" type="number" min="0.5" step="0.5" inputMode="decimal"
             value={tonnes} onChange={(e) => setTonnes(e.target.value)} placeholder="ex. 20" />
         </div>

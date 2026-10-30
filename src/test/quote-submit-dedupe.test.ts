@@ -142,7 +142,8 @@ beforeEach(() => {
 const body = (over: Record<string, unknown> = {}) => ({
   action: "submit", material_id: "00000000-0000-0000-0000-000000000001", quantity: 20, unit: "tonne",
   address: "12 rue Fictive, Ville", form_started_at: Date.now() - 60_000,
-  contact: { name: "Client Fictif", phone: "819-000-0000", email: "client@exemple.invalid" }, ...over,
+  // Non-reserved identity exists only in this isolated mock; no network sends.
+  contact: { name: "Client Fictif", phone: "819-000-0000", email: "client@mock-domain.ca" }, ...over,
 });
 const send = async (b = body()) => {
   const res = await handler(new Request("http://x/", { method: "POST", body: JSON.stringify(b) }));
@@ -151,6 +152,12 @@ const send = async (b = body()) => {
 const count = (t: string) => (S.tables[t] ?? []).length;
 
 describe("quote-submit — anti-doublon et courriels (simulé)", () => {
+  it("une identité réservée bloque aussi le courriel interne réel", async () => {
+    const r = await send(body({ contact: { name: 'TEST', phone: '8195550101', email: 'essai@test.invalid' } }));
+    expect(r.json).toMatchObject({ ok: true, email_sent: false, test_suppressed: true });
+    expect(S.mail.calls).toHaveLength(0);
+    expect(count('submissions')).toBe(1);
+  });
   it("1. création normale : soumission enregistrée, deux courriels, références renvoyées", async () => {
     const r = await send();
     expect(r.status).toBe(200);

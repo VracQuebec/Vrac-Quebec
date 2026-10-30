@@ -36,10 +36,10 @@ export interface LeadFields {
 
 export async function findLead(sb: any, token: string) {
   const { data, error } = await sb.from('submissions')
-    .select('id,submission_number,quote_client_decision,quote_number')
+    .select('id,submission_number,quote_client_decision,quote_number,quote_id')
     .eq('public_lead_token', token).maybeSingle();
   if (error) throw new Error(error.message);
-  return data as { id: string; submission_number: number; quote_client_decision: string | null; quote_number: string | null } | null;
+  return data as { id: string; submission_number: number; quote_client_decision: string | null; quote_number: string | null; quote_id?: string | null } | null;
 }
 
 /**
@@ -63,7 +63,7 @@ export async function upsertLead(sb: any, token: string, f: LeadFields, extra: R
     if (error) throw new Error(error.message);
   } else {
     const { data, error } = await sb.from('submissions').insert({
-      ...common, request_type: 'vrac', service_type: 'vrac_achat',
+      request_type: 'vrac', service_type: 'vrac_achat', ...common,
       public_lead_token: token, quote_client_decision: 'en_attente',
     }).select('id,submission_number,quote_client_decision,quote_number').single();
     if (error) {
@@ -81,9 +81,10 @@ export async function upsertLead(sb: any, token: string, f: LeadFields, extra: R
     await sb.from('submissions').update({
       latitude: f.lat, longitude: f.lng, formatted_address: f.address,
       geocoding_status: 'ok', geocoding_provider: 'google',
-    }).eq('id', lead!.id);
+    }).eq('id', lead.id);
   }
-  return lead!;
+  if (!lead) throw new Error('Enregistrement CRM indisponible.');
+  return lead;
 }
 
 export async function patchLead(sb: any, id: string, patch: Record<string, unknown>) {
