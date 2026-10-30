@@ -1765,6 +1765,13 @@
       "when": 1793225132479,
       "tag": "0251_fb_publication_files_atomic_assignments",
       "breakpoints": true
+    },
+    {
+      "idx": 252,
+      "version": "7",
+      "when": 1793365487081,
+      "tag": "0252_fix_entr_notify_submission_material",
+      "breakpoints": true
     }
   ]
 }
