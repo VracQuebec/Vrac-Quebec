@@ -680,11 +680,16 @@ const Admin = () => {
     return () => { cancelled = true; };
   }, [isAdmin, tab, view, clientMode, leadFilters, sort, page, pageRefresh]);
 
+  // Les modifications locales (statut, champs, géocodage) s'appliquent à la page affichée sans relecture.
+  const serverRowsMerged = useMemo(() => {
+    const byId = new Map(submissions.map((s) => [s.id, s]));
+    return serverRows.map((r) => byId.get(r.id) ?? r);
+  }, [serverRows, submissions]);
   const totalResults = clientMode ? filtered.length : serverTotal;
   const totalPages = Math.max(1, Math.ceil(totalResults / LEADS_PAGE_SIZE));
   const pageItems = clientMode
     ? filtered.slice((page - 1) * LEADS_PAGE_SIZE, page * LEADS_PAGE_SIZE)
-    : serverRows;
+    : serverRowsMerged;
   const activeFilters = [
     filterStatus !== "all" && `Statut : ${findStatus(leadStatuses, filterStatus)?.label ?? filterStatus}`,
     filterType !== "all" && `Type : ${requestTypeMeta(filterType).label}`,
