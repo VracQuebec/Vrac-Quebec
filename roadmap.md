@@ -1,3 +1,7 @@
+## Entrepreneurs sans approbation — 30 octobre 2026
+- [ ] Retirer l’approbation à l’inscription et aux accès; préserver suspensions, abonnement et isolation.
+- [ ] Débloquer les comptes en attente identifiés, tester inscription/reconnexion fictive, publier et vérifier en ligne.
+
 ## Soumissions publiques — vérification et publication (30 octobre 2026)
 - [x] Erreur contrôlée, reprise même UUID et acceptation persistante vérifiées sur les deux formulaires en aperçu.
 - [x] Fiches CRM, neutralisation des envois, confirmation après rechargement, publication et vérification en ligne des deux parcours.

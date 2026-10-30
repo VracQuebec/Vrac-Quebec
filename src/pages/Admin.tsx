@@ -802,7 +802,7 @@ const Admin = () => {
               <DropdownMenuLabel>Gestion courante</DropdownMenuLabel>
               <DropdownMenuItem onSelect={() => setTab("billing")}><Download /> Facturation et paiements</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setTab("entrepreneurs")}><Users /> Entrepreneurs</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setShowUsers(true)}><Users /> Comptes et approbations</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setShowUsers(true)}><Users /> Comptes entrepreneurs</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild><Link to="/admin/plateforme"><Settings /> Paramètres de la plateforme</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/admin/jsc"><Building2 /> Back office de l'entreprise</Link></DropdownMenuItem>
@@ -882,7 +882,7 @@ const Admin = () => {
                 <DropdownMenuLabel>Administration</DropdownMenuLabel>
                 <DropdownMenuItem onSelect={() => setTab("billing")}><Download /> Facturation et paiements</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setTab("entrepreneurs")}><Users /> Entrepreneurs</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setShowUsers(true)}><Users /> Comptes et approbations</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setShowUsers(true)}><Users /> Comptes entrepreneurs</DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/admin/plateforme"><Settings /> Paramètres de la plateforme</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/admin/jsc"><Building2 /> Back office de l'entreprise</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/admin/configuration-soumissions"><Settings /> Configuration des soumissions</Link></DropdownMenuItem>
@@ -1952,7 +1952,7 @@ const UsersModal = ({ onClose }: { onClose: () => void }) => {
     load();
   };
 
-  // Validation manuelle d'un compte entrepreneur auto-inscrit (approved = false à l'inscription).
+  // Explicit suspension only: signup activates entrepreneur accounts automatically.
   const setApproval = async (uid: string, approved: boolean) => {
     const { error } = await supabase
       .from("user_roles")
@@ -1960,7 +1960,7 @@ const UsersModal = ({ onClose }: { onClose: () => void }) => {
       .eq("user_id", uid)
       .eq("role", "entrepreneur");
     if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    else toast({ title: approved ? "Compte approuvé ✓" : "Approbation retirée" });
+    else toast({ title: approved ? "Suspension levée" : "Compte suspendu" });
     load();
   };
 
@@ -2015,14 +2015,14 @@ const UsersModal = ({ onClose }: { onClose: () => void }) => {
                         <p className="text-sm font-body truncate">{u.email}</p>
                         <p className="text-[10px] text-muted-foreground">
                           {u.roles.join(", ") || "aucun rôle"}
-                          {hasEnt && !isAdm && (u.approved ? " · approuvé" : " · en attente d'approbation")}
+                          {hasEnt && !isAdm && (u.approved ? " · actif" : " · suspendu")}
                         </p>
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap justify-end">
                         {hasEnt && !isAdm && (
                           <button onClick={() => setApproval(u.user_id, !u.approved)}
                             className={`px-3 py-1.5 rounded text-xs font-display font-semibold ${u.approved ? "bg-amber-600 text-white" : "bg-primary text-primary-foreground"}`}>
-                            {u.approved ? "Suspendre" : "Approuver"}
+                            {u.approved ? "Suspendre" : "Lever la suspension"}
                           </button>
                         )}
                         {!isAdm && (
