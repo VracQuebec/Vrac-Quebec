@@ -31,7 +31,7 @@ export default function PublicContactFooter() {
           <Link to="/remblai" className="inline-flex min-h-11 items-center hover:text-foreground">Je veux du remblai</Link>
           <Link to="/contact" className="inline-flex min-h-11 items-center hover:text-foreground">Contact</Link>
           <Link to="/confidentialite" className="inline-flex min-h-11 items-center hover:text-foreground">Confidentialité</Link>
-          <button type="button" onClick={openConsentSettings} className="inline-flex min-h-11 items-center hover:text-foreground">Témoins</button>
+          <button type="button" onClick={openConsentSettings} className="inline-flex min-h-11 items-center hover:text-foreground">Gérer mes témoins</button>
         </div>
       </div>
     </footer>
