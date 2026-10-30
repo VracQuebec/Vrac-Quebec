@@ -55,3 +55,4 @@
 - Facebook publication attachments reuse private admin-only crm-docs objects and authenticated per-open reads; metadata and atomic assignment RPCs remain platform-admin scoped to avoid company-role leakage or silent reassignment.
 - Private PDF previews lazy-load PDF.js and render one page locally from authorized bytes; this avoids unreliable embedded browser viewers without modifying original documents.
 - CRM notifications: useCrmNotifications shares one module-level fetch/realtime channel across all instances with debounced reloads; never add per-component crm_notifications subscriptions (each reloaded 170 KB per event).
+- Public bulk-purchase quotes (quote-submit action estimate) upsert ONE submissions row per browser lead token before running the engine; calc result (quote_calc_status) and client decision (quote_client_decision) stay separate from CRM status so a price request is never an acceptance and retries never duplicate.
