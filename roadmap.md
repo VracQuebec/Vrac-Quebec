@@ -1,6 +1,6 @@
 ## Soumissions publiques — vérification et publication (30 octobre 2026)
 - [x] Erreur contrôlée, reprise même UUID et acceptation persistante vérifiées sur les deux formulaires en aperçu.
-- [ ] Vérifier fiches CRM, neutralisation des envois et confirmation après rechargement; publier et revérifier les deux parcours en ligne.
+- [x] Fiches CRM, neutralisation des envois, confirmation après rechargement, publication et vérification en ligne des deux parcours.
 
 ## Groupes Facebook — finalisation (28 octobre 2026)
 - [x] Pièces jointes privées par publication, aperçus/téléchargements et reprises sans doublons; originaux TEST conservés.
