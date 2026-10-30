@@ -1,6 +1,6 @@
 import { formatRequestLabel } from "@/lib/requests/labels";
 import { useScreenContext } from "@/lib/navigation/listContext";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { neutralizeSpreadsheetCell } from "@/lib/security/filters";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,14 +36,15 @@ import {
 } from "lucide-react";
 import AdminMap from "@/components/AdminMap";
 import BillingSection from "@/components/BillingSection";
-import BillingOverview from "@/components/BillingOverview";
+// Chargés à la demande : ils embarquent la bibliothèque Excel (~160 Ko) inutile à l'ouverture.
+const BillingOverview = lazy(() => import("@/components/BillingOverview"));
 import EntrepreneursAdmin from "@/components/EntrepreneursAdmin";
 import { overdueBucket as tripOverdueBucket } from "@/lib/billing";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import CsvImportModal from "@/components/CsvImportModal";
 import GoogleSheetImportModal from "@/components/GoogleSheetImportModal";
-import ExcelImportModal from "@/components/ExcelImportModal";
+const ExcelImportModal = lazy(() => import("@/components/ExcelImportModal"));
 import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Database as DatabaseIcon } from "lucide-react";
 import { Search, CalendarClock } from "lucide-react";
@@ -258,6 +259,7 @@ const Admin = () => {
   const [serverRows, setServerRows] = useState<Submission[]>([]);
   const [serverTotal, setServerTotal] = useState(0);
   const [pageLoading, setPageLoading] = useState(false);
+  const [serverPageReady, setServerPageReady] = useState(false);
   // Relecture de la page serveur seulement si des demandes apparaissent/disparaissent;
   // une modification met à jour la ligne localement (pas de rechargement complet).
   const [pageRefresh, setPageRefresh] = useState(0);
@@ -674,6 +676,7 @@ const Admin = () => {
         if (cancelled) return;
         setServerRows(rows as Submission[]);
         setServerTotal(total);
+        setServerPageReady(true);
       })
       .catch(() => { if (!cancelled) toast({ title: "Erreur", description: "Impossible de charger cette page.", variant: "destructive" }); })
       .finally(() => { if (!cancelled) setPageLoading(false); });
@@ -815,7 +818,7 @@ const Admin = () => {
         ) : tab === "billing" ? (
           <>
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-5">Facturation et paiements</h1>
-            <BillingOverview onOpenLead={(id) => { setTab("leads"); setExpanded(id); }} />
+            <Suspense fallback={null}><BillingOverview onOpenLead={(id) => { setTab("leads"); setExpanded(id); }} /></Suspense>
           </>
         ) : (
         <>
@@ -926,7 +929,8 @@ const Admin = () => {
           </div>
         )}
 
-        {loading ? (
+        {/* La page serveur (50 fiches) s'affiche sans attendre la liste complète, encore lue en arrière-plan. */}
+        {loading && !(view === "list" && !clientMode && serverPageReady) ? (
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
         ) : view === "today" ? (
           <TodayPanel userId={user?.id ?? null} />
@@ -1025,7 +1029,7 @@ const Admin = () => {
       {showUsers && <UsersModal onClose={() => setShowUsers(false)} />}
       {showImport && <CsvImportModal onClose={() => setShowImport(false)} onImported={fetchSubmissions} />}
       {showSheetImport && <GoogleSheetImportModal onClose={() => setShowSheetImport(false)} onImported={fetchSubmissions} />}
-      {showExcelImport && <ExcelImportModal onClose={() => setShowExcelImport(false)} onImported={fetchSubmissions} />}
+      {showExcelImport && <Suspense fallback={null}><ExcelImportModal onClose={() => setShowExcelImport(false)} onImported={fetchSubmissions} /></Suspense>}
       {showStatusManager && <StatusManagerModal onClose={() => setShowStatusManager(false)} />}
       <NewLeadModal
         open={showNewLead}
