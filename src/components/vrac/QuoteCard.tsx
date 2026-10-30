@@ -34,6 +34,8 @@ interface Props {
   address: string;
   onEmail: () => void;
   onCallback: () => void;
+  onRefuse?: () => void;
+  refused?: boolean;
   onEdit: () => void;
   pending: SubmitAction | null;
   result: SubmitResult | null;
@@ -41,7 +43,7 @@ interface Props {
 }
 
 export default function QuoteCard({
-  quote, address, onEmail, onCallback, onEdit, pending, result, error,
+  quote, address, onEmail, onCallback, onRefuse, refused, onEdit, pending, result, error,
 }: Props) {
   const rows: [string, string][] = [
     ["Matériau", quote.material.name],
@@ -190,6 +192,12 @@ export default function QuoteCard({
         <Button onClick={onEdit} variant="ghost" className="h-auto w-full whitespace-normal py-3 text-center">
           <Pencil className="mr-2 h-4 w-4" /> Modifier ma demande
         </Button>
+        {onRefuse && !result && (
+          <Button onClick={onRefuse} variant="ghost" disabled={pending !== null || refused}
+            className="h-auto w-full whitespace-normal py-3 text-center text-muted-foreground sm:col-span-2">
+            {refused ? "Réponse enregistrée : soumission refusée. Merci !" : "Cette soumission ne me convient pas"}
+          </Button>
+        )}
       </div>
 
       <div className="flex items-start gap-2 border-t border-border px-6 py-4 text-xs leading-relaxed text-muted-foreground">

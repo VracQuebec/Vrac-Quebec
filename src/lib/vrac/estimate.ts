@@ -5,7 +5,8 @@
 // carrière, aucun camion ici : tout provient des paramètres admin.
 // ============================================================
 import { useCallback, useRef, useState } from "react";
-import { getPublicQuote, type PublicQuote, type QuoteRequest } from "@/lib/jsc/engine";
+import { type PublicQuote, type QuoteRequest } from "@/lib/jsc/engine";
+import { supabase } from "@/integrations/supabase/client";
 import { findVracMaterial, type VracDraft } from "@/lib/vrac/catalog";
 // Facteurs de conversion : source unique (aucune duplication).
 import { FT_TO_M, IN_TO_M } from "@/lib/vrac/calculator";
@@ -107,35 +108,122 @@ export function quoteKey(req: QuoteRequest | QuoteBlock): string {
   return JSON.stringify(req);
 }
 
+/** Paramètres d'envoi propres au parcours public (jeton CRM, anti-robot). */
+export type EstimateSend = { leadToken: string; honeypot: string; formStartedAt: number };
+
+/** Demande enregistrée dans le CRM pour ce parcours (numéro de demande). */
+export type RecordedLead = { request_number: number | null; decision: string };
+
+/** Réponses du formulaire conservées avec la demande (sans coordonnées en double). */
+function formAnswers(draft: VracDraft) {
+  const { contact: _c, ...rest } = draft;
+  return { ...rest, comments: draft.contact.comments || null };
+}
+
+function quantityText(draft: VracDraft): string {
+  if (draft.quantityMode === "tonnes") {
+    const u = draft.quantityUnit === "m3" ? "m³" : draft.quantityUnit === "verge" ? "verges³" : "tonnes";
+    return `${draft.tonnes} ${u}`;
+  }
+  if (draft.quantityMode === "voyages") return `${draft.trips} voyage(s)`;
+  if (draft.quantityMode === "dimensions") return `${draft.dims.length} pi × ${draft.dims.width} pi × ${draft.dims.depth} po`;
+  return "À déterminer";
+}
+
 export function useVracEstimate() {
   const [quote, setQuote] = useState<PublicQuote | null>(null);
   const [quoteKeyState, setQuoteKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recorded, setRecorded] = useState<RecordedLead | null>(null);
+  /** true = la demande n'a PAS pu être enregistrée : rien n'est confirmé. */
+  const [recordFailed, setRecordFailed] = useState(false);
+  const [manual, setManual] = useState(false);
 
   const seq = useRef(0);
-  const reset = useCallback(() => { seq.current++; setQuote(null); setQuoteKey(null); setError(null); setLoading(false); }, []);
-  const calculate = useCallback(async (draft: VracDraft, ctx: QuoteContext = {}) => {
-    const id = ++seq.current;
+  const inFlight = useRef(false);
+  const reset = useCallback(() => { seq.current++; inFlight.current = false; setQuote(null); setQuoteKey(null); setError(null); setLoading(false); setManual(false); }, []);
+  /**
+   * Demande de prix : le serveur enregistre la demande dans le CRM AVANT
+   * le calcul, puis y inscrit le résultat. `forceManual` transmet une demande
+   * incalculable (information manquante) pour traitement manuel.
+   */
+  const calculate = useCallback(async (draft: VracDraft, ctx: QuoteContext = {}, send?: EstimateSend, forceManual = false) => {
     const request = buildQuoteRequest(draft, ctx);
-    setQuote(null); setQuoteKey(null);
-    if ("unsupported" in request) {
+    const blocked = "unsupported" in request;
+    if (blocked && !forceManual) {
+      setQuote(null); setQuoteKey(null);
       setError(request.unsupported);
       return;
     }
+    if (!send) return;
+    if (inFlight.current) return; // double clic : une seule requête
+    inFlight.current = true;
+    const id = ++seq.current;
+    setQuote(null); setQuoteKey(null);
     setLoading(true);
     setError(null);
+    setRecordFailed(false);
+    const material = findVracMaterial(draft.materialId);
+    const cat = draft.catalog;
+    const ident = blocked
+      ? (cat ? { material_catalog_id: cat.materialId, material_variant_id: cat.variantId ?? null, granulometry_id: cat.granulometryId ?? null }
+        : material ? { material_slug: material.slug } : {})
+      : {};
+    const payload = blocked
+      ? {
+        ...ident,
+        address: draft.address.trim(),
+        delivery: draft.addressLat != null && draft.addressLng != null ? { lat: draft.addressLat, lng: draft.addressLng } : null,
+        quantity: draft.quantityMode === "tonnes" ? Number(draft.tonnes) : draft.quantityMode === "voyages" ? Number(draft.trips) : null,
+        unit: draft.quantityMode === "voyages" ? "voyage" : draft.quantityUnit,
+        manual_reason: (request as QuoteBlock).unsupported,
+        custom_material: cat ? null : (draft.customMaterial || null),
+      }
+      : request;
     try {
-      const q = await getPublicQuote(request);
-      if (id !== seq.current) return; // réponse périmée
-      setQuote(q);
-      setQuoteKey(quoteKey(request));
+      const { data, error: fnError } = await supabase.functions.invoke("quote-submit", {
+        body: {
+          action: "estimate",
+          ...payload,
+          lead_token: send.leadToken,
+          website: send.honeypot,
+          form_started_at: send.formStartedAt,
+          material_label: cat ? [cat.name, cat.variantLabel].filter(Boolean).join(" — ") : material?.name ?? null,
+          quantity_label: quantityText(draft),
+          desired_date: draft.date || null,
+          access_notes: draft.addressNotes || null,
+          form_answers: formAnswers(draft),
+          contact: { name: draft.contact.name, phone: draft.contact.phone, email: draft.contact.email, company: draft.contact.company || null, comments: draft.contact.comments || null },
+        },
+      });
+      let body = data as Record<string, unknown> | null;
+      if (fnError) {
+        const ctxRes = (fnError as { context?: Response }).context;
+        try { body = ctxRes && typeof ctxRes.clone === "function" ? await ctxRes.clone().json() : null; } catch { body = null; }
+      }
+      if (id !== seq.current) return;
+      if (!body?.recorded) {
+        setRecordFailed(true);
+        setError(typeof body?.error === "string" ? body.error
+          : "Votre demande n'a pas pu être enregistrée. Vos réponses sont conservées : réessayez dans un instant.");
+        return;
+      }
+      setRecorded({ request_number: (body.request_number as number) ?? null, decision: String(body.decision ?? "en_attente") });
+      if (body.ok && body.quote) {
+        setQuote(body.quote as PublicQuote);
+        setQuoteKey(quoteKey(request));
+      } else {
+        setManual(Boolean(body.manual) || blocked);
+        setError(typeof body.error === "string" ? body.error : "Estimation indisponible pour le moment.");
+      }
     } catch (e) {
       if (id !== seq.current) return;
-      setQuote(null);
-      setError(e instanceof Error ? e.message : "Estimation indisponible pour le moment.");
+      setRecordFailed(true);
+      setError(e instanceof Error ? e.message : "Envoi impossible pour le moment.");
     } finally {
       if (id === seq.current) setLoading(false);
+      inFlight.current = false;
     }
   }, []);
 
@@ -143,7 +231,7 @@ export function useVracEstimate() {
   const isFresh = useCallback((draft: VracDraft, ctx: QuoteContext = {}) =>
     quoteKeyState !== null && quoteKeyState === quoteKey(buildQuoteRequest(draft, ctx)), [quoteKeyState]);
 
-  return { quote, loading, error, calculate, reset, isFresh, key: quoteKeyState };
+  return { quote, loading, error, calculate, reset, isFresh, key: quoteKeyState, recorded, recordFailed, manual };
 }
 
 const money = new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" });

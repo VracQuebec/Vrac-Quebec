@@ -53,6 +53,7 @@ export function useQuoteSubmit() {
         body: {
           action,
           ...request,
+          lead_token: draft.leadToken ?? null,
           website: honeypot,
           form_started_at: formStartedAt,
           desired_date: draft.date || null,
@@ -105,6 +106,7 @@ export function useQuoteSubmit() {
       const { data, error: fnError } = await supabase.functions.invoke("quote-submit", {
         body: {
           action: "submit",
+          lead_token: draft.leadToken ?? null,
           material_catalog_id: draft.catalog?.materialId ?? null,
           granulometry_id: draft.catalog?.granulometryId ?? null,
           material_variant_id: draft.catalog?.variantId ?? null,
@@ -129,5 +131,21 @@ export function useQuoteSubmit() {
     } finally { inFlight.current = false; setPending(null); }
   }, [formStartedAt, honeypot]);
 
-  return { result, pending, error, send, sendManual, honeypot, setHoneypot };
+  /** Refus explicite de la soumission : enregistré sur la même demande, sans courriel. */
+  const [refused, setRefused] = useState(false);
+  const refuse = useCallback(async (draft: VracDraft) => {
+    if (inFlight.current || done.current || !draft.leadToken) return;
+    inFlight.current = true; setError(null);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("quote-submit", {
+        body: { action: "decision", decision: "refusee", lead_token: draft.leadToken },
+      });
+      if (fnError || !(data as { ok?: boolean } | null)?.ok) throw new Error("Votre réponse n'a pas pu être enregistrée. Réessayez.");
+      setRefused(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Envoi impossible pour le moment.");
+    } finally { inFlight.current = false; }
+  }, []);
+
+  return { result, pending, error, send, sendManual, refuse, refused, honeypot, setHoneypot, formStartedAt };
 }

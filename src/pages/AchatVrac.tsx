@@ -100,6 +100,16 @@ export default function AchatVrac() {
   };
 
   const set = (patch: Partial<VracDraft>) => setDraft((d) => ({ ...d, ...patch }));
+  // Jeton du parcours : créé au premier envoi, conservé avec le brouillon pour que
+  // recalculs, reprises, confirmation ou refus mettent à jour la MÊME demande CRM.
+  const ensureToken = () => {
+    if (draft.leadToken) return draft.leadToken;
+    const t = crypto.randomUUID();
+    setDraft((d) => ({ ...d, leadToken: d.leadToken ?? t }));
+    return t;
+  };
+  const sendCtx = () => ({ leadToken: ensureToken(), honeypot: submission.honeypot, formStartedAt: submission.formStartedAt });
+  const withToken = (): VracDraft => ({ ...draft, leadToken: ensureToken() });
   const material = findVracMaterial(draft.materialId);
   const unitsMap = useMaterialUnits();
   const availableUnits = unitsForSlug(unitsMap, material?.slug ?? null);
@@ -120,6 +130,9 @@ export default function AchatVrac() {
 
   // Si le matériau choisi n'accepte pas l'unité en mémoire, on revient aux tonnes.
   useEffect(() => {
+    // Attendre les unités configurées : sinon un brouillon en m³/verges serait ramené
+    // aux tonnes avant leur chargement (le client paierait une autre quantité).
+    if (!material || !unitsMap[material.slug]) return;
     if (!availableUnits.includes(draft.quantityUnit)) set({ quantityUnit: "tonne" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.materialId, availableUnits.join(",")]);
@@ -129,7 +142,7 @@ export default function AchatVrac() {
   // Changement de camion : le prix, les voyages et le temps sont recalculés
   // immédiatement, sans recharger la page.
   useEffect(() => {
-    if (estimate.quote) void estimate.calculate(draft, quoteContext);
+    if (estimate.quote) void estimate.calculate(draft, quoteContext, sendCtx());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.truckId]);
 
@@ -249,15 +262,17 @@ export default function AchatVrac() {
             className="absolute left-[-9999px] h-0 w-0 opacity-0"
           />
           {step === 4 && onDemand && (
-            <ManualRequest draft={draft} submission={submission} />
+            <ManualRequest draft={withToken()} submission={submission} />
           )}
           {step === 4 && !onDemand && (
             quoteFresh && estimate.quote ? (
               <QuoteCard
                 quote={estimate.quote}
                 address={draft.address}
-                onEmail={() => { if (estimate.isFresh(draft, quoteContext)) submission.send(draft, "submit", quoteContext); }}
-                onCallback={() => submission.send(draft, "callback", quoteContext)}
+                onEmail={() => { if (estimate.isFresh(draft, quoteContext)) submission.send(withToken(), "submit", quoteContext); }}
+                onCallback={() => submission.send(withToken(), "callback", quoteContext)}
+                onRefuse={() => submission.refuse(withToken())}
+                refused={submission.refused}
                 onEdit={() => setStep(0)}
                 pending={submission.pending}
                 result={submission.result}
@@ -271,6 +286,10 @@ export default function AchatVrac() {
                 manualReview={manualReview}
                 blockedReason={blockedReason}
                 onFix={() => setStep(blockedStep)}
+                recorded={estimate.recorded}
+                recordFailed={estimate.recordFailed}
+                engineManual={estimate.manual}
+                onSendManual={() => estimate.calculate(draft, quoteContext, sendCtx(), true)}
               />
             )
           )}
@@ -300,7 +319,7 @@ export default function AchatVrac() {
             ) : quoteFresh || manualReview || onDemand ? null : (
               <Button
                 size="lg"
-                onClick={() => estimate.calculate(draft, quoteContext)}
+                onClick={() => estimate.calculate(draft, quoteContext, sendCtx())}
                 disabled={estimate.loading}
                 className="w-full bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_16px_40px_-12px_hsl(var(--primary)/0.65)] active:scale-[0.98] sm:w-auto"
               >
@@ -375,10 +394,24 @@ function Progress({ step }: { step: number }) {
 }
 
 /** Résumé du parcours avant le calcul. Aucune donnée interne n'est affichée. */
-function Recap({ draft, loading, error, manualReview, blockedReason, onFix }: {
+function Recap({ draft, loading, error, manualReview, blockedReason, onFix, recorded, recordFailed, engineManual, onSendManual }: {
   draft: VracDraft; loading: boolean; error: string | null; manualReview?: boolean;
   blockedReason?: string | null; onFix?: () => void;
+  recorded?: { request_number: number | null } | null; recordFailed?: boolean; engineManual?: boolean;
+  onSendManual?: () => void;
 }) {
+  // Demande enregistrée mais sans prix automatique : jamais présentée comme acceptée.
+  const savedNotice = recorded && !recordFailed && (error || manualReview) ? (
+    <Notice>
+      <strong className="font-semibold text-foreground">
+        Demande enregistrée{recorded.request_number ? ` (n° ${recorded.request_number})` : ""}.
+      </strong>
+      <br />
+      {engineManual || manualReview
+        ? "Le prix ne peut pas être calculé automatiquement : notre équipe préparera votre soumission et vous contactera."
+        : "Le calcul automatique a échoué : votre demande est conservée et notre équipe vous contactera. Vous pouvez aussi relancer le calcul."}
+    </Notice>
+  ) : null;
   const material = findVracMaterial(draft.materialId);
   const quantity =
     draft.quantityMode === "tonnes" ? `${draft.tonnes} ${unitLabel(draft.quantityUnit)}`
@@ -418,11 +451,23 @@ function Recap({ draft, loading, error, manualReview, blockedReason, onFix }: {
             <br />
             Corrigez cette information pour obtenir votre prix instantané, ou appelez-nous au {PUBLIC_PHONE}.
           </Notice>
-          {onFix && (
-            <Button onClick={onFix} className="w-full sm:w-auto">
-              Corriger cette information
-            </Button>
+          {savedNotice}
+          {recordFailed && error && (
+            <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
           )}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {onFix && (
+              <Button onClick={onFix} className="w-full sm:w-auto">
+                Corriger cette information
+              </Button>
+            )}
+            {onSendManual && !(recorded && !recordFailed) && (
+              <Button onClick={onSendManual} variant="outline" disabled={loading} className="w-full sm:w-auto">
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Transmettre ma demande pour traitement manuel
+              </Button>
+            )}
+          </div>
         </div>
       ) : (
       <div className="rounded-2xl border border-primary/30 bg-card p-5 shadow-sm">
@@ -437,8 +482,10 @@ function Recap({ draft, loading, error, manualReview, blockedReason, onFix }: {
         </p>
 
         {error && (
-          <p className="mt-4 rounded-xl bg-muted/50 p-3 text-sm text-muted-foreground">{error}</p>
+          <p role={recordFailed ? "alert" : undefined}
+            className={`mt-4 rounded-xl p-3 text-sm ${recordFailed ? "bg-destructive/10 text-destructive" : "bg-muted/50 text-muted-foreground"}`}>{error}</p>
         )}
+        {savedNotice && <div className="mt-4">{savedNotice}</div>}
       </div>
       )}
 

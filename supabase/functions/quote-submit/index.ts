@@ -16,10 +16,12 @@ import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
 import { clientIp, GuardError } from '../_shared/public-guard.ts';
 import { claimQuote, completeQuote, quoteFingerprint, releaseQuote, SCOPE } from './dedupe.ts';
+import { cleanAnswers, findLead, patchLead, upsertLead, validLeadToken } from './lead.ts';
+import { handleEstimate } from './estimate.ts';
 import { fetchWithTimeout } from '../_shared/http.ts';
 import { logEvent, logEventAsync } from '../_shared/observability.ts';
 
-const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
+const UNITS: Unit[] = ['tonne', 'verge', 'm3', 'voyage'];
 const VALIDITY_SETTING = 'quote_validity_days';
 const DEFAULT_VALIDITY_DAYS = 7;
 
@@ -121,7 +123,21 @@ Deno.serve(async (req) => {
   const sb = db();
   try {
     const body = await req.json().catch(() => null);
-    const action = body?.action === 'callback' ? 'callback' : 'submit';
+    const rawAction = body?.action;
+    const action = rawAction === 'callback' ? 'callback' : 'submit';
+
+    // ---------- Refus de la soumission par le client (aucun courriel) ----------
+    if (rawAction === 'decision') {
+      const token = validLeadToken(body?.lead_token);
+      if (!token || body?.decision !== 'refusee') return json({ ok: false, error: 'Requête invalide.' }, 400);
+      const lead = await findLead(sb, token);
+      if (!lead) return json({ ok: false, error: 'Demande introuvable.' }, 404);
+      // Une soumission déjà acceptée n'est jamais requalifiée en refus.
+      if (lead.quote_client_decision !== 'acceptee') {
+        await patchLead(sb, lead.id, { quote_client_decision: 'refusee', quote_decision_at: new Date().toISOString() });
+      }
+      return json({ ok: true, request_number: lead.submission_number, decision: lead.quote_client_decision === 'acceptee' ? 'acceptee' : 'refusee' });
+    }
 
     // ---------- Validation des coordonnées ----------
     const name = clean(body?.contact?.name, 160);
@@ -142,6 +158,16 @@ Deno.serve(async (req) => {
     const granulometryId = typeof body?.granulometry_id === 'string' && body.granulometry_id.length >= 10 ? body.granulometry_id : null;
     const customMaterial = clean(body?.custom_material, 500);
     if (!materialId && !catalogId && !customMaterial) throw new Error('Matériau requis.');
+    const leadToken = validLeadToken(body?.lead_token);
+
+    // ---------- Demande de prix : enregistrement CRM AVANT le calcul ----------
+    if (rawAction === 'estimate') {
+      return await handleEstimate(req, sb, body, {
+        leadToken, name, phone, email, company, comments, accessNotes, desiredDate,
+        materialId, catalogId, granulometryId, customMaterial,
+      });
+    }
+
     const quantity = Number(body?.quantity);
     const unit: Unit = body?.unit ?? 'tonne';
     const address = clean(body?.address, 300);
@@ -230,15 +256,30 @@ Deno.serve(async (req) => {
       recorded = { request_number: request.request_number, quote_number: null, valid_until: null };
       await completeQuote(sb, claimId!, { submission_id: request.id, ...recorded });
       try {
-        const { error: leadErr } = await sb.from('submissions').insert({
-          materials: [materialLabel], property_type: 'Non spécifié', quantity: `${quantity} ${unit}`,
-          tonnage: unit === 'tonne' ? String(quantity) : '',
-          address: delivery.address, postal_code: delivery.postal_code ?? '', city: delivery.city ?? null,
-          name, email, phone: phone ?? '', company: company ?? null,
-          description: [`Soumission à confirmer (${request.request_number ?? ''})`, `Matériau : ${materialLabel}`, `Quantité : ${quantity} ${unit}`, `Motif : ${manualReason}`, comments ? `Notes : ${comments}` : ''].filter(Boolean).join('\n'),
-          request_type: 'vrac', service_type: 'vrac_achat', desired_date: desiredDate,
-        });
-        if (leadErr) throw new Error(leadErr.message);
+        const manualDescription = [`Soumission à confirmer (${request.request_number ?? ''})`, `Matériau : ${materialLabel}`, `Quantité : ${quantity} ${unit}`, `Motif : ${manualReason}`, comments ? `Notes : ${comments}` : ''].filter(Boolean).join('\n');
+        const manualFields = {
+          quote_calc_status: 'manuel', quote_calc_error: manualReason, quote_calc_at: new Date().toISOString(),
+          quote_client_decision: action === 'callback' ? 'rappel' : 'en_attente',
+        };
+        if (leadToken) {
+          await upsertLead(sb, leadToken, {
+            name, email, phone: phone ?? '', company: company ?? null,
+            address: delivery.address, city: delivery.city ?? null, postal_code: delivery.postal_code ?? null,
+            lat: delivery.lat, lng: delivery.lng, materialLabel, quantityLabel: `${quantity} ${unit}`,
+            quantityValue: quantity, quantityUnit: unit, desiredDate, description: manualDescription,
+            answers: cleanAnswers(body?.form_answers),
+          }, manualFields);
+        } else {
+          const { error: leadErr } = await sb.from('submissions').insert({
+            materials: [materialLabel], property_type: 'Non spécifié', quantity: `${quantity} ${unit}`,
+            tonnage: unit === 'tonne' ? String(quantity) : '',
+            address: delivery.address, postal_code: delivery.postal_code ?? '', city: delivery.city ?? null,
+            name, email, phone: phone ?? '', company: company ?? null,
+            description: manualDescription,
+            request_type: 'vrac', service_type: 'vrac_achat', desired_date: desiredDate, ...manualFields,
+          });
+          if (leadErr) throw new Error(leadErr.message);
+        }
       } catch (e) {
         await logEvent({ source: 'quote_submit', event: 'crm.lead_failed', level: 'error', message: e instanceof Error ? e.message : String(e) });
       }
@@ -382,23 +423,8 @@ Deno.serve(async (req) => {
         comments ? `Notes : ${comments}` : '',
       ].filter(Boolean).join('\n');
 
-      const { data: lead, error: leadError } = await sb.from('submissions').insert({
-        materials: [pub.material.name],
-        property_type: 'Non spécifié',
-        quantity: quantityLabel,
-        tonnage: String(pub.tonnage ?? ''),
-        address: deliveryAddress,
-        postal_code: delivery.postal_code ?? '',
-        city: delivery.city ?? null,
-        name,
-        email,
-        phone: phone ?? '',
-        company: company ?? null,
-        description,
-        request_type: 'vrac',
-        service_type: 'vrac_achat',
+      const quoteFields = {
         client_id: null,
-        desired_date: desiredDate,
         quote_number: quote.quote_number ?? null,
         quote_id: quote.id,
         quote_material: pub.material.name,
@@ -410,19 +436,54 @@ Deno.serve(async (req) => {
         quote_distance_km: pub.distance_km ?? null,
         quote_duration_minutes: durationMinutes,
         quote_total: pub.total,
-      }).select('id').single();
-      if (leadError) throw new Error(leadError.message);
-
-      // Les coordonnées GPS sont neutralisées à l'insertion publique :
-      // on les réapplique aussitôt (adresse déjà validée par Google).
-      if (lead?.id && delivery.lat != null && delivery.lng != null) {
-        await sb.from('submissions').update({
-          latitude: delivery.lat,
-          longitude: delivery.lng,
-          formatted_address: deliveryAddress,
-          geocoding_status: 'ok',
-          geocoding_provider: 'google',
-        }).eq('id', lead.id);
+        quote_calc_status: 'calculee', quote_calc_error: null, quote_calc_at: new Date().toISOString(),
+        // Décision du client, distincte du statut de suivi CRM.
+        quote_client_decision: action === 'callback' ? 'rappel' : 'acceptee',
+        quote_decision_at: new Date().toISOString(),
+      };
+      let lead: { id: string } | null = null;
+      if (leadToken) {
+        // Même demande que celle enregistrée au calcul : aucune nouvelle ligne.
+        lead = await upsertLead(sb, leadToken, {
+          name, email, phone: phone ?? '', company: company ?? null,
+          address: deliveryAddress, city: delivery.city ?? null, postal_code: delivery.postal_code ?? null,
+          lat: delivery.lat, lng: delivery.lng,
+          materialLabel: pub.material.name, quantityLabel,
+          quantityValue: quantity, quantityUnit: unit, desiredDate, description,
+          answers: cleanAnswers(body?.form_answers),
+        }, quoteFields);
+      } else {
+        const { data, error: leadError } = await sb.from('submissions').insert({
+          materials: [pub.material.name],
+          property_type: 'Non spécifié',
+          quantity: quantityLabel,
+          tonnage: String(pub.tonnage ?? ''),
+          address: deliveryAddress,
+          postal_code: delivery.postal_code ?? '',
+          city: delivery.city ?? null,
+          name,
+          email,
+          phone: phone ?? '',
+          company: company ?? null,
+          description,
+          request_type: 'vrac',
+          service_type: 'vrac_achat',
+          desired_date: desiredDate,
+          ...quoteFields,
+        }).select('id').single();
+        if (leadError) throw new Error(leadError.message);
+        lead = data;
+        // Les coordonnées GPS sont neutralisées à l'insertion publique :
+        // on les réapplique aussitôt (adresse déjà validée par Google).
+        if (lead?.id && delivery.lat != null && delivery.lng != null) {
+          await sb.from('submissions').update({
+            latitude: delivery.lat,
+            longitude: delivery.lng,
+            formatted_address: deliveryAddress,
+            geocoding_status: 'ok',
+            geocoding_provider: 'google',
+          }).eq('id', lead.id);
+        }
       }
       logEventAsync({ source: 'quote_submit', event: 'crm.lead_created', refId: String(lead?.id ?? '') });
     } catch (e) {

@@ -15,7 +15,7 @@ import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.t
 import { logEvent, logEventAsync } from '../_shared/observability.ts';
 import { clientIp, enforceIpQuota, GuardError } from '../_shared/public-guard.ts';
 
-const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
+const UNITS: Unit[] = ['tonne', 'verge', 'm3', 'voyage'];
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

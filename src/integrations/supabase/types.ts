@@ -28951,6 +28951,7 @@ export type Database = {
           exec01_owner_confirmed_at: string | null
           exec01_verified_contact_hash: string | null
           exec01_version: number
+          form_answers: Json | null
           formatted_address: string | null
           geocoding_provider: string | null
           geocoding_status: string
@@ -28987,11 +28988,17 @@ export type Database = {
           property_type: string
           province: string | null
           public_latitude: number | null
+          public_lead_token: string | null
           public_longitude: number | null
           public_point_updated_at: string | null
           quantity: string
           quantity_unit: string | null
           quantity_value: number | null
+          quote_calc_at: string | null
+          quote_calc_error: string | null
+          quote_calc_status: string | null
+          quote_client_decision: string | null
+          quote_decision_at: string | null
           quote_distance_km: number | null
           quote_duration_minutes: number | null
           quote_id: string | null
@@ -29074,6 +29081,7 @@ export type Database = {
           exec01_owner_confirmed_at?: string | null
           exec01_verified_contact_hash?: string | null
           exec01_version?: number
+          form_answers?: Json | null
           formatted_address?: string | null
           geocoding_provider?: string | null
           geocoding_status?: string
@@ -29110,11 +29118,17 @@ export type Database = {
           property_type: string
           province?: string | null
           public_latitude?: number | null
+          public_lead_token?: string | null
           public_longitude?: number | null
           public_point_updated_at?: string | null
           quantity: string
           quantity_unit?: string | null
           quantity_value?: number | null
+          quote_calc_at?: string | null
+          quote_calc_error?: string | null
+          quote_calc_status?: string | null
+          quote_client_decision?: string | null
+          quote_decision_at?: string | null
           quote_distance_km?: number | null
           quote_duration_minutes?: number | null
           quote_id?: string | null
@@ -29197,6 +29211,7 @@ export type Database = {
           exec01_owner_confirmed_at?: string | null
           exec01_verified_contact_hash?: string | null
           exec01_version?: number
+          form_answers?: Json | null
           formatted_address?: string | null
           geocoding_provider?: string | null
           geocoding_status?: string
@@ -29233,11 +29248,17 @@ export type Database = {
           property_type?: string
           province?: string | null
           public_latitude?: number | null
+          public_lead_token?: string | null
           public_longitude?: number | null
           public_point_updated_at?: string | null
           quantity?: string
           quantity_unit?: string | null
           quantity_value?: number | null
+          quote_calc_at?: string | null
+          quote_calc_error?: string | null
+          quote_calc_status?: string | null
+          quote_client_decision?: string | null
+          quote_decision_at?: string | null
           quote_distance_km?: number | null
           quote_duration_minutes?: number | null
           quote_id?: string | null
@@ -36130,6 +36151,7 @@ export type Database = {
           exec01_owner_confirmed_at: string | null
           exec01_verified_contact_hash: string | null
           exec01_version: number
+          form_answers: Json | null
           formatted_address: string | null
           geocoding_provider: string | null
           geocoding_status: string
@@ -36166,11 +36188,17 @@ export type Database = {
           property_type: string
           province: string | null
           public_latitude: number | null
+          public_lead_token: string | null
           public_longitude: number | null
           public_point_updated_at: string | null
           quantity: string
           quantity_unit: string | null
           quantity_value: number | null
+          quote_calc_at: string | null
+          quote_calc_error: string | null
+          quote_calc_status: string | null
+          quote_client_decision: string | null
+          quote_decision_at: string | null
           quote_distance_km: number | null
           quote_duration_minutes: number | null
           quote_id: string | null

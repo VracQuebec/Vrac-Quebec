@@ -129,6 +129,8 @@ export type VracDraft = {
   catalog?: { materialId: string; name: string; granulometryId: string | null; variantId?: string | null; variantLabel: string | null; priceStatus: string } | null;
   /** « Je ne trouve pas mon matériau » : description libre à qualifier. */
   customMaterial?: string;
+  /** Jeton secret du parcours : relie tous les clics à UNE seule demande CRM. */
+  leadToken?: string;
 };
 
 export const EMPTY_VRAC_DRAFT: VracDraft = {
