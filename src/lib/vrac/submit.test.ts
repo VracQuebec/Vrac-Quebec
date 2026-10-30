@@ -8,7 +8,7 @@ vi.mock('@/integrations/supabase/client', () => ({ supabase: { functions: { invo
 const draft = { ...EMPTY_VRAC_DRAFT, leadToken: '11111111-1111-4111-8111-111111111111', materialId: 'sable', tonnes: '15', address: '12 rue Fictive', addressLat: 46, addressLng: -73 };
 
 describe('Décisions explicites de soumission', () => {
-  beforeEach(() => invoke.mockReset());
+  beforeEach(() => { invoke.mockReset(); });
   it('ne transforme pas une absence de réponse en refus', () => {
     const { result } = renderHook(useQuoteSubmit);
     expect(result.current.refused).toBe(false);
