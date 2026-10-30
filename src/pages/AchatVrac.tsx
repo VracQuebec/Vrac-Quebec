@@ -130,6 +130,9 @@ export default function AchatVrac() {
 
   // Si le matériau choisi n'accepte pas l'unité en mémoire, on revient aux tonnes.
   useEffect(() => {
+    // Attendre les unités configurées : sinon un brouillon en m³/verges serait ramené
+    // aux tonnes avant leur chargement (le client paierait une autre quantité).
+    if (!material || !unitsMap[material.slug]) return;
     if (!availableUnits.includes(draft.quantityUnit)) set({ quantityUnit: "tonne" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.materialId, availableUnits.join(",")]);
