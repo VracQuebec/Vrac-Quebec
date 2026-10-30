@@ -121,7 +121,21 @@ Deno.serve(async (req) => {
   const sb = db();
   try {
     const body = await req.json().catch(() => null);
-    const action = body?.action === 'callback' ? 'callback' : 'submit';
+    const rawAction = body?.action;
+    const action = rawAction === 'callback' ? 'callback' : 'submit';
+
+    // ---------- Refus de la soumission par le client (aucun courriel) ----------
+    if (rawAction === 'decision') {
+      const token = validLeadToken(body?.lead_token);
+      if (!token || body?.decision !== 'refusee') return json({ ok: false, error: 'Requête invalide.' }, 400);
+      const lead = await findLead(sb, token);
+      if (!lead) return json({ ok: false, error: 'Demande introuvable.' }, 404);
+      // Une soumission déjà acceptée n'est jamais requalifiée en refus.
+      if (lead.quote_client_decision !== 'acceptee') {
+        await patchLead(sb, lead.id, { quote_client_decision: 'refusee', quote_decision_at: new Date().toISOString() });
+      }
+      return json({ ok: true, request_number: lead.submission_number, decision: lead.quote_client_decision === 'acceptee' ? 'acceptee' : 'refusee' });
+    }
 
     // ---------- Validation des coordonnées ----------
     const name = clean(body?.contact?.name, 160);
@@ -142,6 +156,16 @@ Deno.serve(async (req) => {
     const granulometryId = typeof body?.granulometry_id === 'string' && body.granulometry_id.length >= 10 ? body.granulometry_id : null;
     const customMaterial = clean(body?.custom_material, 500);
     if (!materialId && !catalogId && !customMaterial) throw new Error('Matériau requis.');
+    const leadToken = validLeadToken(body?.lead_token);
+
+    // ---------- Demande de prix : enregistrement CRM AVANT le calcul ----------
+    if (rawAction === 'estimate') {
+      return await handleEstimate(req, sb, body, {
+        leadToken, name, phone, email, company, comments, accessNotes, desiredDate,
+        materialId, catalogId, granulometryId, customMaterial,
+      });
+    }
+
     const quantity = Number(body?.quantity);
     const unit: Unit = body?.unit ?? 'tonne';
     const address = clean(body?.address, 300);
