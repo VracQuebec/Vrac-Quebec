@@ -254,15 +254,30 @@ Deno.serve(async (req) => {
       recorded = { request_number: request.request_number, quote_number: null, valid_until: null };
       await completeQuote(sb, claimId!, { submission_id: request.id, ...recorded });
       try {
-        const { error: leadErr } = await sb.from('submissions').insert({
-          materials: [materialLabel], property_type: 'Non spécifié', quantity: `${quantity} ${unit}`,
-          tonnage: unit === 'tonne' ? String(quantity) : '',
-          address: delivery.address, postal_code: delivery.postal_code ?? '', city: delivery.city ?? null,
-          name, email, phone: phone ?? '', company: company ?? null,
-          description: [`Soumission à confirmer (${request.request_number ?? ''})`, `Matériau : ${materialLabel}`, `Quantité : ${quantity} ${unit}`, `Motif : ${manualReason}`, comments ? `Notes : ${comments}` : ''].filter(Boolean).join('\n'),
-          request_type: 'vrac', service_type: 'vrac_achat', desired_date: desiredDate,
-        });
-        if (leadErr) throw new Error(leadErr.message);
+        const manualDescription = [`Soumission à confirmer (${request.request_number ?? ''})`, `Matériau : ${materialLabel}`, `Quantité : ${quantity} ${unit}`, `Motif : ${manualReason}`, comments ? `Notes : ${comments}` : ''].filter(Boolean).join('\n');
+        const manualFields = {
+          quote_calc_status: 'manuel', quote_calc_error: manualReason, quote_calc_at: new Date().toISOString(),
+          quote_client_decision: action === 'callback' ? 'rappel' : 'en_attente',
+        };
+        if (leadToken) {
+          await upsertLead(sb, leadToken, {
+            name, email, phone: phone ?? '', company: company ?? null,
+            address: delivery.address, city: delivery.city ?? null, postal_code: delivery.postal_code ?? null,
+            lat: delivery.lat, lng: delivery.lng, materialLabel, quantityLabel: `${quantity} ${unit}`,
+            quantityValue: quantity, quantityUnit: unit, desiredDate, description: manualDescription,
+            answers: cleanAnswers(body?.form_answers),
+          }, manualFields);
+        } else {
+          const { error: leadErr } = await sb.from('submissions').insert({
+            materials: [materialLabel], property_type: 'Non spécifié', quantity: `${quantity} ${unit}`,
+            tonnage: unit === 'tonne' ? String(quantity) : '',
+            address: delivery.address, postal_code: delivery.postal_code ?? '', city: delivery.city ?? null,
+            name, email, phone: phone ?? '', company: company ?? null,
+            description: manualDescription,
+            request_type: 'vrac', service_type: 'vrac_achat', desired_date: desiredDate, ...manualFields,
+          });
+          if (leadErr) throw new Error(leadErr.message);
+        }
       } catch (e) {
         await logEvent({ source: 'quote_submit', event: 'crm.lead_failed', level: 'error', message: e instanceof Error ? e.message : String(e) });
       }
