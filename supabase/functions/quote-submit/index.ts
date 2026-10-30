@@ -135,7 +135,9 @@ Deno.serve(async (req) => {
       if (!lead) return json({ ok: false, error: 'Demande introuvable.' }, 404);
       // Une soumission déjà acceptée n'est jamais requalifiée en refus.
       if (lead.quote_client_decision !== 'acceptee') {
-        await patchLead(sb, lead.id, { quote_client_decision: 'refusee', quote_decision_at: new Date().toISOString() });
+        const { error } = await sb.from('submissions').update({ quote_client_decision: 'refusee', quote_decision_at: new Date().toISOString() })
+          .eq('id', lead.id).neq('quote_client_decision', 'acceptee');
+        if (error) throw new Error(error.message);
       }
       return json({ ok: true, request_number: lead.submission_number, decision: lead.quote_client_decision === 'acceptee' ? 'acceptee' : 'refusee' });
     }
@@ -161,6 +163,15 @@ Deno.serve(async (req) => {
     const customMaterial = clean(body?.custom_material, 500);
     if (!materialId && !catalogId && !customMaterial) throw new Error('Matériau requis.');
     const leadToken = validLeadToken(body?.lead_token);
+
+    // Une acceptation durable ne crée jamais une deuxième soumission sur reprise.
+    if (rawAction === 'submit' && leadToken) {
+      const previous = await findLead(sb, leadToken);
+      if (previous?.quote_client_decision === 'acceptee' && previous.quote_id) {
+        return json({ ok: true, duplicate: true, request_number: previous.submission_number,
+          quote_number: previous.quote_number, email_sent: false, emailed_to: null });
+      }
+    }
 
     // ---------- Demande de prix : enregistrement CRM AVANT le calcul ----------
     if (rawAction === 'estimate') {

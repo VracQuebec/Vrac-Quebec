@@ -36,10 +36,10 @@ export interface LeadFields {
 
 export async function findLead(sb: any, token: string) {
   const { data, error } = await sb.from('submissions')
-    .select('id,submission_number,quote_client_decision,quote_number')
+    .select('id,submission_number,quote_client_decision,quote_number,quote_id')
     .eq('public_lead_token', token).maybeSingle();
   if (error) throw new Error(error.message);
-  return data as { id: string; submission_number: number; quote_client_decision: string | null; quote_number: string | null } | null;
+  return data as { id: string; submission_number: number; quote_client_decision: string | null; quote_number: string | null; quote_id?: string | null } | null;
 }
 
 /**
