@@ -825,7 +825,7 @@ const Admin = () => {
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
-              Demandes ({loading ? (serverPageReady && !clientMode ? `${serverTotal}` : "chargement…") : filtered.length})
+              Demandes ({loading ? (view === "list" && serverPageReady && !clientMode && !pageLoading ? `${serverTotal}` : "chargement…") : filtered.length})
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">Recherchez, filtrez et traitez les demandes reçues.</p>
           </div>
