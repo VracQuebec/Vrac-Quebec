@@ -76,12 +76,12 @@ export default function SiteAssistant() {
     <>
       {!open && (
         <button onClick={() => setOpen(true)} aria-label="Ouvrir l'assistant Vrac Québec"
-          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-primary p-0 font-display text-sm font-semibold text-primary-foreground shadow-xl sm:w-auto sm:px-4 md:bottom-6 md:right-6 md:z-[60]">
+          className="public-assistant-launcher fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-primary p-0 font-display text-sm font-semibold text-primary-foreground shadow-xl sm:w-auto sm:px-4 md:bottom-6 md:right-6 md:z-[60]">
           <MessageCircle className="h-5 w-5" /> <span className="hidden sm:inline">Besoin d'aide?</span>
         </button>
       )}
       {open && (
-        <div role="dialog" aria-label="Assistant Vrac Québec" className="fixed inset-x-2 bottom-2 top-16 z-[70] flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl md:inset-x-auto md:bottom-6 md:right-6 md:top-auto md:h-[600px] md:w-[400px]">
+        <div role="dialog" aria-label="Assistant Vrac Québec" className="viewport-assistant fixed inset-x-2 bottom-2 top-16 z-[70] flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl md:inset-x-auto md:bottom-6 md:right-6 md:top-auto md:h-[600px] md:w-[400px]">
           <header className="flex items-center gap-2 bg-foreground px-3 py-2 text-background">
             <MessageCircle className="h-5 w-5 text-primary" />
             <div className="min-w-0 flex-1">

@@ -422,7 +422,7 @@ function EntrepreneurDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+    <div className="viewport-admin-overlay fixed inset-0 z-[80] bg-black/50 flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
       <div className="bg-background w-full max-w-4xl rounded-none sm:rounded-xl border border-border shadow-xl my-0 sm:my-8">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-background z-10">
           <div>
@@ -913,7 +913,7 @@ function InvoiceFormModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/60 flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+    <div className="viewport-admin-overlay fixed inset-0 z-[80] bg-black/60 flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
       <div className="bg-background w-full max-w-2xl rounded-none sm:rounded-xl border border-border shadow-xl my-0 sm:my-8">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-background z-10">
           <div>

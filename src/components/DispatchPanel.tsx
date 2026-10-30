@@ -88,7 +88,7 @@ const DispatchPanel = ({ sub, list, entrepreneurs, leadStatuses, onClose, onSele
 
   return (
     <div
-      className={`${shell} bg-card border-border flex flex-col animate-in fade-in slide-in-from-right-4`}
+      className={`viewport-dispatch ${shell} bg-card border-border flex flex-col animate-in fade-in slide-in-from-right-4`}
       style={{ boxShadow: "0 10px 40px rgba(0,0,0,0.18)" }}
     >
       {/* Header */}
@@ -138,7 +138,7 @@ const DispatchPanel = ({ sub, list, entrepreneurs, leadStatuses, onClose, onSele
       )}
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {/* Quick actions */}
         <div className="flex flex-wrap gap-1.5">
           {sub.phone && (

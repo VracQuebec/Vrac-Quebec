@@ -212,11 +212,11 @@ body,
 }
 
 /* Zones sécuritaires (encoche, Dynamic Island, barre iOS) */
-.safe-top { padding-top: env(safe-area-inset-top); }
-.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-top { padding-top: var(--safe-top); }
+.safe-bottom { padding-bottom: var(--safe-bottom); }
 .safe-x {
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
 }
 
 @layer base {
@@ -398,10 +398,10 @@ body,
 
 /* Entrepreneur only: one measured layout, including installed iOS safe areas. */
 .entrepreneur-workspace {
-  --ent-safe-top: env(safe-area-inset-top, 0px);
-  --ent-safe-bottom: env(safe-area-inset-bottom, 0px);
-  --ent-safe-left: env(safe-area-inset-left, 0px);
-  --ent-safe-right: env(safe-area-inset-right, 0px);
+  --ent-safe-top: var(--safe-top);
+  --ent-safe-bottom: var(--safe-bottom);
+  --ent-safe-left: var(--safe-left);
+  --ent-safe-right: var(--safe-right);
   --ent-header-h: calc(3rem + var(--ent-safe-top));
   --ent-bottom-h: calc(3.5rem + var(--ent-safe-bottom));
   --primary: var(--brand);
@@ -442,7 +442,7 @@ body,
 }
 .dark .ent-sheet { --primary: var(--brand); }
 .ent-sheet[data-state] { animation-duration: 160ms; }
-.ent-sheet > button:last-child { position: fixed; top: max(.5rem, env(safe-area-inset-top, 0px)); z-index: 1; background: hsl(var(--card)); }
+.ent-sheet > button:last-child { position: absolute; top: .5rem; z-index: 1; background: hsl(var(--card)); }
 .entrepreneur-workspace a:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
 /* Excluded administration routes retain their pre-pass palette, including portals. */
 :root[data-brand-scope="legacy"] { --primary: 89 74% 48%; --accent: 89 74% 48%; --ring: 89 74% 48%; --shadow-glow: 0 0 30px -5px hsl(89 74% 48% / .2); }
@@ -463,3 +463,92 @@ body,
   .entrepreneur-workspace *, .ent-sheet[data-state], .ent-sheet * { animation: none !important; transition: none !important; }
 }
 
+
+/* One inset owner per shell; backgrounds remain full bleed. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --visible-height: 100dvh;
+  --visible-top: 0px;
+  --visible-bottom: 0px;
+}
+html { scroll-padding-top: calc(var(--nav-h) + var(--safe-top) + 1rem); scroll-padding-bottom: calc(5rem + var(--safe-bottom)); }
+main:not(.ent-main), footer > .container {
+  padding-left: max(1rem, var(--safe-left));
+  padding-right: max(1rem, var(--safe-right));
+}
+.public-home > .safe-top { padding-left: var(--safe-left); padding-right: var(--safe-right); }
+.public-bottom-bar.public-bottom-bar {
+  padding-left: max(.5rem, var(--safe-left));
+  padding-right: max(.5rem, var(--safe-right));
+  padding-bottom: calc(.5rem + var(--safe-bottom));
+}
+.public-home > footer { padding-bottom: calc(6rem + var(--safe-bottom)); }
+.ent-create.ent-create { right: calc(1rem + var(--safe-right)); }
+.public-assistant-launcher.public-assistant-launcher { right: calc(.75rem + var(--safe-right)); bottom: calc(5rem + var(--safe-bottom)); }
+.viewport-dialog.viewport-dialog {
+  top: calc(var(--visible-top) + var(--safe-top) + (var(--visible-height) - var(--safe-top) - var(--safe-bottom)) / 2);
+  max-height: calc(var(--visible-height) - var(--safe-top) - var(--safe-bottom) - 1rem);
+  width: min(calc(100% - var(--safe-left) - var(--safe-right) - 1.5rem), 100%);
+  left: calc(var(--safe-left) + (100% - var(--safe-left) - var(--safe-right)) / 2);
+}
+.viewport-sheet.viewport-sheet, .viewport-drawer.viewport-drawer {
+  max-height: calc(var(--visible-height) - var(--safe-top) - .5rem);
+  padding-left: max(1rem, var(--safe-left));
+  padding-right: max(1rem, var(--safe-right));
+  padding-bottom: calc(1rem + var(--safe-bottom));
+  bottom: var(--visible-bottom);
+}
+.viewport-sheet.viewport-sheet[data-viewport-side="left"], .viewport-sheet.viewport-sheet[data-viewport-side="right"] {
+  top: var(--visible-top); bottom: auto; height: var(--visible-height); max-height: var(--visible-height);
+  padding-top: calc(1rem + var(--safe-top));
+}
+.viewport-sheet.viewport-sheet[data-viewport-side="top"] {
+  top: var(--visible-top); bottom: auto; padding-top: calc(1rem + var(--safe-top));
+}
+.viewport-sheet.viewport-sheet[data-viewport-side="bottom"] { top: auto; padding-top: 1rem; }
+.viewport-sheet.viewport-sheet:not([data-viewport-side="bottom"]) > .sheet-close { top: calc(.5rem + var(--safe-top)); }
+.viewport-sheet.viewport-sheet > .sheet-close { right: max(.5rem, var(--safe-right)); }
+.viewport-drawer.viewport-drawer { overflow-y: auto; overscroll-behavior: contain; }
+.viewport-toast.viewport-toast { padding-top: calc(1rem + var(--safe-top)); padding-left: max(1rem, var(--safe-left)); padding-right: max(1rem, var(--safe-right)); }
+.viewport-assistant.viewport-assistant {
+  top: calc(var(--visible-top) + var(--safe-top) + 1rem);
+  bottom: calc(var(--visible-bottom) + var(--safe-bottom) + .5rem);
+  left: calc(var(--safe-left) + .5rem); right: calc(var(--safe-right) + .5rem);
+  max-height: calc(var(--visible-height) - var(--safe-top) - var(--safe-bottom) - 1.5rem);
+}
+.viewport-assistant.viewport-assistant > header, .viewport-assistant.viewport-assistant > form { flex-shrink: 0; }
+.viewport-assistant.viewport-assistant > div { min-height: 0; }
+.viewport-dispatch.viewport-dispatch {
+  max-height: calc(var(--visible-height) - var(--safe-top) - .5rem);
+  bottom: var(--visible-bottom);
+  padding-left: var(--safe-left); padding-right: var(--safe-right); padding-bottom: var(--safe-bottom);
+}
+.viewport-admin-overlay.viewport-admin-overlay {
+  top: calc(var(--visible-top) + var(--safe-top)); bottom: calc(var(--visible-bottom) + var(--safe-bottom));
+  padding-left: var(--safe-left); padding-right: var(--safe-right);
+}
+.consent-panel.consent-panel {
+  max-height: calc(var(--visible-height) - var(--safe-top) - 1rem);
+  bottom: var(--visible-bottom);
+  padding-left: var(--safe-left); padding-right: var(--safe-right);
+  overscroll-behavior: contain;
+}
+.consent-actions.consent-actions { padding-bottom: calc(.75rem + var(--safe-bottom)); }
+.consent-actions.consent-actions > button { flex: 1 1 auto; white-space: normal; height: auto; min-height: 44px; }
+:root[data-consent-open] :is(.public-bottom-bar.public-bottom-bar, .public-assistant-launcher.public-assistant-launcher, .ent-create.ent-create) { visibility: hidden; pointer-events: none; }
+@media (min-width: 640px) {
+  .consent-panel.consent-panel { right: calc(1rem + var(--safe-right)); bottom: calc(var(--visible-bottom) + 1rem); padding: 0; }
+  .viewport-toast.viewport-toast { padding-bottom: calc(1rem + var(--safe-bottom)); }
+}
+@media (min-width: 768px) {
+  .public-home > footer { padding-bottom: calc(2rem + var(--safe-bottom)); }
+  .public-assistant-launcher.public-assistant-launcher { right: calc(1.5rem + var(--safe-right)); bottom: calc(1.5rem + var(--safe-bottom)); }
+  .viewport-assistant.viewport-assistant { left: auto; right: calc(1.5rem + var(--safe-right)); top: auto; bottom: calc(var(--visible-bottom) + var(--safe-bottom) + 1.5rem); }
+  .viewport-dispatch.viewport-dispatch { top: calc(var(--visible-top) + var(--safe-top)); height: calc(var(--visible-height) - var(--safe-top)); }
+}
+@media (max-width: 767px) {
+  :root[data-keyboard-open] :is(.ent-bottom, .ent-create.ent-create, .public-bottom-bar.public-bottom-bar, .public-assistant-launcher.public-assistant-launcher) { visibility: hidden; pointer-events: none; }
+}
