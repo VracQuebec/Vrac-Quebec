@@ -406,23 +406,8 @@ Deno.serve(async (req) => {
         comments ? `Notes : ${comments}` : '',
       ].filter(Boolean).join('\n');
 
-      const { data: lead, error: leadError } = await sb.from('submissions').insert({
-        materials: [pub.material.name],
-        property_type: 'Non spécifié',
-        quantity: quantityLabel,
-        tonnage: String(pub.tonnage ?? ''),
-        address: deliveryAddress,
-        postal_code: delivery.postal_code ?? '',
-        city: delivery.city ?? null,
-        name,
-        email,
-        phone: phone ?? '',
-        company: company ?? null,
-        description,
-        request_type: 'vrac',
-        service_type: 'vrac_achat',
+      const quoteFields = {
         client_id: null,
-        desired_date: desiredDate,
         quote_number: quote.quote_number ?? null,
         quote_id: quote.id,
         quote_material: pub.material.name,
@@ -434,19 +419,54 @@ Deno.serve(async (req) => {
         quote_distance_km: pub.distance_km ?? null,
         quote_duration_minutes: durationMinutes,
         quote_total: pub.total,
-      }).select('id').single();
-      if (leadError) throw new Error(leadError.message);
-
-      // Les coordonnées GPS sont neutralisées à l'insertion publique :
-      // on les réapplique aussitôt (adresse déjà validée par Google).
-      if (lead?.id && delivery.lat != null && delivery.lng != null) {
-        await sb.from('submissions').update({
-          latitude: delivery.lat,
-          longitude: delivery.lng,
-          formatted_address: deliveryAddress,
-          geocoding_status: 'ok',
-          geocoding_provider: 'google',
-        }).eq('id', lead.id);
+        quote_calc_status: 'calculee', quote_calc_error: null, quote_calc_at: new Date().toISOString(),
+        // Décision du client, distincte du statut de suivi CRM.
+        quote_client_decision: action === 'callback' ? 'rappel' : 'acceptee',
+        quote_decision_at: new Date().toISOString(),
+      };
+      let lead: { id: string } | null = null;
+      if (leadToken) {
+        // Même demande que celle enregistrée au calcul : aucune nouvelle ligne.
+        lead = await upsertLead(sb, leadToken, {
+          name, email, phone: phone ?? '', company: company ?? null,
+          address: deliveryAddress, city: delivery.city ?? null, postal_code: delivery.postal_code ?? null,
+          lat: delivery.lat, lng: delivery.lng,
+          materialLabel: pub.material.name, quantityLabel,
+          quantityValue: quantity, quantityUnit: unit, desiredDate, description,
+          answers: cleanAnswers(body?.form_answers),
+        }, quoteFields);
+      } else {
+        const { data, error: leadError } = await sb.from('submissions').insert({
+          materials: [pub.material.name],
+          property_type: 'Non spécifié',
+          quantity: quantityLabel,
+          tonnage: String(pub.tonnage ?? ''),
+          address: deliveryAddress,
+          postal_code: delivery.postal_code ?? '',
+          city: delivery.city ?? null,
+          name,
+          email,
+          phone: phone ?? '',
+          company: company ?? null,
+          description,
+          request_type: 'vrac',
+          service_type: 'vrac_achat',
+          desired_date: desiredDate,
+          ...quoteFields,
+        }).select('id').single();
+        if (leadError) throw new Error(leadError.message);
+        lead = data;
+        // Les coordonnées GPS sont neutralisées à l'insertion publique :
+        // on les réapplique aussitôt (adresse déjà validée par Google).
+        if (lead?.id && delivery.lat != null && delivery.lng != null) {
+          await sb.from('submissions').update({
+            latitude: delivery.lat,
+            longitude: delivery.lng,
+            formatted_address: deliveryAddress,
+            geocoding_status: 'ok',
+            geocoding_provider: 'google',
+          }).eq('id', lead.id);
+        }
       }
       logEventAsync({ source: 'quote_submit', event: 'crm.lead_created', refId: String(lead?.id ?? '') });
     } catch (e) {
