@@ -63,7 +63,7 @@ export async function upsertLead(sb: any, token: string, f: LeadFields, extra: R
     if (error) throw new Error(error.message);
   } else {
     const { data, error } = await sb.from('submissions').insert({
-      ...common, request_type: 'vrac', service_type: 'vrac_achat',
+      request_type: 'vrac', service_type: 'vrac_achat', ...common,
       public_lead_token: token, quote_client_decision: 'en_attente',
     }).select('id,submission_number,quote_client_decision,quote_number').single();
     if (error) {
