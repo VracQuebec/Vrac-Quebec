@@ -682,7 +682,7 @@ const Admin = () => {
 
   // Les modifications locales (statut, champs, géocodage) s'appliquent à la page affichée sans relecture.
   const serverRowsMerged = useMemo(() => {
-    const byId = new Map(submissions.map((s) => [s.id, s]));
+    const byId = new globalThis.Map<string, Submission>(submissions.map((s) => [s.id, s] as [string, Submission]));
     return serverRows.map((r) => byId.get(r.id) ?? r);
   }, [serverRows, submissions]);
   const totalResults = clientMode ? filtered.length : serverTotal;
