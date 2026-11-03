@@ -98,12 +98,14 @@ export const formatRatePercent = (rate: number) =>
   `${(rate * 100).toLocaleString("fr-CA", { maximumFractionDigits: 3 })} %`;
 
 /** Chargement des tarifs et des taxes administrés. */
-export function useTransportRates() {
+export function useTransportRates(enabled = true) {
   const [rates, setRates] = useState<TruckRate[]>([]);
   const [taxes, setTaxes] = useState<TaxRates | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
+    // Tarifs protégés (lecture connectée seulement) : aucun appel pour un visiteur.
+    if (!enabled) { setRates([]); setTaxes(null); setLoading(false); return; }
     setLoading(true);
     const [{ data: rateRows }, { data: taxRows }] = await Promise.all([
       supabase
@@ -121,7 +123,7 @@ export function useTransportRates() {
         : null,
     );
     setLoading(false);
-  }, []);
+  }, [enabled]);
 
   useEffect(() => { void load(); }, [load]);
 

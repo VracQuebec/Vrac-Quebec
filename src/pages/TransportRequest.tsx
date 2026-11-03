@@ -292,7 +292,7 @@ const TransportRequest = () => {
   const [truckType, setTruckType] = useState<string>("");
   const [trips, setTrips] = useState<string>("");
   // Tarifs et taxes administrés (jamais codés en dur).
-  const { rates: truckRates, taxes: taxRates } = useTransportRates();
+  const { rates: truckRates, taxes: taxRates } = useTransportRates(authReady && !!user);
   const selectedRate = useMemo(
     () => truckRates.find((r) => r.code === truckType) ?? null,
     [truckRates, truckType],
