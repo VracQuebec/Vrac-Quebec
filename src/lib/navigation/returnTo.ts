@@ -79,3 +79,8 @@ export function ReturnToTracker() {
 export function markVoluntarySignOut() {
   try { sessionStorage.setItem("vq.voluntarySignOut", "1"); localStorage.removeItem("vq.lastUid"); clearReturnTo(); } catch { /* ignore */ }
 }
+
+/** Une page admin mémorisée n'est reprise que par un compte admin (évite la boucle refus → connexion). */
+export function allowedReturnPath(path: string | null, admin: boolean): string | null {
+  return path && (admin || !/^\/admin(\/|$)/.test(path)) ? path : null;
+}
