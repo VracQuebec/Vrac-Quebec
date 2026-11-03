@@ -125,3 +125,9 @@ Comptes fictifs : test-superadmin@test.invalid (admin), gestionnaire B c3a361a5-
 - Courriels déclenchés : 0 (maintenance du serveur Lovable Cloud en cours, 3 nov. 21 h UTC). Reçus : 0. Activations : 0.
 - 21 h 06 UTC : status.lovable.dev = « Lovable backend maintenance » en cours; vérification directe du serveur du projet : connexions et base joignables; domaine notify.vracquebec.ca vérifié, file d'envoi saine.
 - Avant essai : 0 compte et 0 courriel pour kassandrapaquette+*. Inscription existante (/entrepreneur/inscription) : compte créé et confirmé côté serveur, sans courriel ni approbation; mot de passe choisi par la personne dans le formulaire → étape laissée à l'utilisatrice. Tentatives : 0.
+
+## Reprise 3 nov. 21 h 20 UTC — inscription et mot de passe (vracquebec.ca)
+- Inscription /entrepreneur/inscription, kassandrapaquette+inscription@hotmail.com (b6518205-55d9-4c3d-84ec-7a64e9942a05), double clic « Créer mon compte » → 1 seul compte, courriel confirmé côté serveur, rôle entrepreneur actif sans approbation, arrivée sur /entrepreneur, session conservée après rechargement, /admin refusé (renvoi /entrepreneur). RÉUSSI. Aucun courriel envoyé par l'inscription.
+- Mot de passe oublié (/login → /mot-de-passe-oublie), double clic : message neutre affiché; envoi enregistré par le service de connexion (recovery_sent_at 21:21:46). Courriel déclenché : 1. Réception / changement de mot de passe : à confirmer par l'utilisatrice.
+- Compte principal kassandrapaquette@hotmail.com inchangé (créé 2026-05-08, entrepreneur).
+- Chauffeur +chauffeur : non lancé — le lien d'invitation (Punch > Accès employés > Préparer une invitation, TEST A) puis la confirmation du courriel de création exigent l'ouverture du courriel par l'utilisatrice.
