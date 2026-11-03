@@ -115,3 +115,4 @@ Comptes fictifs : test-superadmin@test.invalid (admin), gestionnaire B c3a361a5-
 ## Trop-perçu (décision ouverte)
 - Actuel : un encaissement plus élevé que le reste est accepté sur la facture et affiché « trop-perçu non affecté », sans remboursement automatique. Le reste ne descend pas sous 0. Une saisie annulée sort des totaux et reste barrée dans l'historique.
 - Choix : (a) refuser tout dépassement du reste ; (b) gérer un crédit client réutilisable.
+- Publié (nouvelle version servie) : double clic « Créer » campagne « TEST-AUD campagne UI verrou » → 1 seule campagne (vérifié sur vracquebec.ca).
