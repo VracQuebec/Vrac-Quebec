@@ -120,3 +120,6 @@ Comptes fictifs : test-superadmin@test.invalid (admin), gestionnaire B c3a361a5-
 ## Boîte d'essai proposée (3 nov. 2026) — conflit
 - kassandrapaquette@hotmail.com correspond déjà à un compte réel : créé le 2026-05-08, courriel confirmé, rôle entrepreneur actif, membre d'une entreprise, dernière connexion le 2026-10-28, 5 demandes réelles.
 - Rien n'a été modifié ni envoyé (aucune invitation, aucune inscription, aucune réinitialisation). Il faut une adresse distincte, sans compte existant.
+- Variantes kassandrapaquette+chauffeur@ et +inscription@hotmail.com : aucun compte, aucune invitation, aucune suppression; distinctes du compte principal (non modifié).
+- Invitation chauffeur existante = lien préparé à l'écran (pun_invite_prepare), aucun courriel envoyé par ce mécanisme.
+- Courriels déclenchés : 0 (maintenance du serveur Lovable Cloud en cours, 3 nov. 21 h UTC). Reçus : 0. Activations : 0.
