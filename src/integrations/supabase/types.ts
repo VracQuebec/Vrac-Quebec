@@ -18086,6 +18086,7 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string | null
+          crm_submission_id: string | null
           custom_material_description: string | null
           delivery_address: string | null
           desired_date: string | null
@@ -18117,6 +18118,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string | null
+          crm_submission_id?: string | null
           custom_material_description?: string | null
           delivery_address?: string | null
           desired_date?: string | null
@@ -18148,6 +18150,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string | null
+          crm_submission_id?: string | null
           custom_material_description?: string | null
           delivery_address?: string | null
           desired_date?: string | null
