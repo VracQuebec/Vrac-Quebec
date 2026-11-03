@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,8 @@ export default function CampaignsTab(props: { actor: string }) {
   const [campaigns, setCampaigns] = useState<FbCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [contentText, setContentText] = useState("");
@@ -39,7 +41,12 @@ export default function CampaignsTab(props: { actor: string }) {
   }, [load]);
 
   const create = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try { await createOnce(); } finally { savingRef.current = false; setSaving(false); }
+  };
+  const createOnce = async () => {
     const days = Number(interval);
     if (!Number.isFinite(days) || days < 0) {
       toast({ title: "Intervalle invalide", variant: "destructive" });
@@ -159,7 +166,7 @@ export default function CampaignsTab(props: { actor: string }) {
                 sur la fiche d'un groupe prévaut.
               </p>
             </div>
-            <Button onClick={create} disabled={!name.trim()}>Créer</Button>
+            <Button onClick={create} disabled={!name.trim() || saving}>Créer</Button>
           </div>
         </DialogContent>
       </Dialog>
