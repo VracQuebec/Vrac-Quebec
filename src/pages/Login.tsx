@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { Truck, Loader2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
-import { consumeReturnTo } from "@/lib/navigation/returnTo";
+import { consumeReturnTo, allowedReturnPath } from "@/lib/navigation/returnTo";
 import TransportBanner from "@/components/TransportBanner";
 
 const Login = () => {
@@ -27,7 +27,7 @@ const Login = () => {
     const { path, otherAccount } = consumeReturnTo(uid);
     if (otherAccount) toast({ title: "Nouvelle session", description: "Le travail en cours d'un autre compte n'est pas repris sur ce compte." });
     // Une page admin refusée renvoie ici : ne jamais y retourner sans rôle admin (boucle).
-    const allowed = path && (admin || !/^\/admin(\/|$)/.test(path)) ? path : null;
+    const allowed = allowedReturnPath(path, admin);
     navigate(allowed ?? fallback, { replace: true });
   };
 
