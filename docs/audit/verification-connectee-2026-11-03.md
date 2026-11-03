@@ -69,3 +69,19 @@ Comptes fictifs : test-superadmin@test.invalid (admin), gestionnaire B c3a361a5-
 - Chauffeur actif : créer un compte de connexion exige l'envoi d'une invitation par courriel; non fait.
 - Inscription / mot de passe : boîte de réception contrôlée requise. Paiements : aucun mode d'essai isolé.
 - Téléphones physiques et application installée : non vérifiés.
+
+## Reprise du 3 novembre (soir)
+
+### Place de marché — offre sans invitation (CORRIGÉ serveur, migration 0262)
+- Règle existante : un partenaire ne voit une demande que par une invitation (mkt_can_see_request); modes « auto » et « manuel » passent tous deux par des invitations — aucune demande ouverte à tous.
+- Correction : mkt_can_bid(demande, entreprise) exige une invitation envoyée/vue/intéressée/soumise; le partenaire ne peut écrire qu'en brouillon/envoyée (plus d'auto-sélection « retenue »); l'admin garde l'écriture complète.
+- Essais (API réelle, comptes fictifs) : visiteur 401; TEST C pour B 403; TEST C pour C 403; TEST B sans invitation 403; TEST C lit 0 demande. Invitation fictive bbc65dd4-40b9-4d7c-a8b1-62fe963b0c6f → TEST B dépose 0e0cee8e-ba92-4cd6-9e56-6eff37684bd9 (201); auto-« retenue » 403; TEST C modifie l'offre de B : 0 ligne.
+- Offre refusée (non_retenue) : attributions 1→1, notifications 5→5; réouverture par B : 0 ligne.
+
+### Données fictives
+- F-00001 b6e81213-a04b-4e4e-a4b4-7d9407f57b0a = « TEST — Entreprise B » (54a6c2c3-…). Marquage is_test refusé par la garde d'immuabilité des factures émises (« note de crédit requise ») — non contourné. Identification par entreprise TEST. L'autre F-00001 (e4bde962-…, TEST A) est déjà is_test.
+- Numéros TPS/TVQ « TEST… » présents uniquement dans TEST B (0 ailleurs); taxes désactivées.
+
+### Trop-perçu
+- Encaissements : 100 $ actif (b2786aa0-…) + 100 000 $ annulé (f2642e29-…, motif conservé). Reçu 100 / total 287,44 → solde 187,44 : l'annulé n'est ni compté ni doublé.
+- Comportement actuel : un encaissement supérieur au solde est accepté et rattaché à la facture (pas de crédit client distinct). Bloquer ou convertir en crédit = décision commerciale, pas un défaut technique.
