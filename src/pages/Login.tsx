@@ -23,16 +23,18 @@ const Login = () => {
 
   // NAV-01 : après connexion, retour à la page de travail du MÊME compte (droits revérifiés
   // ensuite par la page elle-même); autre compte → accueil de son espace, sans reprise.
-  const goAfterLogin = (uid: string, fallback: string) => {
+  const goAfterLogin = (uid: string, fallback: string, admin: boolean) => {
     const { path, otherAccount } = consumeReturnTo(uid);
     if (otherAccount) toast({ title: "Nouvelle session", description: "Le travail en cours d'un autre compte n'est pas repris sur ce compte." });
-    navigate(path ?? fallback, { replace: true });
+    // Une page admin refusée renvoie ici : ne jamais y retourner sans rôle admin (boucle).
+    const allowed = path && (admin || !/^\/admin(\/|$)/.test(path)) ? path : null;
+    navigate(allowed ?? fallback, { replace: true });
   };
 
   useEffect(() => {
     if (!authReady || !user || roleLoading) return;
-    if (isAdmin) goAfterLogin(user.id, "/admin");
-    else if (isEntrepreneur) goAfterLogin(user.id, "/entrepreneur");
+    if (isAdmin) goAfterLogin(user.id, "/admin", true);
+    else if (isEntrepreneur) goAfterLogin(user.id, "/entrepreneur", false);
   }, [authReady, user, roleLoading, isAdmin, isEntrepreneur, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [loginError, setLoginError] = useState<string | null>(null);
