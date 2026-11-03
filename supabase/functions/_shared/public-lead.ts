@@ -91,3 +91,23 @@ export async function patchLead(sb: any, id: string, patch: Record<string, unkno
   const { error } = await sb.from('submissions').update(patch).eq('id', id);
   if (error) throw new Error(error.message);
 }
+
+/**
+ * Lien explicite demande CRM ↔ dossier opérationnel (une demande, plusieurs vues).
+ * En cas d'échec, l'écart est consigné pour l'administration (jamais silencieux).
+ */
+export async function linkCrm(sb: any, submissionId: string | null | undefined, table: 'jsc_requests', id: string) {
+  if (!submissionId) { await recordCrmFailure(sb, table, id, 'link', 'Demande CRM absente'); return false; }
+  const { data, error } = await sb.rpc('crm_intake_link', { p_submission: submissionId, p_table: table, p_id: id });
+  if (error || data !== true) { await recordCrmFailure(sb, table, id, 'link', error?.message ?? 'Lien refusé'); return false; }
+  return true;
+}
+
+export async function recordCrmFailure(sb: any, table: string, id: string, stage: string, err: unknown) {
+  try {
+    await sb.rpc('crm_intake_record_failure', {
+      p_table: table, p_id: id, p_stage: stage,
+      p_error: err instanceof Error ? err.message : String(err ?? 'inconnu'),
+    });
+  } catch { /* la fiche reste visible via crm_intake_gaps */ }
+}
