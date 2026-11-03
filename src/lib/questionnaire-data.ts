@@ -358,6 +358,9 @@ export const SERVICE_TYPES = [
   { value: "remblai_disposition", label: "Départir du remblai", color: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
   { value: "materiel_remplissage", label: "Matériel de remplissage", color: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30" },
   { value: "vrac_achat", label: "Matériaux en vrac", color: "bg-primary/15 text-primary border-primary/30" },
+  { value: "acces_dompe", label: "Accès à une dompe", color: "bg-secondary text-foreground border-border" },
+  { value: "transport_livraison", label: "Transport", color: "bg-secondary text-foreground border-border" },
+  { value: "place_de_marche", label: "Services", color: "bg-secondary text-foreground border-border" },
 ] as const;
 
 export const serviceTypeMeta = (value?: string | null) =>

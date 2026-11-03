@@ -9,6 +9,7 @@ import LeadParcoursPanel from "@/components/admin/LeadParcoursPanel";
 import DompeAvailabilityPanel from "@/components/admin/DompeAvailabilityPanel";
 import MaterialInterpretationPanel from "@/components/admin/MaterialInterpretationPanel";
 import CrmReceptionPanel from "@/components/remblai/CrmReceptionPanel";
+import CrmIntakeGaps from "@/components/admin/CrmIntakeGaps";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES, serviceTypeMeta, normalizeRequestType, requestTypeMeta } from "@/lib/questionnaire-data";
@@ -808,7 +809,7 @@ const Admin = () => {
               <DropdownMenuItem asChild><Link to="/admin/jsc"><Building2 /> Back office de l'entreprise</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/admin/configuration-soumissions"><Settings /> Configuration des soumissions</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/admin/finances"><Settings /> Finances</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link to="/admin/crm"><Users /> CRM unifié</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/admin/crm"><Users /> Répertoire de contacts</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/admin/operations"><Truck /> Opérations</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/admin/groupes-facebook"><Facebook /> Groupes Facebook</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/admin/temoins"><Settings /> Témoins et consentements</Link></DropdownMenuItem>
@@ -836,6 +837,7 @@ const Admin = () => {
           </>
         ) : (
         <>
+        <CrmIntakeGaps onResolved={() => { void fetchSubmissions(); }} />
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
@@ -888,7 +890,7 @@ const Admin = () => {
                 <DropdownMenuItem asChild><Link to="/admin/jsc"><Building2 /> Back office de l'entreprise</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/admin/configuration-soumissions"><Settings /> Configuration des soumissions</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/admin/finances"><Settings /> Finances</Link></DropdownMenuItem>
-                <DropdownMenuItem asChild><Link to="/admin/crm"><Users /> CRM unifié</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/crm"><Users /> Répertoire de contacts</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/admin/operations"><Truck /> Opérations</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/admin/groupes-facebook"><Facebook /> Groupes Facebook</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/admin/temoins"><Settings /> Témoins et consentements</Link></DropdownMenuItem>
@@ -1332,6 +1334,20 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               <D label="Type de demande" v={requestTypeMeta(sub.request_type)?.label || sub.request_type || "Non renseigné"} />
               <D label="Matériau principal" v={getMaterialLabels(sub.materials || []) || sub.other_material || "Non renseigné"} />
               <D label="Voyages" v={sub.quantity || "Non renseigné"} />
+              {(() => {
+                const o = sub as unknown as { origin_table?: string | null; origin_record_id?: string | null };
+                if (!o.origin_table || !o.origin_record_id) return null;
+                const to = o.origin_table === "transport_requests" ? "/admin/demandes-acces"
+                  : o.origin_table === "mkt_quote_requests" ? "/admin/marche/soumissions" : "/admin/jsc";
+                const lbl = o.origin_table === "transport_requests" ? "Accès dompe / transport"
+                  : o.origin_table === "mkt_quote_requests" ? "Demande de services" : "Soumission matériaux";
+                return (
+                  <div className="min-w-0">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Dossier opérationnel</div>
+                    <Link to={to} className="font-semibold text-primary underline-offset-2 hover:underline">{lbl}</Link>
+                  </div>
+                );
+              })()}
               <D label="Transport" v={sub.quote_truck || "Non renseigné"} />
               <D label="Dompe / site" v={sub.selected_site_label || sub.dompe_number || "Aucun site sélectionné"} />
               <D label="Priorité" v={LEAD_PRIORITIES.find((x) => x.value === sub.priority)?.label || sub.priority || "Non renseigné"} />
