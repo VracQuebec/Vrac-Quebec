@@ -95,3 +95,23 @@ Comptes fictifs : test-superadmin@test.invalid (admin), gestionnaire B c3a361a5-
 ### Toujours non testés depuis les écrans
 - Ronde/réparation, agenda, soumission→facture, encaissement, rotation Facebook, place de marché (tests faits côté serveur seulement).
 - Chauffeur : aucun compte actif connectable (invitation par courriel requise).
+
+## Reprise du 3 novembre (20 h UTC) — six parcours depuis l'interface (vracquebec.ca)
+- Ronde (TEST B, propriétaire) : bouton désactivé tant que déclaration/signature/lieu manquent (validation OK); 2 exécutions → rapports 522814f0-…, 1330aee6-… (1 par double clic), historique relu après rechargement.
+- Agenda : événement e97fb6ae-4484-45e8-bf85-2a2dfbdd5981 créé (double clic = 1), responsable test-multi-gest…, modifié, « Terminé », 2 entrées de journal, relu après rechargement.
+- Soumission→facture : TEST-AUD-Q1 (1aeac5a3-…) ; remise bloquée « taxes à déterminer » (validation OK), puis remise, acceptation documentée (double clic), « Créer la facture » double clic = 1 facture c2cddd0d-9e4f-4881-aa55-817d3baa30c3 F-00002 marquée « Exemple fictif » avant émission (is_test = true).
+- Encaissement : 100 $ double clic = 1 saisie; reste 200,00 $ relu après rechargement.
+- Groupes Facebook (admin fictif) : DÉFAUT CORRIGÉ — double clic « Créer » créait 2 campagnes (735d3841-… et 0dc2e627-…, renommée « doublon double clic »); verrou ajouté. Sélection de 2 groupes, prise en charge double clic = 1 attribution, relue après rechargement, libération; journal : attribution + attribution_retiree. Aucune publication enregistrée ni post.
+- Place de marché : DÉFAUT CORRIGÉ (migration 0263) — l'espace partenaire n'affichait aucune occasion (vue partenaire vidée par la RLS des demandes). Après correction : B voit 1 demande, C 0, visiteur 401. Demande fictive VQ-2026-00012 (cf09960f-3406-4ae7-8a2c-e7828d221b46); service « Transport de terre » ajouté au profil B depuis l'écran; invitation depuis le jumelage (32502312-…); offre 777 $ double clic = 1 (45fb8ae4-…); client fictif test-c-paysager « Retenir » double clic = 1 attribution, statut « attribution à confirmer »; partenaire « Gagnées 1 ».
+- Remarque : pas d'écran admin pour attribuer; l'attribution passe par le client.
+
+## Chauffeur
+- 9d1b59b7-b36f-44c8-a7f5-1b5669ac2407 (TEST A) = fiche chauffeur seulement, sans utilisateur.
+- r4k-chauffeur@test.invalid = utilisateur, rôle chauffeur inactif, jamais connecté. Rôle non validé.
+
+## F-00001
+- b6e81213-a04b-4e4e-a4b4-7d9407f57b0a, « TEST — Entreprise B » (54a6c2c3-…), is_test=false (verrou respecté). Les statistiques et exports qui l'additionnent sont tous limités à une entreprise : aucune contamination des activités réelles constatée. Elle apparaît seulement dans les totaux de TEST B.
+
+## Trop-perçu (décision ouverte)
+- Actuel : un encaissement plus élevé que le reste est accepté sur la facture et affiché « trop-perçu non affecté », sans remboursement automatique. Le reste ne descend pas sous 0. Une saisie annulée sort des totaux et reste barrée dans l'historique.
+- Choix : (a) refuser tout dépassement du reste ; (b) gérer un crédit client réutilisable.
