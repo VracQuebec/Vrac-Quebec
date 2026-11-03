@@ -104,7 +104,10 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
   }, "Entrée enregistrée");
   const punchOut = () => run(async () => {
     const p = openWork?.geo_consent ? await getPos() : null;
-    return db.rpc("pun_out", { _company: companyId, _lat: p?.coords.latitude ?? null, _lng: p?.coords.longitude ?? null, _acc: p?.coords.accuracy ?? null });
+    const r = await db.rpc("pun_out", { _company: companyId, _lat: p?.coords.latitude ?? null, _lng: p?.coords.longitude ?? null, _acc: p?.coords.accuracy ?? null });
+    // pun_out renvoie null quand aucun quart n'est ouvert (écran périmé, autre onglet) : jamais de faux succès.
+    if (!r.error && !r.data) { load(); return { error: new Error("Aucun quart ouvert : la sortie avait déjà été enregistrée. L’écran a été actualisé.") }; }
+    return r;
   }, "Sortie enregistrée — envoyée pour approbation");
 
   const saveManual = () => manual && run(async () => {
