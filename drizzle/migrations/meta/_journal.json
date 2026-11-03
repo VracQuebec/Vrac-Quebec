@@ -1842,6 +1842,13 @@
       "when": 1793734154473,
       "tag": "0262_mkt_bids_require_invitation",
       "breakpoints": true
+    },
+    {
+      "idx": 263,
+      "version": "7",
+      "when": 1793735870895,
+      "tag": "0263_mkt_requests_for_partners_restore_definer",
+      "breakpoints": true
     }
   ]
 }
