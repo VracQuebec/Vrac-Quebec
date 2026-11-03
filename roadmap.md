@@ -312,3 +312,7 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [ ] Deux parcours : demande durable avant calcul, décisions séparées, reprises uniques.
 - [ ] Restaurer voyages × capacité documentée, sans changement de tarifs.
 - [ ] Tests fictifs et journaux de communications; publier et vérifier les deux parcours.
+
+## Centralisation CRM — 3 novembre 2026
+- [x] Transport/accès dompe, services et soumissions rattachés au CRM habituel, écarts signalés, reprise sans doublon
+- [x] « CRM unifié » renommé « Répertoire de contacts »
