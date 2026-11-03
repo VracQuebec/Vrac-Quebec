@@ -77,7 +77,7 @@ const Login = () => {
           if (roleList.length > 0) break;
           await new Promise((r) => setTimeout(r, 200));
         }
-        goAfterLogin(data.user.id, roleList.includes("admin") ? "/admin" : "/entrepreneur");
+        goAfterLogin(data.user.id, roleList.includes("admin") ? "/admin" : "/entrepreneur", roleList.includes("admin"));
       }
     } catch (err: any) {
       clearTimeout(timer);
