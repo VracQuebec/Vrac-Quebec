@@ -47,3 +47,25 @@ Comptes fictifs utilisés (existants, aucun droit modifié, aucun compte réel t
 - Place de marché de bout en bout : aucun partenaire fictif; en créer un = nouvelle fiche partenaire, à autoriser.
 - Inscription, mot de passe, paiements : aucun environnement isolé (courriels réels / paiements réels).
 - Non encore exécutés : ronde de sécurité, réparation, inspection, agenda (assignation), factures/conversion, finances, Groupes Facebook (rotation), exports CRM.
+
+## Reprise du 3 novembre (fin d'après-midi) — parcours restants
+
+Comptes fictifs : test-superadmin@test.invalid (admin), gestionnaire B c3a361a5-…, opérateur A a05e7e5f-…. Aucun compte réel ni règle de permission modifié.
+
+### Résultats
+- Place de marché : partenaire fictif fc990320-1243-4d25-9323-226cd654522f (TEST B, partenaire@test.invalid); demande VQ-2026-00011 (5e4e51b0-0daf-4698-924b-9183cc8359c2) arrivée au CRM (submission 46bd6fe0-…); offre b296f0e3-… ; attribution 30f12d0b-… (double appel = même attribution); automatisations 0 action; statut « en_cours » relu. Courriel partenaire supprimé (adresse d'essai). Invitation : 0 partenaire correspondant (fiche non qualifiée) → aucune invitation créée.
+- ANOMALIE (non corrigée, décision requise) : un membre partenaire peut déposer une offre sur une demande sans invitation s'il connaît son identifiant (règle mkt_bids_partner).
+- Agenda : événement 58dabd5a-0208-4733-a519-951d54a19ced créé, modifié, statut confirme→termine relu; participant hors entreprise refusé; opérateur A : 0 lu, modification sans effet; création dans A (lecture) refusée.
+- Groupes Facebook : groupe occupé par un autre super admin → « ok:false, heldBy »; libération par un autre sans effet; gestionnaire refusé; journal lisible.
+- Soumission → facture : soumission 0a0b2906-…, 250 $ → TPS 12,50, TVQ 24,94, total 287,44 (exact); acceptation documentée ×2 idempotente; facture b6e81213-… F-00001 (×2 = même), émission ×2 « already »; encaissement 100 $ ×2 rejoué une fois, solde 187,44; trop-perçu 100 000 $ accepté en « non affecté » puis annulé (f2642e29-…). Profil fiscal fictif TEST B complété (numéros TEST). Remarque : facture fictive is_test=false.
+- Ronde de sécurité : rapports 87af2c1c-… (v1 remplacée par 5a0e5f47-… v2), 26fa70ed-…; défauts 4dae9636-…, 7008ebee-…; réparation flotte terminée; double soumission = même rapport.
+- ANOMALIE CORRIGÉE (serveur, migration 0261) : fleet_can_manage / fleet_can_administer renvoyaient « inconnu » au lieu de « non » pour une personne sans rôle → un employé d'une autre entreprise a pu marquer réparé le défaut fictif 4dae9636 (seul cas en base). Après correction : refus « Accès refusé », notes vides refusées.
+- CRM admin (vracquebec.ca) : accès admin OK; recherche « test.invalid »; export CSV administrateur = 48 lignes = 48 en base; statut fictif 483d4b78 changé puis restauré; opérateur : modification sans effet.
+- Rôles (vracquebec.ca) : gestionnaire /admin → /entrepreneur (3 navigations, sans boucle), /admin/temoins → /entrepreneur.
+- Punch : approbation par gestionnaire (opérateur refusé), relevé approuvé 2 min. Calcul : quart 196,57 s − pause 65,47 s = 131,09 s = 2,18 min → arrondi à la minute dans pun_summary (round); durées enregistrées exactes à la microseconde.
+- ANOMALIE CORRIGÉE (écran) : « Puncher la sortie » depuis un écran périmé affichait « Sortie enregistrée » alors que rien n'était fait (pun_out renvoie vide). L'écran affiche maintenant un refus et s'actualise.
+
+### Bloqués
+- Chauffeur actif : créer un compte de connexion exige l'envoi d'une invitation par courriel; non fait.
+- Inscription / mot de passe : boîte de réception contrôlée requise. Paiements : aucun mode d'essai isolé.
+- Téléphones physiques et application installée : non vérifiés.
