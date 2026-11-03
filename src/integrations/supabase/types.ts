@@ -2937,6 +2937,45 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_intake_failures: {
+        Row: {
+          attempts: number
+          created_at: string
+          error: string | null
+          id: string
+          last_attempt_at: string
+          origin_record_id: string
+          origin_table: string
+          resolved_at: string | null
+          resolved_submission_id: string | null
+          stage: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          last_attempt_at?: string
+          origin_record_id: string
+          origin_table: string
+          resolved_at?: string | null
+          resolved_submission_id?: string | null
+          stage: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          last_attempt_at?: string
+          origin_record_id?: string
+          origin_table?: string
+          resolved_at?: string | null
+          resolved_submission_id?: string | null
+          stage?: string
+        }
+        Relationships: []
+      }
       crm_notification_settings: {
         Row: {
           categories: Json
@@ -29098,6 +29137,8 @@ export type Database = {
           name: string
           next_follow_up_at: string | null
           opening_hours: string | null
+          origin_record_id: string | null
+          origin_table: string | null
           other_material: string | null
           parcours_direction: string | null
           phone: string | null
@@ -29228,6 +29269,8 @@ export type Database = {
           name: string
           next_follow_up_at?: string | null
           opening_hours?: string | null
+          origin_record_id?: string | null
+          origin_table?: string | null
           other_material?: string | null
           parcours_direction?: string | null
           phone?: string | null
@@ -29358,6 +29401,8 @@ export type Database = {
           name?: string
           next_follow_up_at?: string | null
           opening_hours?: string | null
+          origin_record_id?: string | null
+          origin_table?: string | null
           other_material?: string | null
           parcours_direction?: string | null
           phone?: string | null
@@ -32498,6 +32543,42 @@ export type Database = {
       cpn_trip_void: {
         Args: { _id: string; _reason: string }
         Returns: undefined
+      }
+      crm_intake_gaps: {
+        Args: never
+        Returns: {
+          attempts: number
+          contact: string
+          created_at: string
+          email: string
+          error: string
+          is_test: boolean
+          origin_record_id: string
+          origin_table: string
+          reason: string
+          reference: string
+        }[]
+      }
+      crm_intake_link: {
+        Args: { p_id: string; p_submission: string; p_table: string }
+        Returns: boolean
+      }
+      crm_intake_mirror: {
+        Args: { p_id: string; p_table: string }
+        Returns: string
+      }
+      crm_intake_record_failure: {
+        Args: {
+          p_error: string
+          p_id: string
+          p_stage: string
+          p_table: string
+        }
+        Returns: undefined
+      }
+      crm_intake_retry: {
+        Args: { p_id: string; p_table: string }
+        Returns: string
       }
       crm_merge_entities: {
         Args: { _owner_type: string; _source_id: string; _target_id: string }
@@ -36311,6 +36392,8 @@ export type Database = {
           name: string
           next_follow_up_at: string | null
           opening_hours: string | null
+          origin_record_id: string | null
+          origin_table: string | null
           other_material: string | null
           parcours_direction: string | null
           phone: string | null
