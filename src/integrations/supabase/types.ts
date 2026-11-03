@@ -35301,6 +35301,10 @@ export type Database = {
         Returns: undefined
       }
       mkt_analytics: { Args: { _from?: string; _to?: string }; Returns: Json }
+      mkt_can_bid: {
+        Args: { _company_id: string; _request_id: string }
+        Returns: boolean
+      }
       mkt_can_join_thread: {
         Args: { _company_id: string; _thread_id: string }
         Returns: boolean
