@@ -123,3 +123,5 @@ Comptes fictifs : test-superadmin@test.invalid (admin), gestionnaire B c3a361a5-
 - Variantes kassandrapaquette+chauffeur@ et +inscription@hotmail.com : aucun compte, aucune invitation, aucune suppression; distinctes du compte principal (non modifié).
 - Invitation chauffeur existante = lien préparé à l'écran (pun_invite_prepare), aucun courriel envoyé par ce mécanisme.
 - Courriels déclenchés : 0 (maintenance du serveur Lovable Cloud en cours, 3 nov. 21 h UTC). Reçus : 0. Activations : 0.
+- 21 h 06 UTC : status.lovable.dev = « Lovable backend maintenance » en cours; vérification directe du serveur du projet : connexions et base joignables; domaine notify.vracquebec.ca vérifié, file d'envoi saine.
+- Avant essai : 0 compte et 0 courriel pour kassandrapaquette+*. Inscription existante (/entrepreneur/inscription) : compte créé et confirmé côté serveur, sans courriel ni approbation; mot de passe choisi par la personne dans le formulaire → étape laissée à l'utilisatrice. Tentatives : 0.
