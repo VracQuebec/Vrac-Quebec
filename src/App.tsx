@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import AdminSignedOutGuard from "@/components/AdminSignedOutGuard";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -277,6 +278,7 @@ const App = () => {
           <UniversalNav />
           <Suspense fallback={null}>
           <EntrepreneurDataProvider>
+          <AdminSignedOutGuard>
           <Routes>
             {/* Fournisseur de données partagé de l'espace entrepreneur */}
             <Route path="/" element={<Index />} />
@@ -435,6 +437,7 @@ const App = () => {
             <Route path="/:localSlug" element={<SeoLandingPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </AdminSignedOutGuard>
           <PublicContactFooter />
           </EntrepreneurDataProvider>
           </Suspense>
