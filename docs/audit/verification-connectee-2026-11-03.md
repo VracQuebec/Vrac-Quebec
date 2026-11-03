@@ -131,3 +131,9 @@ Comptes fictifs : test-superadmin@test.invalid (admin), gestionnaire B c3a361a5-
 - Mot de passe oublié (/login → /mot-de-passe-oublie), double clic : message neutre affiché; envoi enregistré par le service de connexion (recovery_sent_at 21:21:46). Courriel déclenché : 1. Réception / changement de mot de passe : à confirmer par l'utilisatrice.
 - Compte principal kassandrapaquette@hotmail.com inchangé (créé 2026-05-08, entrepreneur).
 - Chauffeur +chauffeur : non lancé — le lien d'invitation (Punch > Accès employés > Préparer une invitation, TEST A) puis la confirmation du courriel de création exigent l'ouverture du courriel par l'utilisatrice.
+
+## 3 nov. 21 h 35 UTC
+- /soumission : le récapitulatif affiche « N voyages (≈ X tonnes) » quand le mode voyages est choisi; calculs, capacités et tarifs inchangés. Publié : le fichier servi (Soumission-jypfBB5P.js) contient le nouvel affichage. Parcours complet à l'écran non rejoué.
+- Invitation chauffeur : non préparée. Sur le site publié, « Accès employés » est volontairement inactif (extension punch désactivée; invitations chauffeur réservées à l'aperçu de développement, sans envoi réel). L'activer = mise en service d'un module préparé, hors autorisation.
+- Mot de passe : envoi annoncé + enregistré (21:21:46); réception, réinitialisation et reconnexion NON confirmées.
+- Paiements : Stripe via les paiements intégrés; aucun jeton public configuré (pk_test_ / pk_live_ absent) → aucun paiement possible, ni test ni réel.
