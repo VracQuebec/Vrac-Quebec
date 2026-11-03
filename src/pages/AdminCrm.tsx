@@ -67,7 +67,7 @@ export default function AdminCrm() {
             <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">Retour à l'admin</span>
           </Link>
-          <h1 className="min-w-0 flex-1 truncate text-center font-display font-bold sm:text-left">CRM unifié</h1>
+          <h1 className="min-w-0 flex-1 truncate text-center font-display font-bold sm:text-left">Répertoire de contacts</h1>
         </div>
       </nav>
 

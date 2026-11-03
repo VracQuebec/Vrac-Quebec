@@ -17,7 +17,7 @@ import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
 import { fetchWithTimeout } from '../_shared/http.ts';
 import { clientIp, enforceIpQuota, GuardError, guardPublicRequest, rememberResult } from '../_shared/public-guard.ts';
-import { upsertLead, validLeadToken } from '../_shared/public-lead.ts';
+import { linkCrm, recordCrmFailure, upsertLead, validLeadToken } from '../_shared/public-lead.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
 const EXCLUDED = /remblai/i; // Le module Remblai reste totalement indépendant.
@@ -347,8 +347,10 @@ async function submit(sb: any, body: any, req: Request) {
 
   if (leadError) {
     console.error('assistant CRM lead failed', leadError.message);
+    await recordCrmFailure(sb, 'jsc_requests', request.id, 'assistant_lead', leadError);
   } else if (lead?.id) {
     submissionId = lead.id as string;
+    await linkCrm(sb, submissionId, 'jsc_requests', request.id);
     // Le déclencheur public neutralise les coordonnées : on les réapplique.
     if (!tokenLead && typeof delivery.lat === 'number' && typeof delivery.lng === 'number') {
       await sb.from('submissions').update({

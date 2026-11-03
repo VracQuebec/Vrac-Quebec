@@ -16,7 +16,7 @@ import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
 import { clientIp, GuardError } from '../_shared/public-guard.ts';
 import { claimQuote, completeQuote, quoteFingerprint, releaseQuote, SCOPE } from './dedupe.ts';
-import { cleanAnswers, findLead, patchLead, upsertLead, validLeadToken } from '../_shared/public-lead.ts';
+import { cleanAnswers, findLead, linkCrm, patchLead, recordCrmFailure, upsertLead, validLeadToken } from '../_shared/public-lead.ts';
 import { handleEstimate } from './estimate.ts';
 import { isReservedTestEmail } from '../_shared/test-identity.ts';
 import { fetchWithTimeout } from '../_shared/http.ts';
@@ -274,27 +274,31 @@ Deno.serve(async (req) => {
           quote_calc_status: 'manuel', quote_calc_error: manualReason, quote_calc_at: new Date().toISOString(),
           quote_client_decision: action === 'callback' ? 'rappel' : 'en_attente',
         };
+        let manualLeadId: string | null = null;
         if (leadToken) {
-          await upsertLead(sb, leadToken, {
+          manualLeadId = (await upsertLead(sb, leadToken, {
             name, email, phone: phone ?? '', company: company ?? null,
             address: delivery.address, city: delivery.city ?? null, postal_code: delivery.postal_code ?? null,
             lat: delivery.lat, lng: delivery.lng, materialLabel, quantityLabel: `${quantity} ${unit}`,
             quantityValue: quantity, quantityUnit: unit, desiredDate, description: manualDescription,
             answers: cleanAnswers(body?.form_answers),
-          }, manualFields);
+          }, manualFields)).id;
         } else {
-          const { error: leadErr } = await sb.from('submissions').insert({
+          const { data: ins, error: leadErr } = await sb.from('submissions').insert({
             materials: [materialLabel], property_type: 'Non spécifié', quantity: `${quantity} ${unit}`,
             tonnage: unit === 'tonne' ? String(quantity) : '',
             address: delivery.address, postal_code: delivery.postal_code ?? '', city: delivery.city ?? null,
             name, email, phone: phone ?? '', company: company ?? null,
             description: manualDescription,
             request_type: 'vrac', service_type: 'vrac_achat', desired_date: desiredDate, ...manualFields,
-          });
+          }).select('id').single();
           if (leadErr) throw new Error(leadErr.message);
+          manualLeadId = ins?.id ?? null;
         }
+        await linkCrm(sb, manualLeadId, 'jsc_requests', request.id);
       } catch (e) {
         await logEvent({ source: 'quote_submit', event: 'crm.lead_failed', level: 'error', message: e instanceof Error ? e.message : String(e) });
+        await recordCrmFailure(sb, 'jsc_requests', request.id, 'manual_lead', e);
       }
       await sb.rpc('jsc_notify', {
         _company_id: null, _event_code: 'quote_callback',
@@ -498,8 +502,10 @@ Deno.serve(async (req) => {
           }).eq('id', lead.id);
         }
       }
+      await linkCrm(sb, lead?.id, 'jsc_requests', request.id);
       logEventAsync({ source: 'quote_submit', event: 'crm.lead_created', refId: String(lead?.id ?? '') });
     } catch (e) {
+      await recordCrmFailure(sb, 'jsc_requests', request.id, 'lead', e);
       await logEvent({
         source: 'quote_submit', event: 'crm.lead_failed', level: 'error',
         message: e instanceof Error ? e.message : String(e),
