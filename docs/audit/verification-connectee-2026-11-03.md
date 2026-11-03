@@ -85,3 +85,13 @@ Comptes fictifs : test-superadmin@test.invalid (admin), gestionnaire B c3a361a5-
 ### Trop-perçu
 - Encaissements : 100 $ actif (b2786aa0-…) + 100 000 $ annulé (f2642e29-…, motif conservé). Reçu 100 / total 287,44 → solde 187,44 : l'annulé n'est ni compté ni doublé.
 - Comportement actuel : un encaissement supérieur au solde est accepté et rattaché à la facture (pas de crédit client distinct). Bloquer ou convertir en crédit = décision commerciale, pas un défaut technique.
+
+### Vérifications sur vracquebec.ca (soir)
+- Admin fictif : /admin ouvert, liste des demandes affichée.
+- Punch écran périmé (opérateur A, TEST A) : entrée par l'écran, sortie faite dans un « autre onglet » (quart fictif 60f6786e-4ef6-4e2c-bd53-ff6696d07504), puis clic sur l'écran périmé → « Action refusée — Aucun quart ouvert », aucun faux succès, aucune écriture.
+- Réparation 7008ebee : opérateur A et propriétaire C refusés (« Accès refusé ») pour l'inscription et la validation; visiteur 401; défaut inchangé.
+- Publication relancée : même version de l'écran (aucun changement d'écran en attente); correction des offres active côté serveur.
+
+### Toujours non testés depuis les écrans
+- Ronde/réparation, agenda, soumission→facture, encaissement, rotation Facebook, place de marché (tests faits côté serveur seulement).
+- Chauffeur : aucun compte actif connectable (invitation par courriel requise).
