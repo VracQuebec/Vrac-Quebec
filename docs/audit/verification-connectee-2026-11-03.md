@@ -116,3 +116,7 @@ Comptes fictifs : test-superadmin@test.invalid (admin), gestionnaire B c3a361a5-
 - Actuel : un encaissement plus élevé que le reste est accepté sur la facture et affiché « trop-perçu non affecté », sans remboursement automatique. Le reste ne descend pas sous 0. Une saisie annulée sort des totaux et reste barrée dans l'historique.
 - Choix : (a) refuser tout dépassement du reste ; (b) gérer un crédit client réutilisable.
 - Publié (nouvelle version servie) : double clic « Créer » campagne « TEST-AUD campagne UI verrou » → 1 seule campagne (vérifié sur vracquebec.ca).
+
+## Boîte d'essai proposée (3 nov. 2026) — conflit
+- kassandrapaquette@hotmail.com correspond déjà à un compte réel : créé le 2026-05-08, courriel confirmé, rôle entrepreneur actif, membre d'une entreprise, dernière connexion le 2026-10-28, 5 demandes réelles.
+- Rien n'a été modifié ni envoyé (aucune invitation, aucune inscription, aucune réinitialisation). Il faut une adresse distincte, sans compte existant.
