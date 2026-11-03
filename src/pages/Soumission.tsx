@@ -285,7 +285,7 @@ export default function Soumission() {
               Référence <span className="font-semibold text-foreground">{confirmation.number}</span>.
               Un conseiller Vrac Québec valide votre estimation et communique avec vous pour confirmer les modalités.
             </p>
-            <div className="mt-6"><QuoteCard quote={confirmation.quote} /></div>
+            <div className="mt-6"><QuoteCard quote={confirmation.quote} tripsChosen={mode === "voyages" ? Number(trips) || null : null} /></div>
             <Button asChild className="mt-6"><Link to="/">Retour à l'accueil</Link></Button>
           </section>
         ) : (
@@ -397,7 +397,7 @@ export default function Soumission() {
                   )}
                   {quote && !declined && (
                     <>
-                      <QuoteCard quote={quote} />
+                      <QuoteCard quote={quote} tripsChosen={mode === "voyages" ? Number(trips) || null : null} />
                       <Button className="w-full" size="lg" onClick={submit} disabled={submitting}>
                         {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
                         Accepter cette soumission
@@ -456,10 +456,10 @@ function Progress({ step }: { step: number }) {
 }
 
 /** Résultat public : aucune donnée interne (fournisseur, transporteur, coût, marge). */
-function QuoteCard({ quote }: { quote: PublicQuote }) {
+function QuoteCard({ quote, tripsChosen = null }: { quote: PublicQuote; tripsChosen?: number | null }) {
   const rows: [string, string][] = [
     ["Matériau", quote.material.name],
-    ["Quantité", `${quote.tonnage} tonnes`],
+    ["Quantité", tripsChosen ? `${tripsChosen} voyage${tripsChosen > 1 ? "s" : ""} (≈ ${quote.tonnage} tonnes)` : `${quote.tonnage} tonnes`],
     ["Nombre de voyages", `${quote.trips}`],
     ["Livraison", quote.delivery_address ?? "—"],
     ["Estimation avant taxes", money(quote.subtotal)],
