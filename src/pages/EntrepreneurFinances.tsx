@@ -183,7 +183,8 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
   const onPayMany = canWrite ? (list: Occ[]) => setPay(list.map((o) => ({ id: o.id, label: o.label, due_date: o.due_date, balance: o.balance, amount_quality: o.amount_quality, payee: o.payee, payee_key: o.payee_key }))) : undefined;
   return <>
     {tab === "apercu" && <Overview companyId={companyId} rev={rev} add={add} onOpen={setOcc} />}
-    {tab === "budget" && <ExpenseBudget companyId={companyId} cats={cats.filter((c) => !c.archived_at)} rev={rev} onOpen={setOcc} />}
+    {tab === "budget" && add && <div className="mb-3 flex justify-end">{add}</div>}
+    {tab === "budget" && <ExpenseBudget companyId={companyId} cats={cats.filter((c) => !c.archived_at)} rev={rev} onOpen={setOcc} canWrite={canWrite} />}
     {tab === "calendrier" && <Browse companyId={companyId} rev={rev} cats={cats} mode="calendar" add={add} onOpen={setOcc} />}
     {tab === "apayer" && <FinanceSearch key="occ" companyId={companyId} companyName={companyName} ctx="occ" rev={rev} canWrite={canWrite} canCorrect={canCorrect} add={add} onPayMany={onPayMany} onOpenPayment={setPayOpen} renderOcc={(o, pick) => <OccRow o={o} onOpen={setOcc} pick={pick} />} />}
     {tab === "reglements" && <FinanceSearch key="pay" companyId={companyId} companyName={companyName} ctx="pay" rev={rev} canWrite={canWrite} canCorrect={canCorrect} onOpenPayment={setPayOpen} renderOcc={(o) => <OccRow o={o} onOpen={setOcc} />} />}
@@ -454,7 +455,15 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
   }, [JSON.stringify(rulePayload), per?.from, per?.to, eff, locked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fail = (e: any) => { if (String(e.message).startsWith("Conflit")) setConflict(e.message); else toast({ title: "Non enregistré", description: e.message, variant: "destructive" }); };
+  // Verrou synchrone : un double clic ne peut pas lancer deux enregistrements (la vérification
+  // de doublon est asynchrone et précédait setBusy — deux obligations identiques étaient créées).
+  const saving = useRef(false);
   const save = async (force = false) => {
+    if (saving.current) return;
+    saving.current = true;
+    try { await saveInner(force); } finally { saving.current = false; }
+  };
+  const saveInner = async (force = false) => {
     if (!p.label?.trim()) return toast({ title: "Libellé requis", variant: "destructive" });
     if (p.frequency !== "schedule" && !p.anchor_date) return toast({ title: "Date d'échéance requise", variant: "destructive" });
     if (p.frequency !== "schedule" && !["unknown", "keep"].includes(p.amount_quality) && (p.amount === null || p.amount === undefined || p.amount === "")) return toast({ title: "Montant requis", description: "Saisissez un montant ou choisissez « À compléter ». Un montant manquant n'est pas zéro.", variant: "destructive" });
