@@ -103,7 +103,7 @@ export default function ExpenseBudget({ companyId, cats, rev, onOpen, canWrite =
       <Card t="Prévu sur la période" v={fmtMoney(s.planned)} sub={`Confirmé ${fmtMoney(s.confirmed)} · Estimé ${fmtMoney(s.estimated)}${s.unknown ? ` · ${s.unknown} à compléter` : ""}`} />
       <Card t="Payé (confirmé)" v={fmtMoney(s.paid)} />
       <Card t="Reste à payer" v={fmtMoney(s.remaining)} />
-      <Card t="En retard" v={fmtMoney(late.length ? sumOpen(late) : 0)} sub={`${late.length} échéance(s)`} warn={late.length > 0} />
+      <Card t="En retard (12 derniers mois)" v={fmtMoney(late.length ? sumOpen(late) : 0)} sub={`${late.length} échéance(s), toutes périodes confondues`} warn={late.length > 0} />
       <Card t={`Prévu ${y}`} v={fmtMoney(sy.planned)} sub={`Payé ${fmtMoney(sy.paid)} · Reste ${fmtMoney(sy.remaining)}`} />
       <Card t="7 prochains jours" v={fmtMoney(sumOpen(in7))} sub={`${in7.length} échéance(s)`} />
       <Card t="30 prochains jours" v={fmtMoney(sumOpen(in30))} sub={`${in30.length} échéance(s)`} />
