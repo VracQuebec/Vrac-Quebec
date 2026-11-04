@@ -183,8 +183,8 @@ export default function AgendaBoard({ companyId, role }: { companyId: string; ro
         <Button size="icon" variant="outline" aria-label="Précédent" onClick={() => move(-1)}><ChevronLeft className="h-4 w-4" /></Button>
         <Button variant="outline" onClick={() => setCursor(new Date())}>Aujourd'hui</Button>
         <Button size="icon" variant="outline" aria-label="Suivant" onClick={() => move(1)}><ChevronRight className="h-4 w-4" /></Button>
-        <h2 className="min-w-0 flex-1 font-display text-lg font-bold capitalize">{title}</h2>
-        {canField && <Button onClick={() => openNew()}><Plus className="mr-1 h-4 w-4" />Événement</Button>}
+        <h2 className="order-last w-full whitespace-nowrap font-display text-lg font-bold capitalize sm:order-none sm:w-auto sm:min-w-0 sm:flex-1">{title}</h2>
+        {canField && <Button className="ml-auto" onClick={() => openNew()}><Plus className="mr-1 h-4 w-4" />Événement</Button>}
       </div>
       <div className="flex flex-wrap gap-2">
         <div className="flex rounded-md border border-border" role="group" aria-label="Vue">
