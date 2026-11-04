@@ -20,4 +20,8 @@ describe("totaux", () => {
   });
   it("fin de mois groupée dans son mois", () => expect(Object.keys(byMonth([o({ ref_date: "2026-02-28" }), o({ ref_date: "2026-03-31" })]))).toEqual(["2026-02", "2026-03"]));
   it("écart négatif = dépassement", () => expect(budgetGap(100, 80, 40)).toBe(-20));
+  it("règlement anticipé : l'échéance de décembre payée en novembre compte comme payée dans le budget de décembre", () => {
+    const s = summarize([o({ ref_date: "2026-12-31", amount: 250, paid: 250, balance: 0, settle: "reglee" }), o({ ref_date: "2026-12-01", amount: 1200, paid: 0, balance: 1200, settle: "non_reglee" })], today);
+    expect(s.paid).toBe(250); expect(s.remaining).toBe(1200); expect(budgetGap(300, s.paid, s.remaining)).toBe(-1150);
+  });
 });
