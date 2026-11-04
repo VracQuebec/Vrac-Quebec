@@ -12,10 +12,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "@/hooks/use-toast";
 import { TASK_COLORS } from "@/components/todo/TodoBoard";
 import { occurrences, type Recurrence } from "@/lib/agenda/occurrences";
+import { useNavigate } from "react-router-dom";
+import * as finApi from "@/lib/finances/api";
+import { todayIn, fmtMoney } from "@/lib/finances/period";
+import { PAY_STATUS_LABEL, payStatus } from "@/lib/finances/budgetSchedule";
+
+// Échéances de paiement (fin_occurrences) : lues en direct sous fin_can_read, jamais copiées
+// dans agd_events — un seul lien, aucune double saisie; seuls les rôles financiers les voient.
+const FIN_ROLES = ["support", "proprietaire", "gestionnaire", "comptabilite", "lecture"];
 
 const db = supabase as any;
 const sel = "h-10 rounded-md border border-border bg-background px-2 text-sm";
-const CATS: Record<string, string> = { rendez_vous: "Rendez-vous", chantier: "Chantier", livraison: "Livraison", reunion: "Réunion", appel: "Appel", visite: "Visite", entretien: "Entretien", conge: "Congé", autre: "Autre" };
+const CATS: Record<string, string> = { rendez_vous: "Rendez-vous", chantier: "Chantier", livraison: "Livraison", reunion: "Réunion", appel: "Appel", visite: "Visite", entretien: "Entretien", conge: "Congé", autre: "Autre", paiements: "Paiements" };
 const STATUS: Record<string, string> = { planifie: "Planifié", confirme: "Confirmé", en_cours: "En cours", termine: "Terminé", annule: "Annulé", reporte: "Reporté" };
 const RECS: Record<Recurrence, string> = { aucune: "Aucune", quotidienne: "Chaque jour", hebdomadaire: "Chaque semaine", aux_2_semaines: "Aux 2 semaines", mensuelle: "Chaque mois" };
 const CH: Record<string, string> = { app: "Application", email: "Courriel", sms: "Texto" };
@@ -50,6 +58,8 @@ export default function AgendaBoard({ companyId, role }: { companyId: string; ro
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [tasks, setTasks] = useState<{ id: string; title: string }[]>([]);
   const [fWho, setFWho] = useState(""); const [fCat, setFCat] = useState(""); const [q, setQ] = useState("");
+  const navigate = useNavigate();
+  const [pays, setPays] = useState<Ev[]>([]);
   const [edit, setEdit] = useState<Edit | null>(null); const [log, setLog] = useState<any[]>([]); const [busy, setBusy] = useState(false);
 
   const range = useMemo(() => {
@@ -75,12 +85,23 @@ export default function AgendaBoard({ companyId, role }: { companyId: string; ro
     setMembers((m.data ?? []).filter((x: any) => x.is_active)); setClients(c.data ?? []); setProjects(p.data ?? []); setTasks(t.data ?? []);
   }, [companyId, range]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!FIN_ROLES.includes(role ?? "")) { setPays([]); return; }
+    const d = (x: Date) => dayKey(x); const today = todayIn();
+    finApi.listOcc(companyId, d(range[0]), d(new Date(range[1].getTime() - 1)), "planned", {}, "date_asc", 500, 0)
+      .then(({ rows }) => setPays(rows.map((o) => { const st = payStatus(o, today); const day = o.ref_date || o.due_date;
+        return { id: `pay:${o.id}`, company_id: companyId, title: `${o.label} — ${fmtMoney(o.amount)} (${PAY_STATUS_LABEL[st]})`, description: null, location: null, category: "paiements",
+          color: st === "en_retard" ? "rouge" : st === "paye" ? "vert" : "orange", status: st === "annule" ? "annule" : st === "paye" ? "termine" : "planifie",
+          start_at: new Date(day + "T00:00").toISOString(), end_at: new Date(day + "T23:59").toISOString(), all_day: true, owner_user_id: null, client_id: null, project_id: null, task_id: null,
+          recurrence: "aucune" as Recurrence, recurrence_until: null, reminders: [], notify_client: false } as Ev; })))
+      .catch(() => setPays([])); // accès refusé par le serveur : aucune échéance affichée
+  }, [companyId, role, range]);
 
   const who = (id: string | null) => (id ? members.find((m) => m.user_id === id)?.email ?? "Employé" : "Non attribué");
 
   const occs = useMemo(() => {
     const out: Occ[] = [];
-    for (const ev of events) {
+    for (const ev of [...events, ...(fWho ? [] : pays)]) {
       if (fCat && ev.category !== fCat) continue;
       if (fWho === "moi" && ev.owner_user_id !== user?.id && !(atts[ev.id] ?? []).some((a) => a.user_id === user?.id)) continue;
       if (fWho && fWho !== "moi" && ev.owner_user_id !== fWho && !(atts[ev.id] ?? []).some((a) => a.user_id === fWho)) continue;
@@ -89,7 +110,7 @@ export default function AgendaBoard({ companyId, role }: { companyId: string; ro
       for (const at of occurrences(ev.start_at, ev.recurrence, ev.recurrence_until, new Date(range[0].getTime() - dur), range[1])) out.push({ ev, at, end: new Date(at.getTime() + dur) });
     }
     return out.sort((a, b) => a.at.getTime() - b.at.getTime());
-  }, [events, atts, fCat, fWho, q, range, user?.id]);
+  }, [events, pays, atts, fCat, fWho, q, range, user?.id]);
 
   const byDay = useMemo(() => { const m: Record<string, Occ[]> = {}; for (const o of occs) (m[dayKey(o.at)] ||= []).push(o); return m; }, [occs]);
 
@@ -102,6 +123,7 @@ export default function AgendaBoard({ companyId, role }: { companyId: string; ro
     setEdit({ title: "", category: "rendez_vous", color: "bleu", status: "planifie", start_at: s.toISOString(), end_at: e.toISOString(), all_day: false, owner_user_id: user?.id ?? null, recurrence: "aucune", recurrence_until: null, reminders: [{ minutes: 60, channels: ["app"] }], notify_client: false, attendees: [] });
   };
   const openEv = async (ev: Ev) => {
+    if (ev.id.startsWith("pay:")) { navigate(`/entrepreneur/finances?company=${companyId}&tab=budget&brouillon=echeance&echeance=${ev.id.slice(4)}`); return; }
     setEdit({ ...ev, attendees: (atts[ev.id] ?? []).map((a) => ({ ...a })) });
     const { data } = await db.from("agd_event_log").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }).limit(50); setLog(data ?? []);
   };
