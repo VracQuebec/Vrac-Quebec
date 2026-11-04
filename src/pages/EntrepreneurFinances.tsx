@@ -455,7 +455,15 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
   }, [JSON.stringify(rulePayload), per?.from, per?.to, eff, locked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fail = (e: any) => { if (String(e.message).startsWith("Conflit")) setConflict(e.message); else toast({ title: "Non enregistré", description: e.message, variant: "destructive" }); };
+  // Verrou synchrone : un double clic ne peut pas lancer deux enregistrements (la vérification
+  // de doublon est asynchrone et précédait setBusy — deux obligations identiques étaient créées).
+  const saving = useRef(false);
   const save = async (force = false) => {
+    if (saving.current) return;
+    saving.current = true;
+    try { await saveInner(force); } finally { saving.current = false; }
+  };
+  const saveInner = async (force = false) => {
     if (!p.label?.trim()) return toast({ title: "Libellé requis", variant: "destructive" });
     if (p.frequency !== "schedule" && !p.anchor_date) return toast({ title: "Date d'échéance requise", variant: "destructive" });
     if (p.frequency !== "schedule" && !["unknown", "keep"].includes(p.amount_quality) && (p.amount === null || p.amount === undefined || p.amount === "")) return toast({ title: "Montant requis", description: "Saisissez un montant ou choisissez « À compléter ». Un montant manquant n'est pas zéro.", variant: "destructive" });
