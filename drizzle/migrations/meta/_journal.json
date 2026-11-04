@@ -1849,6 +1849,13 @@
       "when": 1793735870895,
       "tag": "0263_mkt_requests_for_partners_restore_definer",
       "breakpoints": true
+    },
+    {
+      "idx": 264,
+      "version": "7",
+      "when": 1793802326574,
+      "tag": "0264_fin_seed_budget_categories",
+      "breakpoints": true
     }
   ]
 }
