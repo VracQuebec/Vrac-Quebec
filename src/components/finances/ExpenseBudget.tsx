@@ -39,7 +39,7 @@ export default function ExpenseBudget({ companyId, cats, rev, onOpen, canWrite =
   const [rows, setRows] = useState<Occ[] | null>(null);
   const [year, setYear] = useState<Occ[]>([]);
   const [ahead, setAhead] = useState<Occ[]>([]);
-  const [buds, setBuds] = useState<{ b: ta.Budget; a: Awaited<ReturnType<typeof ta.budgetActuals>> }[]>([]);
+  const [buds, setBuds] = useState<{ b: ta.Budget; a: { paidC: number; remainC: number } }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const b = periodBounds(kind, ref);
   const f: api.Filters = { category_id: cat || undefined, q: payee || undefined, status: "all" };
@@ -53,7 +53,9 @@ export default function ExpenseBudget({ companyId, cats, rev, onOpen, canWrite =
         if (!live) return;
         setRows(r); setYear(yr); setAhead(ah);
         const overl = bs.filter((x) => x.period_from <= b.to && x.period_to >= b.from && (!cat || x.category_id === cat));
-        const withA = await Promise.all(overl.map(async (x) => ({ b: x, a: await ta.budgetActuals(companyId, x) })));
+        // Payé / reste rattachés aux ÉCHÉANCES de la période du budget (même base que le résumé) :
+        // un règlement anticipé daté d'un autre mois n'est ni perdu ni compté deux fois.
+        const withA = await Promise.all(overl.map(async (x) => { const occ = await loadAll(companyId, x.period_from, x.period_to, { category_id: x.category_id || undefined, status: "all" }); const sm = summarize(occ, today); return { b: x, a: { paidC: Math.round(sm.paid * 100), remainC: Math.round(sm.remaining * 100) } }; }));
         if (live) setBuds(withA);
       }).catch((e) => live && (setError(e.message), setRows([])));
     return () => { live = false; };
@@ -112,7 +114,7 @@ export default function ExpenseBudget({ companyId, cats, rev, onOpen, canWrite =
       <Card t="Budget de la période" v={buds.length ? fmtMoney(budTotal) : "Aucun budget"} sub={buds.length ? (gap < 0 ? `Dépassement de ${fmtMoney(-gap)}` : `Marge ${fmtMoney(gap)}`) : canWrite ? "Ajoutez-en ci-dessus" : "Aucun budget saisi"} warn={buds.length > 0 && gap < 0} />
     </section>
 
-    {buds.length > 0 && <section><h3 className="mb-1 font-display font-bold">Budget prévu, payé et écart</h3><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-xs text-muted-foreground"><th className="p-2">Catégorie</th><th className="p-2">Budget</th><th className="p-2">Payé</th><th className="p-2">Reste prévu</th><th className="p-2">Écart</th></tr></thead><tbody>
+    {buds.length > 0 && <section><h3 className="mb-1 font-display font-bold">Budget prévu, payé et écart</h3><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-xs text-muted-foreground"><th className="p-2">Catégorie</th><th className="p-2">Budget</th><th className="p-2">Payé (échéances)</th><th className="p-2">Reste prévu</th><th className="p-2">Écart</th></tr></thead><tbody>
       {buds.map(({ b: x, a }) => { const g = budgetGap(x.amount, a.paidC / 100, a.remainC / 100); return <tr key={x.id} className="border-t border-border"><td className="p-2">{cats.find((c) => c.id === x.category_id)?.name ?? "Toutes"}<span className="block text-xs text-muted-foreground">{fmtDate(x.period_from)} – {fmtDate(x.period_to)}</span></td><td className="p-2">{fmtMoney(x.amount)}</td><td className="p-2">{fmtMoney(a.paidC / 100)}</td><td className="p-2">{fmtMoney(a.remainC / 100)}</td><td className={`p-2 font-semibold ${g < 0 ? "text-destructive" : ""}`}>{g < 0 ? `−${fmtMoney(-g)}` : fmtMoney(g)}</td></tr>; })}
     </tbody></table></div></section>}
 
