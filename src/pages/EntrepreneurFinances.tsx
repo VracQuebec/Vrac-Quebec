@@ -140,7 +140,9 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
       try { const t = JSON.parse(decodeURIComponent(escape(atob(q.get("cibles")!)))); if (Array.isArray(t) && t.length) setPay(t); } catch { /* adresse invalide : rien n'est ouvert */ }
       q.delete("brouillon"); q.delete("cibles");
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
-    } else if (canWrite && q.get("brouillon") === "echeance" && q.get("echeance")) {
+    } else if (q.get("brouillon") === "echeance" && q.get("echeance")) {
+      // Consultation autorisée à tout rôle qui lit les finances (agenda, lecture seule) : les actions
+      // restent conditionnées par canWrite dans la fenêtre; le serveur revérifie les droits.
       // Reprise d'une préparation : l'échéance est relue au serveur (droits + état actuel) avant ouverture.
       st.occDetail(q.get("echeance")!).then((d) => { if (d?.occ?.obligation_id) setOcc(d.occ); else toast({ title: "Échéance introuvable ou inaccessible", description: "La préparation reste dans « Reprendre mon travail ».", variant: "destructive" }); })
         .catch(() => toast({ title: "Échéance inaccessible", description: "Accès refusé ou service indisponible. La préparation reste conservée.", variant: "destructive" }));
