@@ -81,9 +81,11 @@ export default function ExpenseBudget({ companyId, cats, rev, onOpen, canWrite =
     <p className="text-xs text-muted-foreground">Prévision et suivi seulement : aucun paiement bancaire n'est déclenché. Une échéance n'est « payée » qu'après un règlement confirmé, même en prélèvement automatique.</p>
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex rounded-md border border-border" role="group" aria-label="Vue">{([["week", "Semaine"], ["month", "Mois"], ["year", "Année"]] as const).map(([v, l]) => <button key={v} type="button" aria-pressed={kind === v} onClick={() => setKind(v)} className={`px-3 py-2 text-sm ${kind === v ? "bg-primary text-primary-foreground" : ""}`}>{l}</button>)}</div>
-      <button type="button" className={sel} aria-label="Période précédente" onClick={() => step(-1)}>‹</button>
-      <span className="text-sm font-semibold">{fmtDate(b.from)} – {fmtDate(b.to)}</span>
-      <button type="button" className={sel} aria-label="Période suivante" onClick={() => step(1)}>›</button>
+      <div className="flex items-center gap-2">
+        <button type="button" className={sel} aria-label="Période précédente" onClick={() => step(-1)}>‹</button>
+        <span className="whitespace-nowrap text-sm font-semibold">{fmtDate(b.from)} – {fmtDate(b.to)}</span>
+        <button type="button" className={sel} aria-label="Période suivante" onClick={() => step(1)}>›</button>
+      </div>
     </div>
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
       <select aria-label="Catégorie" className={sel} value={cat} onChange={(e) => setCat(e.target.value)}><option value="">Toutes catégories</option>{cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
