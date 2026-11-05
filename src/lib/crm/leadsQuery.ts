@@ -1,3 +1,4 @@
+import { SUBMISSION_COLUMNS } from "@/lib/crm/submissionColumns";
 // ============================================================
 // CRM — REQUÊTE PAGINÉE DES LEADS (côté serveur)
 // ------------------------------------------------------------
@@ -59,7 +60,7 @@ export const ADMIN_LIST_COLUMNS = [
 /** Fiches complètes pour une liste d'identifiants (une page affichée). */
 export async function fetchFullLeads(ids: string[]): Promise<any[]> {
   if (!ids.length) return [];
-  const { data, error } = await supabase.from("submissions").select("*").in("id", ids);
+  const { data, error } = await supabase.from("submissions").select(SUBMISSION_COLUMNS).in("id", ids);
   if (error) throw error;
   return (data as any[]) ?? [];
 }
@@ -67,7 +68,7 @@ export async function fetchFullLeads(ids: string[]): Promise<any[]> {
 export async function fetchLeadsPage(
   filters: LeadFilters, sort: LeadSort, page: number, pageSize = LEADS_PAGE_SIZE,
 ): Promise<{ rows: any[]; total: number }> {
-  let query: any = supabase.from("submissions").select("*", { count: "exact" });
+  let query: any = supabase.from("submissions").select(SUBMISSION_COLUMNS, { count: "exact" });
 
   if (filters.status !== "all") query = query.eq("status", filters.status);
   if (filters.source !== "all") query = query.eq("lead_source", filters.source);
