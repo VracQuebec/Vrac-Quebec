@@ -1870,6 +1870,13 @@
       "when": 1793899327437,
       "tag": "0266_admin_lecture_seule_tables_jeton",
       "breakpoints": true
+    },
+    {
+      "idx": 267,
+      "version": "7",
+      "when": 1793899379950,
+      "tag": "0267_admin_lecture_seule_revoke_ecritures",
+      "breakpoints": true
     }
   ]
 }
