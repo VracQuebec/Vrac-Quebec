@@ -77,11 +77,16 @@ const Login = () => {
           if (roleList.length > 0) break;
           await new Promise((r) => setTimeout(r, 200));
         }
-        goAfterLogin(data.user.id, roleList.includes("admin") ? "/admin" : "/entrepreneur", roleList.includes("admin"));
+        const { data: ro } = await supabase.from("adm_readonly_users").select("active").eq("user_id", data.user.id).maybeSingle();
+        const adminNav = roleList.includes("admin") || !!ro?.active;
+        if (ro?.active) void supabase.rpc("adm_ro_log", { _action: "connexion", _section: "authentification" });
+        goAfterLogin(data.user.id, adminNav ? "/admin" : "/entrepreneur", adminNav);
       }
     } catch (err: any) {
       clearTimeout(timer);
       const raw = String(err?.message ?? "");
+      // Journal lecture seule : n'écrit que si l'adresse appartient à un compte lecture seule.
+      if (/invalid login credentials/i.test(raw) && email) void supabase.rpc("adm_ro_log_login_failure", { _email: email });
       let msg: string;
       if (raw === "__login_timeout__" || /timeout|fetch|network|50\d/i.test(raw) || err?.status >= 500) msg = TIMEOUT_MSG;
       else if (/invalid login credentials/i.test(raw)) msg = "Courriel ou mot de passe incorrect.";
