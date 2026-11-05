@@ -1884,6 +1884,13 @@
       "when": 1793899657257,
       "tag": "0268_admin_lecture_seule_role_entreprise",
       "breakpoints": true
+    },
+    {
+      "idx": 269,
+      "version": "7",
+      "when": 1793900274155,
+      "tag": "0269_admin_lecture_seule_proxy_serveur",
+      "breakpoints": true
     }
   ]
 }
