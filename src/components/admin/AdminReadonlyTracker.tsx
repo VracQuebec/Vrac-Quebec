@@ -55,6 +55,12 @@ export default function AdminReadonlyTracker() {
     return () => { document.removeEventListener("input", onInput, true); document.removeEventListener("change", onInput, true); document.removeEventListener("click", onClick, true); };
   }, [isAdminReader]);
 
+  useEffect(() => {
+    if (!isAdminReader) return;
+    document.body.style.paddingBottom = "3rem"; // le bandeau ne masque aucune commande
+    return () => { document.body.style.paddingBottom = ""; };
+  }, [isAdminReader]);
+
   if (!isAdminReader) return null;
   return (
     <div role="note" className="fixed bottom-0 inset-x-0 z-[60] bg-secondary text-secondary-foreground border-t border-border text-xs px-3 py-1.5 flex items-center justify-center gap-2" style={{ paddingBottom: "max(0.375rem, env(safe-area-inset-bottom))" }}>
