@@ -1856,6 +1856,13 @@
       "when": 1793802326574,
       "tag": "0264_fin_seed_budget_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 265,
+      "version": "7",
+      "when": 1793899057465,
+      "tag": "0265_admin_lecture_seule_journal",
+      "breakpoints": true
     }
   ]
 }
