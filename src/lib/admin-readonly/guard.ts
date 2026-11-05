@@ -110,12 +110,21 @@ function markControls(root: ParentNode) {
     const texts = [el.getAttribute("aria-label"), el.textContent, (el as HTMLInputElement).value, el.getAttribute("title")]
       .map(t => (t || "").trim()).filter(Boolean);
     const isFile = el instanceof HTMLInputElement && el.type === "file";
-    if (isFile || texts.some(t => WRITE_LABEL.test(t)) || el.dataset.roWrite === "1") {
+    const writeIcon = !!el.querySelector("svg.lucide-plus, svg.lucide-pencil, svg.lucide-pen, svg.lucide-square-pen, svg.lucide-trash, svg.lucide-trash-2, svg.lucide-upload, svg.lucide-save, svg.lucide-send, svg.lucide-user-plus, svg.lucide-file-plus, svg.lucide-archive, svg.lucide-circle-plus, svg.lucide-plus-circle");
+    if (isFile || writeIcon || texts.some(t => WRITE_LABEL.test(t)) || el.dataset.roWrite === "1") {
       el.setAttribute("aria-disabled", "true");
       el.setAttribute("title", "Lecture seule");
       if ("disabled" in el) (el as HTMLButtonElement).disabled = true;
       el.classList.add("pointer-events-none", "opacity-40");
     }
+  });
+  // Listes de statut/assignation dans les tableaux et fiches : figées (les filtres hors tableau restent actifs).
+  root.querySelectorAll<HTMLElement>("table select, tr select, table [role=combobox], [role=dialog] select, [role=dialog] input:not([type=search]), [role=dialog] textarea").forEach(el => {
+    if (el.dataset.roChecked) return;
+    el.dataset.roChecked = "1";
+    if (/recherch|search|filtr/i.test(el.getAttribute("placeholder") || el.getAttribute("aria-label") || "")) return;
+    (el as HTMLInputElement).disabled = true;
+    el.setAttribute("title", "Lecture seule");
   });
 }
 function startUiLock() {
