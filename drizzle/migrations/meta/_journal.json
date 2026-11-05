@@ -1877,6 +1877,13 @@
       "when": 1793899379950,
       "tag": "0267_admin_lecture_seule_revoke_ecritures",
       "breakpoints": true
+    },
+    {
+      "idx": 268,
+      "version": "7",
+      "when": 1793899657257,
+      "tag": "0268_admin_lecture_seule_role_entreprise",
+      "breakpoints": true
     }
   ]
 }
