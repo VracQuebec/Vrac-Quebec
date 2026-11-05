@@ -14,8 +14,8 @@ const cors = {
   "Access-Control-Expose-Headers": "content-range, content-profile",
 };
 const SENSITIVE = /(token|secret|password|api_?key|key_hash|code_hash)/i;
-// Fonctions déclarées volatiles mais vérifiées en lecture pure pour ce compte (fin_list saute la génération).
-const READ_VERIFIED = new Set(["fin_list", "fin_payments_list", "fin_payments_search"]);
+// Fonctions déclarées volatiles mais vérifiées en lecture pure (aucune écriture ni appel de fonction volatile; fin_list saute la génération pour ce compte).
+const READ_VERIFIED = new Set(["fin_list", "fin_payments_list", "fin_payments_search", "fin_payment_detail", "fin_occurrence_detail", "fin_open_for_payee", "fin_allocations_export", "entcrm_network_check"]);
 const json = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
 let secret: string | null = null;
