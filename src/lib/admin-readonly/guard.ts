@@ -45,7 +45,7 @@ function refused(kind: string, target: string) {
   return p;
 }
 
-async function secureFile(bucket: string, path: string): Promise<Blob> {
+export async function secureFile(bucket: string, path: string): Promise<Blob> {
   const { data: { session } } = await supabase.auth.getSession();
   const r = await fetch(`${SUPA_URL}/functions/v1/secure-file`, {
     method: "POST",
