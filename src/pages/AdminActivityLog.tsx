@@ -10,7 +10,7 @@ type Row = { id: number; user_id: string; occurred_at: string; action: string; s
 type Reader = { user_id: string; label: string; active: boolean; is_test: boolean };
 
 const fmt = new Intl.DateTimeFormat("fr-CA", { timeZone: "America/Toronto", dateStyle: "short", timeStyle: "medium" });
-const ACTIONS = ["connexion", "deconnexion", "ouverture_section", "consultation_fiche", "recherche", "filtre", "recherche_filtre", "document_ouverture", "document_telechargement", "export_ou_telechargement", "fonction_serveur", "action_interdite"];
+const ACTIONS = ["lecture_donnees", "consultation_fiche", "comptage", "fonction_lecture", "fonction_refusee", "ecriture_refusee", "connexion", "deconnexion", "ouverture_section", "recherche", "filtre", "recherche_filtre", "document_ouverture", "document_telechargement", "export_ou_telechargement", "fonction_serveur", "action_interdite"];
 
 /** Journal d'activité des comptes lecture seule — super administrateurs seulement (RLS has_role admin). */
 export default function AdminActivityLog() {
@@ -55,9 +55,11 @@ export default function AdminActivityLog() {
     <main className="max-w-6xl mx-auto p-4 space-y-4">
       <h1 className="text-xl font-semibold">Journal d'activité — accès lecture seule</h1>
       <p className="text-sm text-muted-foreground">
-        Heures affichées à l'heure de Québec. Source « navigateur » : écrans, fiches, recherches et refus d'interface déclarés par l'application —
-        fiables pour l'ordre des consultations, mais un navigateur modifié pourrait en omettre. Ce journal n'indique pas ce que la personne a réellement lu.
-        Les tentatives d'écriture directes au serveur sont refusées par le serveur sans être inscrites ici.
+        Heures affichées à l'heure de Québec. Source « serveur » : chaque lecture de données, fonction, document privé, connexion réussie et écriture refusée
+        passant par le relais sécurisé, attribuée au compte de la session vérifiée — la base ne donne aucune donnée à ce compte hors de ce relais.
+        Source « navigateur » : écrans, recherches, filtres, exports et refus d'interface déclarés par l'application, en complément — un navigateur modifié
+        peut en omettre ou en ajouter pour son propre compte. Un appel direct qui contourne le relais n'obtient aucune donnée et ne peut rien modifier, mais n'est pas inscrit ici.
+        Ce journal montre ce qui a été chargé, pas ce que la personne a réellement lu.
       </p>
       <section className="rounded-md border border-border p-3 text-sm space-y-2">
         <div className="font-medium">Conservation</div>
