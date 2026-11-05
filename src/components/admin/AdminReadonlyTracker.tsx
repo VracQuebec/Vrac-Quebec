@@ -57,7 +57,7 @@ export default function AdminReadonlyTracker() {
 
   useEffect(() => {
     if (!isAdminReader) return;
-    document.body.style.paddingBottom = "3rem"; // le bandeau ne masque aucune commande
+    document.body.style.paddingBottom = window.innerWidth < 640 ? "5rem" : "3rem"; // le bandeau ne masque aucune commande
     return () => { document.body.style.paddingBottom = ""; };
   }, [isAdminReader]);
 
