@@ -253,7 +253,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isReady: authReady } = useAuthReady();
-  const { isAdmin, isEntrepreneur, loading: roleLoading } = useUserRoles(user, authReady);
+  const { isAdmin, isSuperAdmin, isEntrepreneur, loading: roleLoading } = useUserRoles(user, authReady);
 
   // Tri et page conservés dans l'URL : le retour arrière du navigateur
   // restaure exactement la même vue.
