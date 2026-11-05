@@ -1,3 +1,4 @@
+import { logAdminReadonly } from "@/lib/admin-readonly/guard";
 // NAV-01 — Retour au travail après une reconnexion.
 // On mémorise la dernière page privée consultée (chemin interne + recherche) et le compte
 // qui la consultait. Après connexion, on n'y renvoie que le MÊME compte, pour une adresse
@@ -77,6 +78,7 @@ export function ReturnToTracker() {
 
 /** À appeler avant une déconnexion demandée par l'utilisateur. */
 export function markVoluntarySignOut() {
+  logAdminReadonly("deconnexion", "authentification");
   try { sessionStorage.setItem("vq.voluntarySignOut", "1"); localStorage.removeItem("vq.lastUid"); clearReturnTo(); } catch { /* ignore */ }
 }
 
