@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      adm_activity_log: {
+        Row: {
+          action: string
+          detail: Json
+          id: number
+          occurred_at: string
+          resource_id: string | null
+          resource_type: string | null
+          result: string
+          section: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          detail?: Json
+          id?: number
+          occurred_at?: string
+          resource_id?: string | null
+          resource_type?: string | null
+          result: string
+          section?: string | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          detail?: Json
+          id?: number
+          occurred_at?: string
+          resource_id?: string | null
+          resource_type?: string | null
+          result?: string
+          section?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      adm_activity_settings: {
+        Row: {
+          id: boolean
+          retention_days: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          retention_days?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          retention_days?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      adm_readonly_users: {
+        Row: {
+          active: boolean
+          granted_at: string
+          granted_by: string | null
+          is_test: boolean
+          label: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          granted_at?: string
+          granted_by?: string | null
+          is_test?: boolean
+          label?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          granted_at?: string
+          granted_by?: string | null
+          is_test?: boolean
+          label?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_notifications: {
         Row: {
           body: string | null
@@ -32325,6 +32412,23 @@ export type Database = {
         Args: { p_site_id: string; p_submission_id: string }
         Returns: Json
       }
+      adm_activity_purge: { Args: never; Returns: number }
+      adm_activity_set_retention: {
+        Args: { _days: number }
+        Returns: undefined
+      }
+      adm_ro_log: {
+        Args: {
+          _action: string
+          _detail?: Json
+          _resource_id?: string
+          _resource_type?: string
+          _result?: string
+          _section?: string
+        }
+        Returns: undefined
+      }
+      adm_ro_log_login_failure: { Args: { _email: string }; Returns: undefined }
       agd_can_see: { Args: { _event: string }; Returns: boolean }
       agd_is_attendee: { Args: { _event: string }; Returns: boolean }
       agd_mark_read: { Args: { _delivery: string }; Returns: undefined }
@@ -34803,6 +34907,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin_reader: { Args: { _uid: string }; Returns: boolean }
       is_approved_entrepreneur: { Args: { _uid: string }; Returns: boolean }
       is_blacklisted: {
         Args: { _entity_id: string; _entity_type: string }

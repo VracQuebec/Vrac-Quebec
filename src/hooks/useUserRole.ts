@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { approvedRoleHints } from "@/lib/auth/approved-roles";
+import { setAdminReadonly } from "@/lib/admin-readonly/guard";
 
 // Rôles de la plateforme. Vrac Québec coordonne plusieurs acteurs :
 // aucun transporteur ni propriétaire n'est codé en dur.
@@ -10,6 +11,7 @@ export type AppRole = "admin" | "entrepreneur" | "proprietaire" | "transporteur"
 export const useUserRoles = (authUser?: User | null, authReady?: boolean, enabled = true) => {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reader, setReader] = useState(false);
   const loadedFor = useRef<string | null>(null);
 
   // NAV-01 : une erreur réseau ou serveur sur la lecture des rôles n'est PAS
@@ -18,6 +20,7 @@ export const useUserRoles = (authUser?: User | null, authReady?: boolean, enable
   const load = useCallback(async (user: User | null) => {
     if (!user) {
       setRoles([]);
+      setReader(false);
       setLoading(false);
       return;
     }
@@ -28,6 +31,11 @@ export const useUserRoles = (authUser?: User | null, authReady?: boolean, enable
       const { data, error } = await supabase.from("user_roles").select("role, approved").eq("user_id", user.id);
       if (!error) {
         const next = approvedRoleHints(data || []) as AppRole[];
+        // Accès « Administration — Lecture seule » : lu côté serveur; les écritures restent refusées par RLS.
+        const { data: ro } = await supabase.from("adm_readonly_users").select("active").eq("user_id", user.id).maybeSingle();
+        const isReader = !!ro?.active && !next.includes("admin");
+        setReader(isReader);
+        setAdminReadonly(isReader, user.id);
         try { sessionStorage.setItem(cacheKey, JSON.stringify(next)); } catch { /* stockage indisponible */ }
         loadedFor.current = user.id;
         setRoles(next);
@@ -78,7 +86,10 @@ export const useUserRoles = (authUser?: User | null, authReady?: boolean, enable
   return {
     roles,
     loading,
-    isAdmin: roles.includes("admin"),
+    // isAdmin ouvre la navigation admin (super admin OU lecture seule); isSuperAdmin = droits complets.
+    isAdmin: roles.includes("admin") || reader,
+    isSuperAdmin: roles.includes("admin"),
+    isAdminReader: reader,
     isEntrepreneur: roles.includes("entrepreneur"),
     isProprietaire: roles.includes("proprietaire"),
     isTransporteur: roles.includes("transporteur"),

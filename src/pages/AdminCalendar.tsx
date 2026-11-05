@@ -1,3 +1,4 @@
+import { SUBMISSION_COLUMNS } from "@/lib/crm/submissionColumns";
 import { useEffect, useMemo, useState } from "react";
 import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -95,7 +96,7 @@ export default function AdminCalendar() {
     const sid = searchParams.get("from_submission");
     if (!sid || !isAdmin) return;
     (async () => {
-      const { data } = await supabase.from("submissions").select("*").eq("id", sid).maybeSingle();
+      const { data } = await supabase.from("submissions").select(SUBMISSION_COLUMNS).eq("id", sid).maybeSingle();
       if (!data) return;
       setEditing({
         title: `Livraison — ${data.name || data.dompe_number || "client"}`,

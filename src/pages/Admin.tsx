@@ -253,7 +253,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isReady: authReady } = useAuthReady();
-  const { isAdmin, isEntrepreneur, loading: roleLoading } = useUserRoles(user, authReady);
+  const { isAdmin, isSuperAdmin, isEntrepreneur, loading: roleLoading } = useUserRoles(user, authReady);
 
   // Tri et page conservés dans l'URL : le retour arrière du navigateur
   // restaure exactement la même vue.
@@ -813,6 +813,7 @@ const Admin = () => {
               <DropdownMenuItem asChild><Link to="/admin/operations"><Truck /> Opérations</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/admin/groupes-facebook"><Facebook /> Groupes Facebook</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/admin/temoins"><Settings /> Témoins et consentements</Link></DropdownMenuItem>
+              {isSuperAdmin && <DropdownMenuItem asChild><Link to="/admin/journal-activite"><Settings /> Journal d'activité (lecture seule)</Link></DropdownMenuItem>}
               <DropdownMenuItem onSelect={() => setShowStatusManager(true)}><Settings /> Statuts</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -894,6 +895,7 @@ const Admin = () => {
                 <DropdownMenuItem asChild><Link to="/admin/operations"><Truck /> Opérations</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/admin/groupes-facebook"><Facebook /> Groupes Facebook</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/admin/temoins"><Settings /> Témoins et consentements</Link></DropdownMenuItem>
+              {isSuperAdmin && <DropdownMenuItem asChild><Link to="/admin/journal-activite"><Settings /> Journal d'activité (lecture seule)</Link></DropdownMenuItem>}
                 <DropdownMenuItem onSelect={() => setShowStatusManager(true)}><Settings /> Statuts</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Pilotage</DropdownMenuLabel>

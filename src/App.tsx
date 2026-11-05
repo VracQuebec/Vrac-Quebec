@@ -94,6 +94,8 @@ const BlogFaq = lazy(() => import("./pages/BlogFaq"));
 const AdminBlacklist = lazy(() => import("./pages/AdminBlacklist"));
 const AdminFacebookGroups = lazy(() => import("./pages/AdminFacebookGroups"));
 const AdminConsents = lazy(() => import("./pages/AdminConsents"));
+const AdminActivityLog = lazy(() => import("./pages/AdminActivityLog"));
+const AdminReadonlyTracker = lazy(() => import("./components/admin/AdminReadonlyTracker"));
 const ZonesIndex = lazy(() => import("./pages/ZonesIndex"));
 const ZoneCityIndex = lazy(() => import("./pages/ZoneCityIndex"));
 const AdminSeoManager = lazy(() => import("./pages/AdminSeoManager"));
@@ -278,6 +280,7 @@ const App = () => {
           <UniversalNav />
           <Suspense fallback={null}>
           <EntrepreneurDataProvider>
+          <AdminReadonlyTracker />
           <AdminSignedOutGuard>
           <Routes>
             {/* Fournisseur de données partagé de l'espace entrepreneur */}
@@ -349,6 +352,7 @@ const App = () => {
             <Route path="/admin/liste-noire" element={<AdminBlacklist />} />
             <Route path="/admin/groupes-facebook" element={<AdminFacebookGroups />} />
             <Route path="/admin/temoins" element={<AdminConsents />} />
+            <Route path="/admin/journal-activite" element={<AdminActivityLog />} />
             <Route path="/admin/seo" element={<AdminSeoManager />} />
             <Route path="/demande-transport" element={<TransportRequest />} />
             <Route path="/acces-dompe" element={<TransportRequest />} />
