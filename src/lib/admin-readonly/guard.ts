@@ -107,9 +107,10 @@ function markControls(root: ParentNode) {
   root.querySelectorAll<HTMLElement>("button, [role=menuitem], [role=menuitemradio], a[role=button], input[type=submit], input[type=file]").forEach(el => {
     if (el.dataset.roChecked) return;
     el.dataset.roChecked = "1";
-    const text = (el.getAttribute("aria-label") || el.textContent || (el as HTMLInputElement).value || el.getAttribute("title") || "").trim();
+    const texts = [el.getAttribute("aria-label"), el.textContent, (el as HTMLInputElement).value, el.getAttribute("title")]
+      .map(t => (t || "").trim()).filter(Boolean);
     const isFile = el instanceof HTMLInputElement && el.type === "file";
-    if (isFile || WRITE_LABEL.test(text) || el.dataset.roWrite === "1") {
+    if (isFile || texts.some(t => WRITE_LABEL.test(t)) || el.dataset.roWrite === "1") {
       el.setAttribute("aria-disabled", "true");
       el.setAttribute("title", "Lecture seule");
       if ("disabled" in el) (el as HTMLButtonElement).disabled = true;
