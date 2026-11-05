@@ -136,8 +136,23 @@ function startUiLock() {
 }
 function stopUiLock() { observer?.disconnect(); observer = null; delete document.documentElement.dataset.adminReadonly; }
 
-export function setAdminReadonly(on: boolean, _uid?: string) {
+const FLAG = "vq.adminRo";
+export function setAdminReadonly(on: boolean, uid?: string) {
+  try { if (on && uid) localStorage.setItem(FLAG, uid); else if (!on) localStorage.removeItem(FLAG); } catch { /* stockage indisponible */ }
   if (on) install();
   active = on;
   if (typeof document !== "undefined") { if (on) startUiLock(); else stopUiLock(); }
 }
+
+// Au chargement : réactive le relais avant toute requête si la session stockée est celle d'un compte lecture seule
+// déjà détecté (sinon les premières lectures partiraient hors relais et reviendraient vides).
+// Sans risque : un compte non lecture seule est refusé par le relais, et la détection serveur recorrige le drapeau.
+try {
+  const uid = localStorage.getItem(FLAG);
+  if (uid) {
+    const key = Object.keys(localStorage).find(k => /^sb-.*-auth-token$/.test(k));
+    const sess = key ? JSON.parse(localStorage.getItem(key) || "null") : null;
+    if (sess?.user?.id === uid) setAdminReadonly(true, uid);
+    else localStorage.removeItem(FLAG);
+  }
+} catch { /* ignore */ }
