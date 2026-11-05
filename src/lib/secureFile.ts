@@ -26,7 +26,7 @@ export async function fetchSecureFile(bucket: SecureBucket, path: string, mime?:
     res = await fetch(url, {
       method: "POST", cache: "no-store",
       headers: { Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ bucket, path }),
+      body: JSON.stringify({ bucket, path, section: typeof window !== "undefined" ? window.location.pathname : null }),
     });
   } catch { throw new SecureFileError(0, secureFileMessage(0)); }
   if (!res.ok) throw new SecureFileError(res.status, secureFileMessage(res.status));

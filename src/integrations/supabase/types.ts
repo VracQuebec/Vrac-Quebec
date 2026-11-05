@@ -101,6 +101,21 @@ export type Database = {
         }
         Relationships: []
       }
+      adm_ro_secret: {
+        Row: {
+          id: boolean
+          secret: string
+        }
+        Insert: {
+          id?: boolean
+          secret: string
+        }
+        Update: {
+          id?: boolean
+          secret?: string
+        }
+        Relationships: []
+      }
       admin_notifications: {
         Row: {
           body: string | null
@@ -32429,6 +32444,7 @@ export type Database = {
         Returns: undefined
       }
       adm_ro_log_login_failure: { Args: { _email: string }; Returns: undefined }
+      adm_ro_proxied: { Args: never; Returns: boolean }
       agd_can_see: { Args: { _event: string }; Returns: boolean }
       agd_is_attendee: { Args: { _event: string }; Returns: boolean }
       agd_mark_read: { Args: { _delivery: string }; Returns: undefined }
