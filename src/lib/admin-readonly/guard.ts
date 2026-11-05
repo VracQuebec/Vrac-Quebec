@@ -118,6 +118,18 @@ function markControls(root: ParentNode) {
       el.classList.add("pointer-events-none", "opacity-40");
     }
   });
+  // Cases à cocher, interrupteurs et glisser-déposer : leur action réelle est une modification (terminer une tâche,
+  // activer une règle, déplacer une carte), quel que soit le libellé. Seuls les filtres explicitement nommés restent actifs.
+  root.querySelectorAll<HTMLElement>("[role=checkbox], [role=switch], input[type=checkbox], input[type=radio]:not([name*=filtr]), [draggable=true]").forEach(el => {
+    if (el.dataset.roChecked === "2") return;
+    el.dataset.roChecked = "2";
+    if (/filtr|afficher|voir|search|recherch/i.test(el.getAttribute("aria-label") || el.closest("label")?.textContent || "")) return;
+    if (el.getAttribute("draggable") === "true") { el.setAttribute("draggable", "false"); return; }
+    el.setAttribute("aria-disabled", "true");
+    el.setAttribute("title", "Lecture seule");
+    if ("disabled" in el) (el as HTMLButtonElement).disabled = true;
+    el.classList.add("pointer-events-none", "opacity-40");
+  });
   // Listes de statut/assignation dans les tableaux et fiches : figées (les filtres hors tableau restent actifs).
   root.querySelectorAll<HTMLElement>("table select, tr select, table [role=combobox], [role=dialog] select, [role=dialog] input:not([type=search]), [role=dialog] textarea").forEach(el => {
     if (el.dataset.roChecked) return;
