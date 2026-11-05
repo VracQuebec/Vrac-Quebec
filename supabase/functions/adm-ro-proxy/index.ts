@@ -35,8 +35,37 @@ function scrub(v: unknown): unknown {
   }
   return v;
 }
-async function log(uid: string, action: string, section: string | null, rtype: string | null, rid: string | null, result: string, detail: Record<string, unknown>) {
-  await admin.from("adm_activity_log").insert({ user_id: uid, action, section, resource_type: rtype, resource_id: rid, result, source: "serveur", detail });
+// Écriture du journal en arrière-plan (waitUntil) : la réponse n'attend pas l'insertion, mais l'instance la termine.
+function log(uid: string, action: string, section: string | null, rtype: string | null, rid: string | null, result: string, detail: Record<string, unknown>) {
+  const p = admin.from("adm_activity_log").insert({ user_id: uid, action, section, resource_type: rtype, resource_id: rid, result, source: "serveur", detail })
+    .then(({ error }) => { if (error) console.error("journal", error.message); });
+  // deno-lint-ignore no-explicit-any
+  const er = (globalThis as any).EdgeRuntime;
+  if (er?.waitUntil) er.waitUntil(p); else return p;
+}
+// Session vérifiée une fois par jeton (au plus 60 s et jamais au-delà de son expiration). L'accès lecture seule reste relu à chaque requête.
+const sessions = new Map<string, { uid: string; until: number }>();
+async function verifiedUid(token: string): Promise<string | null> {
+  const now = Date.now();
+  const c = sessions.get(token);
+  if (c && c.until > now) return c.uid;
+  const { data: u } = await admin.auth.getUser(token);
+  const uid = u?.user?.id ?? null;
+  if (!uid) { sessions.delete(token); return null; }
+  let exp = now + 60_000;
+  try { const e = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).exp; if (e) exp = Math.min(exp, e * 1000); } catch { /* garde 60 s */ }
+  if (sessions.size > 500) sessions.clear();
+  sessions.set(token, { uid, until: exp });
+  return uid;
+}
+// Volatilité d'une fonction : propriété du schéma, mémorisée 10 min par instance.
+const vols = new Map<string, { v: string | null; until: number }>();
+async function volatility(name: string) {
+  const c = vols.get(name);
+  if (c && c.until > Date.now()) return c.v;
+  const { data } = await admin.rpc("adm_ro_fn_volatility", { _name: name });
+  vols.set(name, { v: (data as string) ?? null, until: Date.now() + 600_000 });
+  return (data as string) ?? null;
 }
 
 Deno.serve(async (req) => {
@@ -44,10 +73,17 @@ Deno.serve(async (req) => {
   const auth = req.headers.get("Authorization") ?? "";
   const token = auth.replace(/^Bearer\s+/i, "");
   if (!token) return json(401, { message: "Connexion requise" });
-  const { data: u } = await admin.auth.getUser(token);
-  const uid = u?.user?.id;
+  const uid = await verifiedUid(token);
   if (!uid) return json(401, { message: "Session expirée" });
-  const { data: ro } = await admin.from("adm_readonly_users").select("active").eq("user_id", uid).maybeSingle();
+  const url0 = new URL(req.url);
+  const rest0 = url0.pathname.replace(/^.*?\/adm-ro-proxy/, "") || "/";
+  const t0 = rest0.replace(/^\/(rpc\/)?/, "").split("/")[0].slice(0, 80);
+  const needVol = rest0.startsWith("/rpc/") && t0 !== "adm_ro_log" && !READ_VERIFIED.has(t0);
+  const [{ data: ro }, volP, s0] = await Promise.all([
+    admin.from("adm_readonly_users").select("active").eq("user_id", uid).maybeSingle(),
+    needVol ? volatility(t0) : Promise.resolve("lecture"),
+    getSecret(),
+  ]);
   if (!ro?.active) return json(403, { message: "Relais réservé au compte lecture seule" });
 
   const url = new URL(req.url);
@@ -67,13 +103,12 @@ Deno.serve(async (req) => {
   if (isRpc && target !== "adm_ro_log" && !READ_VERIFIED.has(target)) {
     // Seules les fonctions déclarées STABLE/IMMUTABLE passent : la base les exécute en transaction lecture seule
     // (aucune écriture possible, même si la fonction tentait d'en faire). Les autres sont refusées et journalisées.
-    const { data: vol } = await admin.rpc("adm_ro_fn_volatility", { _name: target });
-    if (vol !== "lecture") {
+    if (volP !== "lecture") {
       await log(uid, "fonction_refusee", section, target, null, "refuse", { ...detail, motif: "fonction_non_lecture" });
       return json(403, { code: "42501", message: "Accès en lecture seule : fonction refusée par le serveur." });
     }
   }
-  const s = await getSecret();
+  const s = s0;
   if (!s) return json(500, { message: "Relais indisponible" });
   const fwd = new Headers();
   for (const h of ["accept", "accept-profile", "content-profile", "content-type", "prefer", "range", "range-unit"]) {
