@@ -1,7 +1,7 @@
 // Liste de tâches d'une entreprise (ent_crm_tasks). Droits vérifiés côté serveur :
 // gestion = proprietaire/gestionnaire/support; employé assigné = avancement seulement.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Archive, CheckSquare, Pencil, Plus, Trash2 } from "lucide-react";
+import { Archive, CheckSquare, Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { Button } from "@/components/ui/button";
