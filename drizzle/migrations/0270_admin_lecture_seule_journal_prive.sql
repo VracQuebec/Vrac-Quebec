@@ -1,0 +1,3 @@
+CREATE POLICY adm_ro_deny ON public.adm_activity_log AS RESTRICTIVE FOR SELECT TO authenticated USING (NOT public.is_admin_reader(auth.uid()));
+CREATE POLICY adm_ro_deny ON public.adm_activity_settings AS RESTRICTIVE FOR SELECT TO authenticated USING (NOT public.is_admin_reader(auth.uid()));
+CREATE POLICY adm_ro_deny ON public.adm_readonly_users AS RESTRICTIVE FOR SELECT TO authenticated USING (user_id = auth.uid() OR NOT public.is_admin_reader(auth.uid()));

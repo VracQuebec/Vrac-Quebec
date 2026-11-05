@@ -1891,6 +1891,13 @@
       "when": 1793900274155,
       "tag": "0269_admin_lecture_seule_proxy_serveur",
       "breakpoints": true
+    },
+    {
+      "idx": 270,
+      "version": "7",
+      "when": 1793900467045,
+      "tag": "0270_admin_lecture_seule_journal_prive",
+      "breakpoints": true
     }
   ]
 }

@@ -93,5 +93,6 @@ Deno.serve(async (req) => {
   }
   const h = new Headers({ ...cors, "Content-Type": ctype || "application/json", "Cache-Control": "no-store" });
   for (const k of ["content-range", "content-profile"]) { const v = res.headers.get(k); if (v) h.set(k, v); }
-  return new Response(req.method === "HEAD" ? null : out, { status: res.status, headers: h });
+  const noBody = req.method === "HEAD" || res.status === 204 || res.status === 304;
+  return new Response(noBody ? null : out, { status: res.status, headers: h });
 });
