@@ -45,7 +45,7 @@ function refused(kind: string, target: string) {
   return p;
 }
 
-async function secureFile(bucket: string, path: string): Promise<Blob> {
+export async function secureFile(bucket: string, path: string): Promise<Blob> {
   const { data: { session } } = await supabase.auth.getSession();
   const r = await fetch(`${SUPA_URL}/functions/v1/secure-file`, {
     method: "POST",
@@ -118,10 +118,23 @@ function markControls(root: ParentNode) {
       el.classList.add("pointer-events-none", "opacity-40");
     }
   });
+  // Cases à cocher, interrupteurs et glisser-déposer : leur action réelle est une modification (terminer une tâche,
+  // activer une règle, déplacer une carte), quel que soit le libellé. Seuls les filtres explicitement nommés restent actifs.
+  root.querySelectorAll<HTMLElement>("[role=checkbox], [role=switch], input[type=checkbox], input[type=radio]:not([name*=filtr]), [draggable=true]").forEach(el => {
+    if (el.dataset.roChecked === "2") return;
+    el.dataset.roChecked = "2";
+    if (/filtr|afficher|voir|search|recherch/i.test(el.getAttribute("aria-label") || el.closest("label")?.textContent || "")) return;
+    if (el.getAttribute("draggable") === "true") { el.setAttribute("draggable", "false"); return; }
+    el.setAttribute("aria-disabled", "true");
+    el.setAttribute("title", "Lecture seule");
+    if ("disabled" in el) (el as HTMLButtonElement).disabled = true;
+    el.classList.add("pointer-events-none", "opacity-40");
+  });
   // Listes de statut/assignation dans les tableaux et fiches : figées (les filtres hors tableau restent actifs).
-  root.querySelectorAll<HTMLElement>("table select, tr select, table [role=combobox], [role=dialog] select, [role=dialog] input:not([type=search]), [role=dialog] textarea").forEach(el => {
-    if (el.dataset.roChecked) return;
-    el.dataset.roChecked = "1";
+  root.querySelectorAll<HTMLElement>("table select, tr select, table [role=combobox], [role=dialog] button[aria-pressed], [role=dialog] select, [role=dialog] input:not([type=search]), [role=dialog] textarea").forEach(el => {
+    if (el.dataset.roField) return;
+    el.dataset.roField = "1";
+    
     if (/recherch|search|filtr/i.test(el.getAttribute("placeholder") || el.getAttribute("aria-label") || "")) return;
     (el as HTMLInputElement).disabled = true;
     el.setAttribute("title", "Lecture seule");

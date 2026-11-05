@@ -14,6 +14,8 @@ const cors = {
   "Access-Control-Expose-Headers": "content-range, content-profile",
 };
 const SENSITIVE = /(token|secret|password|api_?key|key_hash|code_hash)/i;
+// Fonctions déclarées volatiles mais vérifiées en lecture pure (aucune écriture ni appel de fonction volatile; fin_list saute la génération pour ce compte).
+const READ_VERIFIED = new Set(["fin_list", "fin_payments_list", "fin_payments_search", "fin_payment_detail", "fin_occurrence_detail", "fin_open_for_payee", "fin_allocations_export", "entcrm_network_check"]);
 const json = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
 let secret: string | null = null;
@@ -62,8 +64,14 @@ Deno.serve(async (req) => {
     await log(uid, "ecriture_refusee", section, target, idMatch?.[1] ?? null, "refuse", detail);
     return json(403, { code: "42501", message: "Accès en lecture seule : écriture refusée par le serveur." });
   }
-  if (isRpc && target === "adm_ro_log") {
-    // Événement de navigation : transmis tel quel, la base attribue la ligne au compte de la session.
+  if (isRpc && target !== "adm_ro_log" && !READ_VERIFIED.has(target)) {
+    // Seules les fonctions déclarées STABLE/IMMUTABLE passent : la base les exécute en transaction lecture seule
+    // (aucune écriture possible, même si la fonction tentait d'en faire). Les autres sont refusées et journalisées.
+    const { data: vol } = await admin.rpc("adm_ro_fn_volatility", { _name: target });
+    if (vol !== "lecture") {
+      await log(uid, "fonction_refusee", section, target, null, "refuse", { ...detail, motif: "fonction_non_lecture" });
+      return json(403, { code: "42501", message: "Accès en lecture seule : fonction refusée par le serveur." });
+    }
   }
   const s = await getSecret();
   if (!s) return json(500, { message: "Relais indisponible" });

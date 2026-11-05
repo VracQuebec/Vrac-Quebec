@@ -32432,6 +32432,7 @@ export type Database = {
         Args: { _days: number }
         Returns: undefined
       }
+      adm_ro_fn_volatility: { Args: { _name: string }; Returns: string }
       adm_ro_log: {
         Args: {
           _action: string

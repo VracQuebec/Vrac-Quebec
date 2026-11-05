@@ -1898,6 +1898,20 @@
       "when": 1793900467045,
       "tag": "0270_admin_lecture_seule_journal_prive",
       "breakpoints": true
+    },
+    {
+      "idx": 271,
+      "version": "7",
+      "when": 1793904111867,
+      "tag": "0271_adm_ro_fn_volatility",
+      "breakpoints": true
+    },
+    {
+      "idx": 272,
+      "version": "7",
+      "when": 1793904193563,
+      "tag": "0272_fin_list_sans_generation_lecture_seule",
+      "breakpoints": true
     }
   ]
 }

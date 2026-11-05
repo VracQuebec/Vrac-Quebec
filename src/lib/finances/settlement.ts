@@ -1,3 +1,4 @@
+import { isAdminReadonlyActive, secureFile } from "@/lib/admin-readonly/guard";
 // FIN-03 — Règlements déclarés (saisie manuelle, non rapprochée). Tous les calculs de solde sont faits par la base.
 import { supabase } from "@/integrations/supabase/client";
 import { FILE_MAX, FILE_MIME } from "@/lib/entcrm/catalog";
@@ -54,6 +55,16 @@ export async function attachFile(_companyId: string, paymentId: string, file: Fi
 /** mode "view" : ouverture dans un nouvel onglet (aperçu du navigateur); "download" : téléchargement. Lien temporaire de 5 min, renouvelé à chaque clic après contrôle des droits. */
 export async function openFile(paymentId: string, fileId: string, mode: "view" | "download" = "view") {
   const w = window.open("", "_blank");
+  if (isAdminReadonlyActive()) {
+    // Lecture seule : passage sécurisé et journalisé (secure-file), aucun lien signé.
+    try {
+      const { data: f } = await supabase.from("ent_crm_files").select("storage_path").eq("id", fileId).maybeSingle();
+      if (!f?.storage_path) throw new Error();
+      const url = URL.createObjectURL(await secureFile("entcrm-files", f.storage_path));
+      if (w) w.location.href = url; else window.open(url, "_blank", "noopener");
+      return;
+    } catch { w?.close(); throw new Error("Consultation impossible : accès refusé ou service indisponible."); }
+  }
   const { data, error } = await supabase.functions.invoke("fin-payment-file", { body: { payment_id: paymentId, file_id: fileId, mode } });
   if (error || !data?.url) { w?.close(); throw new Error("Consultation impossible : la pièce existe mais n'a pas pu être ouverte (accès refusé ou service indisponible). Réessayez."); }
   if (w) w.location.href = data.url; else window.open(data.url, "_blank", "noopener");

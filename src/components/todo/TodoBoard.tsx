@@ -1,7 +1,7 @@
 // Liste de tâches d'une entreprise (ent_crm_tasks). Droits vérifiés côté serveur :
 // gestion = proprietaire/gestionnaire/support; employé assigné = avancement seulement.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Archive, CheckSquare, Pencil, Plus, Trash2 } from "lucide-react";
+import { Archive, CheckSquare, Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { Button } from "@/components/ui/button";
@@ -179,6 +179,7 @@ export default function TodoBoard({ companyId, role }: { companyId: string; role
                       {t.project_id && <span>Chantier : {projects.find((c) => c.id === t.project_id)?.name ?? "—"}</span>}
                     </p>
                   </div>
+                  {role === "lecture" && <Button size="icon" variant="ghost" aria-label={`Voir le détail de ${t.title}`} onClick={() => setEdit({ ...t })}><Eye className="h-4 w-4" /></Button>}
                   {canTick && <Button size="icon" variant="ghost" aria-label={`Modifier ${t.title}`} onClick={() => setEdit({ ...t })}><Pencil className="h-4 w-4" /></Button>}
                   {canManage && <Button size="icon" variant="ghost" aria-label={`Archiver ${t.title}`} onClick={() => archive(t)}><Archive className="h-4 w-4" /></Button>}
                 </li>
@@ -190,12 +191,12 @@ export default function TodoBoard({ companyId, role }: { companyId: string; role
 
       <Dialog open={!!edit} onOpenChange={(o) => !o && !busy && setEdit(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{edit?.id ? "Modifier la tâche" : "Nouvelle tâche"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{role === "lecture" ? "Détail de la tâche (lecture seule)" : edit?.id ? "Modifier la tâche" : "Nouvelle tâche"}</DialogTitle></DialogHeader>
           {edit && <div className="space-y-3">
             <Input aria-label="Titre" placeholder="Titre" value={edit.title ?? ""} disabled={!canManage} onChange={(e) => setEdit({ ...edit, title: e.target.value })} />
             <Textarea aria-label="Description" placeholder="Description" value={edit.description ?? ""} disabled={!canManage} onChange={(e) => setEdit({ ...edit, description: e.target.value })} />
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <label className="text-sm">Statut<select className={`${sel} w-full`} value={edit.status} onChange={(e) => setEdit({ ...edit, status: e.target.value })}>{Object.entries(STATUSES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+              <label className="text-sm">Statut<select className={`${sel} w-full`} disabled={role === "lecture"} value={edit.status} onChange={(e) => setEdit({ ...edit, status: e.target.value })}>{Object.entries(STATUSES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
               <label className="text-sm">Priorité<select className={`${sel} w-full`} disabled={!canManage} value={edit.priority} onChange={(e) => setEdit({ ...edit, priority: e.target.value })}>{Object.entries(PRIORITIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
               <label className="text-sm">Échéance<Input type="datetime-local" disabled={!canManage} value={toLocal(edit.due_at ?? null)} onChange={(e) => setEdit({ ...edit, due_at: e.target.value ? new Date(e.target.value).toISOString() : null })} /></label>
               <label className="text-sm">Attribuée à<select className={`${sel} w-full`} disabled={!canManage} value={edit.assignee_user_id ?? ""} onChange={(e) => setEdit({ ...edit, assignee_user_id: e.target.value || null })}><option value="">Non attribuée</option>{members.map((m) => <option key={m.user_id} value={m.user_id}>{m.email} ({m.role})</option>)}</select></label>
@@ -208,14 +209,14 @@ export default function TodoBoard({ companyId, role }: { companyId: string; role
             </div></fieldset>
             <fieldset className="space-y-1"><legend className="text-sm">Liste de contrôle</legend>
               {(edit.checklist ?? []).map((it, i) => <div key={it.id} className="flex items-center gap-2">
-                <Checkbox aria-label={`Étape ${it.text}`} checked={it.done} onCheckedChange={(v) => setEdit({ ...edit, checklist: edit.checklist!.map((x, j) => (j === i ? { ...x, done: !!v } : x)) })} />
+                <Checkbox aria-label={`Étape ${it.text}`} disabled={role === "lecture"} checked={it.done} onCheckedChange={(v) => setEdit({ ...edit, checklist: edit.checklist!.map((x, j) => (j === i ? { ...x, done: !!v } : x)) })} />
                 <Input value={it.text} disabled={!canManage} onChange={(e) => setEdit({ ...edit, checklist: edit.checklist!.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)) })} />
                 {canManage && <Button size="icon" variant="ghost" aria-label="Retirer l'étape" onClick={() => setEdit({ ...edit, checklist: edit.checklist!.filter((_, j) => j !== i) })}><Trash2 className="h-4 w-4" /></Button>}
               </div>)}
               {canManage && <Button size="sm" variant="outline" onClick={() => setEdit({ ...edit, checklist: [...(edit.checklist ?? []), { id: crypto.randomUUID(), text: "", done: false }] })}>Ajouter une étape</Button>}
             </fieldset>
-            <Textarea aria-label="Résultat" placeholder="Résultat ou note de fin" value={edit.result ?? ""} onChange={(e) => setEdit({ ...edit, result: e.target.value })} />
-            <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setEdit(null)} disabled={busy}>Annuler</Button><Button onClick={save} disabled={busy || !edit.title?.trim()}>{busy ? "Enregistrement…" : "Enregistrer"}</Button></div>
+            <Textarea aria-label="Résultat" placeholder="Résultat ou note de fin" disabled={role === "lecture"} value={edit.result ?? ""} onChange={(e) => setEdit({ ...edit, result: e.target.value })} />
+            <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setEdit(null)} disabled={busy}>Annuler</Button>{role !== "lecture" && <Button onClick={save} disabled={busy || !edit.title?.trim()}>{busy ? "Enregistrement…" : "Enregistrer"}</Button>}</div>
           </div>}
         </DialogContent>
       </Dialog>
