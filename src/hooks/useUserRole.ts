@@ -21,6 +21,7 @@ export const useUserRoles = (authUser?: User | null, authReady?: boolean, enable
     if (!user) {
       setRoles([]);
       setReader(false);
+      setAdminReadonly(false);
       setLoading(false);
       return;
     }

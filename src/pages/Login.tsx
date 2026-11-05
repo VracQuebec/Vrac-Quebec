@@ -1,3 +1,4 @@
+import { setAdminReadonly } from "@/lib/admin-readonly/guard";
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,6 +80,7 @@ const Login = () => {
         }
         const { data: ro } = await supabase.from("adm_readonly_users").select("active").eq("user_id", data.user.id).maybeSingle();
         const adminNav = roleList.includes("admin") || !!ro?.active;
+        if (ro?.active) setAdminReadonly(true, data.user.id);
         if (ro?.active) void supabase.rpc("adm_ro_log", { _action: "connexion", _section: "authentification" }).then(() => undefined);
         goAfterLogin(data.user.id, adminNav ? "/admin" : "/entrepreneur", adminNav);
       }
