@@ -83,7 +83,7 @@ export default function EntrepreneurFinances({ admin = false }: { admin?: boolea
   return (
     <EntrepreneurAppShell title="Finances" subtitle={company?.name ?? ""} backTo={admin ? "/admin" : null} allowCompanyMembers>
       <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6">
-        {support && company && <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm"><LifeBuoy className="h-4 w-4" /><strong>Assistance Vrac Québec — {company.name}</strong><span className="text-muted-foreground">· vos modifications sont journalisées à votre nom</span></div>}
+        {support && company && <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm"><LifeBuoy className="h-4 w-4" /><strong>Assistance Vrac Québec — {company.name}</strong><span className="text-muted-foreground">· {role === "lecture" ? "consultation en lecture seule" : "vos modifications sont journalisées à votre nom"}</span></div>}
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <span className="text-sm text-muted-foreground">Entreprise :</span>
           {companies && (companies.length > 1 || support) ? (
