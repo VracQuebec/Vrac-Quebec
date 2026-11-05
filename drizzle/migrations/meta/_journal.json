@@ -1863,6 +1863,13 @@
       "when": 1793899057465,
       "tag": "0265_admin_lecture_seule_journal",
       "breakpoints": true
+    },
+    {
+      "idx": 266,
+      "version": "7",
+      "when": 1793899327437,
+      "tag": "0266_admin_lecture_seule_tables_jeton",
+      "breakpoints": true
     }
   ]
 }
