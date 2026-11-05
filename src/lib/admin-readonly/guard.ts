@@ -132,8 +132,9 @@ function markControls(root: ParentNode) {
   });
   // Listes de statut/assignation dans les tableaux et fiches : figées (les filtres hors tableau restent actifs).
   root.querySelectorAll<HTMLElement>("table select, tr select, table [role=combobox], [role=dialog] button[aria-pressed], [role=dialog] select, [role=dialog] input:not([type=search]), [role=dialog] textarea").forEach(el => {
-    if (el.dataset.roChecked) return;
-    el.dataset.roChecked = "1";
+    if (el.dataset.roField) return;
+    el.dataset.roField = "1";
+    
     if (/recherch|search|filtr/i.test(el.getAttribute("placeholder") || el.getAttribute("aria-label") || "")) return;
     (el as HTMLInputElement).disabled = true;
     el.setAttribute("title", "Lecture seule");
