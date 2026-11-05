@@ -1912,6 +1912,13 @@
       "when": 1793904193563,
       "tag": "0272_fin_list_sans_generation_lecture_seule",
       "breakpoints": true
+    },
+    {
+      "idx": 273,
+      "version": "7",
+      "when": 1793919013087,
+      "tag": "0273_exclude_confirmed_test_fixtures",
+      "breakpoints": true
     }
   ]
 }

@@ -29832,6 +29832,30 @@ export type Database = {
           },
         ]
       }
+      test_fixture_records: {
+        Row: {
+          created_at: string
+          label: string
+          reason: string
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          created_at?: string
+          label: string
+          reason: string
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          created_at?: string
+          label?: string
+          reason?: string
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       test_phone_tokens: {
         Row: {
           created_at: string
@@ -34758,6 +34782,7 @@ export type Database = {
       fleet_ensure_my_company: { Args: never; Returns: string }
       fleet_member_role: { Args: { _company_id: string }; Returns: string }
       fleet_scan_due: { Args: never; Returns: Json }
+      fx_live: { Args: { _a: string; _b?: string }; Returns: number[] }
       geo_hay: { Args: { _txt: string }; Returns: string }
       geo_match_address: {
         Args: { _address: string }
@@ -34938,6 +34963,7 @@ export type Database = {
         Args: { _request_type: string }
         Returns: boolean
       }
+      is_test_fixture: { Args: { _id: string }; Returns: boolean }
       is_usable_fill_request: {
         Args: {
           _require_gps?: boolean
