@@ -131,7 +131,7 @@ function markControls(root: ParentNode) {
     el.classList.add("pointer-events-none", "opacity-40");
   });
   // Listes de statut/assignation dans les tableaux et fiches : figées (les filtres hors tableau restent actifs).
-  root.querySelectorAll<HTMLElement>("table select, tr select, table [role=combobox], [role=dialog] select, [role=dialog] input:not([type=search]), [role=dialog] textarea").forEach(el => {
+  root.querySelectorAll<HTMLElement>("table select, tr select, table [role=combobox], [role=dialog] button[aria-pressed], [role=dialog] select, [role=dialog] input:not([type=search]), [role=dialog] textarea").forEach(el => {
     if (el.dataset.roChecked) return;
     el.dataset.roChecked = "1";
     if (/recherch|search|filtr/i.test(el.getAttribute("placeholder") || el.getAttribute("aria-label") || "")) return;
