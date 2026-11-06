@@ -124,6 +124,17 @@ Deno.serve(async (req) => {
     const otherMaterial = clean(body?.other_material, 300);
     const projectUsage = clean(body?.project_usage, 160);
     const quantityLabel = clean(body?.quantity_label, 160) ?? 'Je ne sais pas';
+    // Budget proposé par le client ($ CA / voyage reçu) : obligatoire pour /remblai,
+    // 0 accepté, deux décimales max. Ni prix accepté, ni paiement.
+    let budgetPerTrip: string | null = null;
+    if (variant === 'reception') {
+      const rawBudget = body?.budget_per_trip;
+      const nb = typeof rawBudget === 'number' ? rawBudget : (typeof rawBudget === 'string' && rawBudget.trim() ? Number(rawBudget.replace(',', '.')) : NaN);
+      if (!Number.isFinite(nb) || nb < 0 || nb > 9999999 || Math.round(nb * 100) !== nb * 100) {
+        throw new Error('Indiquez votre budget par voyage (0 $ ou plus, deux décimales au maximum).');
+      }
+      budgetPerTrip = String(Math.round(nb * 100) / 100);
+    }
     const truckTypeKey = inList(body?.truck_type, TRUCK_KEYS);
     const quantityUnit = inList(body?.quantity_unit, QUANTITY_UNITS) ?? 'inconnu';
     const quantityValue = quantityUnit === 'inconnu' ? null : numOrNull(body?.quantity_value);
@@ -170,6 +181,7 @@ Deno.serve(async (req) => {
         : 'Demande provenant de /remblai (besoin de matériel de remplissage).',
       projectUsage ? `Projet : ${projectUsage}` : '',
       `Quantité : ${quantityLabel}`,
+      budgetPerTrip !== null ? `Budget du client par voyage reçu : ${budgetPerTrip} $ CA / voyage (budget proposé, non accepté)` : '',
       truckTypeKey ? `Camion : ${TRUCK_LABELS[truckTypeKey]}` : '',
       desiredDate ? `Date souhaitée : ${desiredDate}` : '',
       timeframe ? `Délai : ${timeframe}` : '',
@@ -188,6 +200,8 @@ Deno.serve(async (req) => {
       property_type: projectUsage ?? 'Remplissage / remblai',
       quantity: quantityLabel,
       quantity_value: quantityValue,
+      budget_max: budgetPerTrip,
+      budget_unit: budgetPerTrip !== null ? '$ / voyage' : null,
       quantity_unit: quantityUnit,
       parcours_direction: variant,
       truck_type_key: truckTypeKey,
