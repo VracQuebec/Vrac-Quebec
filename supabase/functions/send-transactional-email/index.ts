@@ -2,6 +2,7 @@ import * as React from 'npm:react@18.3.1'
 import { clientIp, enforceIpQuota } from '../_shared/public-guard.ts'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { isServiceCaller } from './service-caller.ts'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 import { logEvent, logEventAsync } from '../_shared/observability.ts'
 import { enqueueOwnerConfirmation } from '../_shared/exec01/confirmation-queue.ts'
@@ -46,14 +47,6 @@ const PUBLIC_TEMPLATES = new Set(['client-confirmation', 'new-lead-notification'
 // (instead of trusting the caller-supplied recipientEmail) prevents anonymous
 // callers from redirecting these notifications to arbitrary addresses.
 const ADMIN_NOTIFICATION_EMAIL = 'TransportJSC@hotmail.com'
-
-// Constant-time comparison of the caller bearer with the service key.
-export function isServiceCaller(token: string, serviceKey: string): boolean {
-  if (!token || !serviceKey || token.length !== serviceKey.length) return false
-  let diff = 0
-  for (let i = 0; i < token.length; i++) diff |= token.charCodeAt(i) ^ serviceKey.charCodeAt(i)
-  return diff === 0
-}
 
 // UUID v4-ish validation for submission IDs accepted from public callers.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
