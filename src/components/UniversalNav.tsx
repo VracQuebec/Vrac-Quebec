@@ -5,6 +5,7 @@ import { Activity, ArrowLeft, BarChart3, Ban, Bell, BookOpen, Building2, Calenda
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import { useUserRoles } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
@@ -55,6 +56,8 @@ export default function UniversalNav() {
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const navRef = useRef<HTMLElement | null>(null);
 
+  // Passage entre espaces pour les comptes qui cumulent les deux accès (ex. lecture seule + entrepreneur).
+  const { isAdmin: canAdmin, isEntrepreneur: canEntrepreneur } = useUserRoles();
   const dirty = useSyncExternalStore(subscribeUnsavedChanges, hasUnsavedChanges, () => false);
 
 
@@ -182,6 +185,13 @@ export default function UniversalNav() {
           </button>
 
           <div className="ml-auto flex shrink-0 items-center gap-1">
+            {canEntrepreneur && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/entrepreneur")} className="min-h-11 shrink-0 gap-1.5">
+                <LayoutDashboard className="h-4 w-4" />
+                <span className="hidden sm:inline">Espace entrepreneur</span>
+                <span className="sm:hidden">Entrepreneur</span>
+              </Button>
+            )}
             <NotificationBell />
             <Sheet open={adminMenuOpen} onOpenChange={setAdminMenuOpen}>
               <SheetTrigger asChild>
@@ -265,6 +275,13 @@ export default function UniversalNav() {
               <LayoutDashboard className="h-4 w-4" />
               <span className="hidden sm:inline">Tableau de bord</span>
               <span className="sm:hidden">Tableau</span>
+            </Button>
+          )}
+
+          {canAdmin && isEntrepreneur && (
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin")} className="shrink-0 gap-1.5">
+              <Settings className="h-4 w-4" />
+              Administration
             </Button>
           )}
 
