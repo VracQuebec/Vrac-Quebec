@@ -317,4 +317,4 @@ Contraintes : aperçu = même base que la production (confirmé) → aucune soum
 - [x] Transport/accès dompe, services et soumissions rattachés au CRM habituel, écarts signalés, reprise sans doublon
 - [x] « CRM unifié » renommé « Répertoire de contacts »
 
-- [ ] Remblai public : budget par voyage déplacé après enregistrement (page de confirmation, mise à jour sécurisée du même lead, CRM « Budget proposé par voyage reçu »)
+- [x] Remblai public : budget par voyage déplacé après enregistrement (page de confirmation, mise à jour sécurisée du même lead, CRM « Budget proposé par voyage reçu »)

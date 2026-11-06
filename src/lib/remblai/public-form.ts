@@ -23,8 +23,8 @@ export const emptyParcoursDraft: ParcoursDraft = {
   accessHeavyTruck: '', accessDetails: [], photos: [], name: '', phone: '', email: '', notes: '',
 };
 export const PUBLIC_RECEPTION_STEPS = ['address', 'quantity', 'project', 'material', 'access', 'photos', 'contact'] as const;
-export const BUDGET_PER_TRIP_LABEL = 'Quel montant êtes-vous prêt à payer par voyage de remblai reçu?';
-export const CLIENT_TRIP_BUDGET_CRM_LABEL = 'Budget du client par voyage reçu';
+export const BUDGET_PER_TRIP_LABEL = 'Quel montant seriez-vous prêt à payer par voyage de remblai reçu?';
+export const CLIENT_TRIP_BUDGET_CRM_LABEL = 'Budget proposé par voyage reçu';
 /** Montant ≥ 0, deux décimales au plus, virgule ou point. Retourne null si vide ou invalide. */
 export function parseBudgetPerTrip(raw: string | null | undefined): number | null {
   const v = String(raw ?? '').trim().replace(/\s|\$/g, '');
@@ -50,7 +50,9 @@ export function formatClientTripBudget(amount: string | number | null | undefine
 /** Fiche CRM : lit seulement la clé dédiée; les anciennes demandes affichent « Non précisé ». */
 export function clientTripBudgetFromAnswers(answers: unknown): string {
   if (!answers || typeof answers !== 'object') return 'Non précisé';
-  const v = (answers as Record<string, unknown>)[CLIENT_TRIP_BUDGET_KEY];
+  const a = answers as Record<string, unknown>;
+  if (a.client_trip_budget_choice === 'sans_contribution') return 'Sans contribution (choix du client)';
+  const v = a[CLIENT_TRIP_BUDGET_KEY];
   return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? formatClientTripBudget(v) : 'Non précisé';
 }
 export function publicStepError(step: string, data: ParcoursDraft): string | null {
@@ -85,4 +87,10 @@ export function publicEditPayload(d: ParcoursDraft): PublicEdit {
     accessDetails:d.accessDetails, photos:d.photos.map(p=>({url:p.url,category:p.category})),
     name:d.name, phone:d.phone, email:d.email, notes:d.notes});
   return {...validated, photos:validated.photos.map(p=>{if(typeof p.url !== 'string' || !p.category) throw Error('Photo invalide'); return {url:p.url,category:p.category};})} as PublicEdit;
+}
+/** Jeton secret (navigateur) liant la demande envoyée à la mise à jour de son budget. */
+export function newBudgetToken(): string {
+  const b = new Uint8Array(24);
+  crypto.getRandomValues(b);
+  return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
 }

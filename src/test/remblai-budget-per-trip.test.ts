@@ -30,3 +30,17 @@ describe("budget du client par voyage reçu", () => {
     expect(clientTripBudgetFromAnswers({ client_trip_budget_cad: 75.25 })).toBe("75,25 $ CA / voyage");
   });
 });
+
+describe("budget proposé après l'enregistrement", () => {
+  it("distingue montant positif, 0 $, sans contribution et absence de réponse", () => {
+    expect(clientTripBudgetFromAnswers({ client_trip_budget_cad: 40, client_trip_budget_choice: "montant" })).toBe("40 $ CA / voyage");
+    expect(clientTripBudgetFromAnswers({ client_trip_budget_cad: 0, client_trip_budget_choice: "montant" })).toBe("0 $ CA / voyage");
+    expect(clientTripBudgetFromAnswers({ client_trip_budget_choice: "sans_contribution" })).toBe("Sans contribution (choix du client)");
+    expect(clientTripBudgetFromAnswers({ client_trip_budget_token_sha256: "abc" })).toBe("Non précisé");
+  });
+  it("accepte 75,25 et 75.25 mais refuse trois décimales", () => {
+    expect(parseBudgetPerTrip("75,25")).toBe(75.25);
+    expect(parseBudgetPerTrip("75.25")).toBe(75.25);
+    expect(parseBudgetPerTrip("75,255")).toBeNull();
+  });
+});
