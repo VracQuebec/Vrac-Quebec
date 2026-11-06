@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import TripBudgetReference from "@/components/parcours/TripBudgetReference";
-import { BUDGET_PER_TRIP_LABEL, budgetPerTripError, formatClientTripBudget } from "@/lib/remblai/public-form";
+import { BUDGET_PER_TRIP_QUESTION, budgetPerTripError, formatClientTripBudget } from "@/lib/remblai/public-form";
 
 type Saved = { choice: "montant"; amount: string } | { choice: "sans_contribution" };
 
