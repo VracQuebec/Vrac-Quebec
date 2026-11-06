@@ -54,7 +54,9 @@ export default function TripBudgetOffer({ submissionId, budgetToken }: { submiss
   }
 
   return (
-    <section aria-labelledby="vq-contrib-title" className="mt-5 rounded-xl border border-border bg-background p-4 text-left sm:p-5">
+    <>
+      <TripBudgetReference />
+      <section aria-labelledby="vq-contrib-title" className="mt-5 rounded-xl border border-border bg-background p-4 text-left sm:p-5">
       <h3 id="vq-contrib-title" className="font-display text-lg font-bold text-foreground">
         Souhaitez-vous proposer une contribution par voyage reçu?
       </h3>
