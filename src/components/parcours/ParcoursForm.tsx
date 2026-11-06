@@ -39,7 +39,7 @@ import {
 import { buildHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff } from "@/lib/parcours/handoff";
 import { isFeatureEnabled } from "@/lib/flags";
 import { Button } from "@/components/ui/button";
-import { emptyParcoursDraft as emptyDraft, PUBLIC_RECEPTION_STEPS, publicStepError, type ParcoursDraft as Draft } from "@/lib/remblai/public-form";
+import { emptyParcoursDraft as emptyDraft, PUBLIC_RECEPTION_STEPS, publicStepError, BUDGET_PER_TRIP_LABEL, parseBudgetPerTrip, formatClientTripBudget, type ParcoursDraft as Draft } from "@/lib/remblai/public-form";
 import MaterialAssistantStep from "@/components/parcours/MaterialAssistantStep";
 import ExtraLocations from "@/components/parcours/ExtraLocations";
 import { locationErrors, newLocation, MULTI_SITES_SERVER_READY, type LocationDraft } from "@/lib/parcours/multi-sites";
@@ -49,7 +49,7 @@ export type ParcoursVariant = "reception" | "evacuation";
 
 type StepKey =
   | "address" | "quantity" | "project" | "material" | "truck" | "date"
-  | "access" | "photos" | "contact";
+  | "access" | "photos" | "contact" | "budget";
 
 const STEPS: Record<ParcoursVariant, StepKey[]> = {
   reception: [...PUBLIC_RECEPTION_STEPS],
@@ -66,6 +66,7 @@ const TITLES: Record<StepKey, Record<ParcoursVariant, string>> = {
   access: { reception: "Comment est l'accès au terrain ?", evacuation: "Accès au chantier" },
   photos: { reception: "Photos (optionnel)", evacuation: "Photos (optionnel)" },
   contact: { reception: "Vos coordonnées", evacuation: "Vos coordonnées" },
+  budget: { reception: BUDGET_PER_TRIP_LABEL, evacuation: BUDGET_PER_TRIP_LABEL },
 };
 
 const inputCls =
@@ -81,7 +82,13 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
   const storageKey = `vq_parcours_${variant}_v1`;
   const navigate = useNavigate();
   const { user } = useAuthReady();
-  const steps = STEPS[variant];
+  // Budget par voyage : formulaire public de remblai seulement (pas l'éditeur de suivi).
+  const steps = useMemo<StepKey[]>(() => {
+    if (variant !== "reception" || editor) return STEPS[variant];
+    const base = [...STEPS.reception];
+    base.splice(base.indexOf("quantity") + 1, 0, "budget");
+    return base;
+  }, [variant, editor]);
   // Drapeau material_assistant_v2 : désactivé par défaut (production inchangée).
   const assistantOn = useMemo(() => !editor && isFeatureEnabled("material_assistant_v2"), [editor]);
   const [index, setIndex] = useState(0);
@@ -200,6 +207,7 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
           materials: data.materials,
           other_material: data.otherMaterial,
           project_usage: data.projectUsage || null,
+          ...(variant === "reception" ? { budget_per_trip: parseBudgetPerTrip(data.budgetPerTrip) } : {}),
           quantity_label: quantityLabel,
           quantity_value: data.quantityUnknown ? null : parseQuantityValue(data.quantityValue),
           quantity_unit: data.quantityUnknown ? "inconnu" : data.quantityUnit,
@@ -301,6 +309,12 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
           avec les informations. Aucun site, aucune disponibilité, aucun prix et aucun délai
           ne sont confirmés à cette étape.
         </p>
+        {variant === "reception" && (
+          <p className="mt-3 font-body text-sm text-foreground">
+            Budget du client par voyage reçu : <strong>{formatClientTripBudget(data.budgetPerTrip, "$ / voyage")}</strong>
+            <span className="block text-xs text-muted-foreground">Budget proposé seulement : ce n’est ni un prix accepté ni un paiement.</span>
+          </p>
+        )}
         {emailStatus === "queued" && (
           <p role="status" className="mt-3 font-body text-sm text-foreground">
             Le courriel contenant votre lien personnel de suivi a été accepté par notre service d’envoi.
@@ -469,6 +483,31 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
             >
               Calculer ma quantité
             </a>
+          </div>
+        );
+
+      case "budget":
+        return (
+          <div className="space-y-3">
+            <label htmlFor="vq-budget-per-trip" className="sr-only">{BUDGET_PER_TRIP_LABEL}</label>
+            <div className="flex items-stretch overflow-hidden rounded-xl border-2 border-border bg-background focus-within:border-primary">
+              <input
+                id="vq-budget-per-trip"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                required
+                aria-describedby="vq-budget-help"
+                value={data.budgetPerTrip ?? ""}
+                onChange={(e) => set({ budgetPerTrip: e.target.value.replace(/[^0-9.,]/g, "").slice(0, 10) })}
+                placeholder="Ex : 0 ou 75"
+                className="min-w-0 flex-1 bg-transparent px-4 py-3.5 font-body text-base text-foreground placeholder:text-muted-foreground focus:outline-none"
+              />
+              <span className="flex shrink-0 items-center border-l-2 border-border bg-muted px-3 font-display text-sm font-bold text-foreground">$ CA / voyage</span>
+            </div>
+            <p id="vq-budget-help" className="font-body text-sm text-muted-foreground">
+              Indiquez votre budget en dollars canadiens pour chaque voyage livré. Inscrivez 0 $ si vous souhaitez uniquement recevoir du remblai gratuitement. Ce montant ne garantit pas une livraison.
+            </p>
           </div>
         );
 

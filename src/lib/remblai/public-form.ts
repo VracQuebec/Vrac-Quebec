@@ -12,6 +12,8 @@ export interface ParcoursDraft {
   accessHeavyTruck: string; accessDetails: string[];
   photos: { url: string; category: PhotoCategoryKey; signedUrl?: string }[];
   name: string; phone: string; email: string; notes: string;
+  /** Budget proposé par le client, en $ CA par voyage reçu. '' = aucune réponse (≠ '0'). */
+  budgetPerTrip?: string;
   unavailableFields?: string[];
 }
 export const emptyParcoursDraft: ParcoursDraft = {
@@ -21,7 +23,28 @@ export const emptyParcoursDraft: ParcoursDraft = {
   accessHeavyTruck: '', accessDetails: [], photos: [], name: '', phone: '', email: '', notes: '',
 };
 export const PUBLIC_RECEPTION_STEPS = ['address', 'quantity', 'project', 'material', 'access', 'photos', 'contact'] as const;
+export const BUDGET_PER_TRIP_LABEL = 'Quel montant êtes-vous prêt à payer par voyage de remblai reçu?';
+export const CLIENT_TRIP_BUDGET_CRM_LABEL = 'Budget du client par voyage reçu';
+/** Montant ≥ 0, deux décimales au plus, virgule ou point. Retourne null si vide ou invalide. */
+export function parseBudgetPerTrip(raw: string | null | undefined): number | null {
+  const v = String(raw ?? '').trim().replace(/\s|\$/g, '');
+  if (!/^\d{1,7}(?:[.,]\d{1,2})?$/.test(v)) return null;
+  return Number(v.replace(',', '.'));
+}
+export function budgetPerTripError(raw: string | null | undefined): string | null {
+  if (!String(raw ?? '').trim()) return 'Indiquez votre budget par voyage (inscrivez 0 $ si vous souhaitez uniquement du remblai gratuit).';
+  return parseBudgetPerTrip(raw) === null ? 'Montant invalide : chiffres seulement, 0 ou plus, deux décimales au maximum.' : null;
+}
+const fmtCad = (n: number) => n.toLocaleString('fr-CA', { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 });
+/** Affichage CRM/récapitulatif : jamais 0 $ par défaut pour une absence de réponse. */
+export function formatClientTripBudget(amount: string | null | undefined, unit?: string | null): string {
+  const raw = String(amount ?? '').trim();
+  if (!raw || !unit || !/voyage/i.test(unit)) return 'Non précisé';
+  const n = parseBudgetPerTrip(raw);
+  return `${n === null ? raw : fmtCad(n)} $ CA / voyage`;
+}
 export function publicStepError(step: string, data: ParcoursDraft): string | null {
+  if (step === 'budget') return budgetPerTripError(data.budgetPerTrip);
   if (step === 'address' && data.address.trim().length < 5) return "Inscrivez l'adresse du chantier (au moins 5 caractères) pour continuer.";
   if (step === 'quantity' && !data.quantityUnknown && !/^\d*(?:[.,]\d+)?$/.test(data.quantityValue)) return 'Indiquez une quantité valide ou choisissez « Je ne sais pas ».';
   if (step === 'material' && data.materials.length === 0) return 'Choisissez au moins un matériau pour continuer.';
