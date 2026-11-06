@@ -8,6 +8,8 @@ import { fetchWithTimeout } from "../_shared/http.ts";
 
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const MODEL = "openai/gpt-6-astra";
+const AI_DAILY_CAP = 300; // usage réel observé : quelques réponses par mois
+const MAX_OUTPUT_TOKENS = 600;
 
 const PAGES: [string, string][] = [
   ["/soumission", "Obtenir une estimation / soumission de matériaux en vrac livrés"],
@@ -92,6 +94,15 @@ Deno.serve(async (req) => {
     if (session.mode === "humain" || !text || wantHuman) return json({ token: session.token });
 
     await enforceIpQuota(sb, "site-assistant-ai", clientIp(req), 40, 60);
+    // Plafond global journalier (toutes adresses confondues) : borne le coût
+    // même si un abus contourne la limite par adresse en changeant d'IP.
+    try {
+      await enforceIpQuota(sb, "site-assistant-ai-global", "global", AI_DAILY_CAP, 1440);
+    } catch (e) {
+      if (!(e instanceof GuardError)) throw e;
+      await sb.from("site_chat_messages").insert({ session_id: session.id, role: "systeme", content: "L'assistant automatique est temporairement indisponible. Cliquez « Parler à une personne » ou appelez le 819-592-3495." });
+      return json({ token: session.token });
+    }
     const { data: hist } = await sb.from("site_chat_messages").select("role,content").eq("session_id", session.id).order("id", { ascending: false }).limit(16);
     const messages = [{ role: "system", content: SYSTEM + (page ? `\nPage actuelle du visiteur : ${page}` : "") },
       ...(hist ?? []).reverse().filter((m: any) => m.role !== "systeme").map((m: any) => ({ role: m.role === "visiteur" ? "user" : "assistant", content: m.content }))];
@@ -101,7 +112,7 @@ Deno.serve(async (req) => {
     if (key) {
       const r = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/responses", {
         method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: MODEL, store: false, reasoning: { effort: "low" }, instructions: messages[0].content, input: messages.slice(1) }),
+        body: JSON.stringify({ model: MODEL, store: false, reasoning: { effort: "low" }, max_output_tokens: MAX_OUTPUT_TOKENS, instructions: messages[0].content, input: messages.slice(1) }),
       }, 45_000);
       if (r.ok) { const j = await r.json(); const c = typeof j?.output_text === "string" ? j.output_text : (j?.output ?? []).flatMap((o: any) => o?.content ?? []).filter((x: any) => x?.type === "output_text").map((x: any) => x.text).join("\n"); if (typeof c === "string" && c.trim()) reply = sanitize(c.trim()); }
       else console.error("site-assistant gateway", r.status, (await r.text().catch(() => "")).slice(0, 300));
