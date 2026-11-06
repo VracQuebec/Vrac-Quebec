@@ -128,7 +128,8 @@ export default function BillingSection({ submissionId }: Props) {
     if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
     setTrips((prev) => [data as unknown as LeadTrip, ...prev]);
     setDraft(emptyDraft());
-    toast({ title: "Voyage ajouté" });
+    setShowAdd(false);
+    toast({ title: "Voyage ajouté — enregistré" });
   };
 
   const patchTrip = async (id: string, patch: Partial<LeadTrip>) => {
