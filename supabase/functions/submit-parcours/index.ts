@@ -129,11 +129,12 @@ Deno.serve(async (req) => {
     let budgetPerTrip: string | null = null;
     if (variant === 'reception') {
       const rawBudget = body?.budget_per_trip;
-      const nb = typeof rawBudget === 'number' ? rawBudget : (typeof rawBudget === 'string' && rawBudget.trim() ? Number(rawBudget.replace(',', '.')) : NaN);
-      if (!Number.isFinite(nb) || nb < 0 || nb > 9999999 || Math.round(nb * 100) !== nb * 100) {
+      const txt = typeof rawBudget === 'number' && Number.isFinite(rawBudget) ? String(rawBudget) : typeof rawBudget === 'string' ? rawBudget.trim().replace(',', '.') : '';
+      const nb = Number(txt);
+      if (!/^\d{1,7}(?:\.\d{1,2})?$/.test(txt) || !Number.isFinite(nb)) {
         throw new Error('Indiquez votre budget par voyage (0 $ ou plus, deux décimales au maximum).');
       }
-      budgetPerTrip = String(Math.round(nb * 100) / 100);
+      budgetPerTrip = String(nb);
     }
     const truckTypeKey = inList(body?.truck_type, TRUCK_KEYS);
     const quantityUnit = inList(body?.quantity_unit, QUANTITY_UNITS) ?? 'inconnu';
