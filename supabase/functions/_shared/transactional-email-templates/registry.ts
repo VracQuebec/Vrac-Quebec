@@ -15,6 +15,7 @@ import { template as directionDailyReport } from './direction-daily-report.tsx'
 import { template as soumissionClient } from './soumission-client.tsx'
 import { template as soumissionInterne } from './soumission-interne.tsx'
 import { template as nouvelleDemandeDompe } from './nouvelle-demande-dompe.tsx'
+import { template as entrepreneurConfirmation } from './entrepreneur-confirmation.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'new-lead-notification': newLeadNotification,
@@ -23,4 +24,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'soumission-client': soumissionClient,
   'soumission-interne': soumissionInterne,
   'nouvelle-demande-dompe': nouvelleDemandeDompe,
+  'entrepreneur-confirmation': entrepreneurConfirmation,
 }
