@@ -8,13 +8,17 @@ import { toast } from "sonner";
  * - Documents privés : fonction secure-file (journal serveur).
  * - Garde navigateur = confort d'interface seulement; l'autorité reste le serveur.
  */
-let active = false;
+let enabled = false;
+// Le mode lecture seule ne s'applique qu'à l'administration : un compte qui cumule l'accès entrepreneur
+// garde son espace entrepreneur normal (ses propres droits serveur s'y appliquent).
+const onAdminPath = () => typeof window === "undefined" || window.location.pathname.startsWith("/admin");
+const isOn = () => enabled && onAdminPath();
 let installed = false;
 const MSG = "Accès en lecture seule : cette action n'est pas autorisée.";
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const WRITE_RPC = /(^|_)(create|update|delete|set|assign|approve|decide|send|mark|archive|cancel|confirm|respond|merge|import|start|retry|pause|resume|propose|adopt|upsert|insert|toggle|void|add|remove|record|save|publish|apply|restore|purge|reject|accept|enqueue|dispatch|grant|revoke|close|reopen|bump|link|unlink|move|claim|release|validate|generate|run|sweep)(_|$)/i;
 
-export const isAdminReadonlyActive = () => active;
+export const isAdminReadonlyActive = () => isOn();
 
 type RpcFn = (fn: string, args?: Record<string, unknown>) => PromiseLike<{ error: unknown }>;
 let rawRpc: RpcFn | null = null;
@@ -22,7 +26,7 @@ const currentSection = () => (typeof window !== "undefined" ? window.location.pa
 
 export function logAdminReadonly(action: string, section?: string | null, resourceType?: string | null,
   resourceId?: string | null, result: "reussi" | "refuse" | "erreur" = "reussi", detail: Record<string, unknown> = {}) {
-  if (!active) return;
+  if (!isOn()) return;
   const call = rawRpc ?? (supabase.rpc.bind(supabase) as unknown as RpcFn);
   void Promise.resolve(call("adm_ro_log", {
     _action: action, _section: section ?? null, _resource_type: resourceType ?? null,
@@ -59,7 +63,7 @@ export async function secureFile(bucket: string, path: string): Promise<Blob> {
 // Toute requête de données du client est réécrite vers le relais serveur journalisé.
 function proxiedFetch(orig: typeof fetch): typeof fetch {
   return (input: RequestInfo | URL, init?: RequestInit) => {
-    if (!active) return orig(input, init);
+    if (!isOn()) return orig(input, init);
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const next = url.replace(`${SUPA_URL}/rest/v1`, `${SUPA_URL}/functions/v1/adm-ro-proxy`);
     const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
@@ -76,20 +80,20 @@ function install() {
   const origFrom = anyClient.from.bind(supabase);
   anyClient.from = (table: string) => {
     const qb = origFrom(table);
-    if (!active) return qb;
+    if (!isOn()) return qb;
     for (const m of ["insert", "update", "upsert", "delete"]) if (qb[m]) qb[m] = () => refused(`table:${m}`, table);
     return qb;
   };
   const origRpc = anyClient.rpc.bind(supabase);
   rawRpc = origRpc;
   anyClient.rpc = (fn: string, args?: unknown, opts?: unknown) => {
-    if (active && !fn.startsWith("adm_ro_") && WRITE_RPC.test(fn)) return refused("rpc", fn);
+    if (isOn() && !fn.startsWith("adm_ro_") && WRITE_RPC.test(fn)) return refused("rpc", fn);
     return origRpc(fn, args, opts);
   };
   const origStorageFrom = anyClient.storage.from.bind(anyClient.storage);
   anyClient.storage.from = (bucket: string) => {
     const b = origStorageFrom(bucket);
-    if (!active) return b;
+    if (!isOn()) return b;
     for (const m of ["upload", "update", "remove", "move", "copy", "uploadToSignedUrl"]) if (b[m]) b[m] = () => refused(`stockage:${m}`, bucket);
     b.download = async (path: string) => { try { return { data: await secureFile(bucket, path), error: null }; } catch (e) { return { data: null, error: e }; } };
     b.createSignedUrl = async (path: string) => {
@@ -104,6 +108,7 @@ function install() {
 const WRITE_LABEL = /^(\+\s*)?(ajouter|nouveau|nouvelle|créer|creer|modifier|éditer|editer|supprimer|archiver|désarchiver|restaurer|enregistrer|sauvegarder|assigner|attribuer|réassigner|valider|approuver|refuser|accepter|rejeter|confirmer|envoyer|renvoyer|relancer|publier|dépublier|importer|téléverser|téléverse|joindre|déposer|lancer|démarrer|planifier|générer|regénérer|dupliquer|fusionner|inviter|révoquer|payer|encaisser|rembourser|marquer|changer|activer|désactiver|suspendre|reprendre|annuler la|annuler l|clôturer|fermer le dossier|prendre en charge|résoudre|appliquer|synchroniser|recalculer|convertir|transférer|déplacer|retirer|émettre|facturer|signer|corriger|arrêter|ajuster|mettre à jour|choisir ce|retenir)\b/i;
 let observer: MutationObserver | null = null;
 function markControls(root: ParentNode) {
+  if (!onAdminPath()) return;
   root.querySelectorAll<HTMLElement>("button, [role=menuitem], [role=menuitemradio], a[role=button], input[type=submit], input[type=file]").forEach(el => {
     if (el.dataset.roChecked) return;
     el.dataset.roChecked = "1";
@@ -153,7 +158,7 @@ const FLAG = "vq.adminRo";
 export function setAdminReadonly(on: boolean, uid?: string) {
   try { if (on && uid) localStorage.setItem(FLAG, uid); else if (!on) localStorage.removeItem(FLAG); } catch { /* stockage indisponible */ }
   if (on) install();
-  active = on;
+  enabled = on;
   if (typeof document !== "undefined") { if (on) startUiLock(); else stopUiLock(); }
 }
 
