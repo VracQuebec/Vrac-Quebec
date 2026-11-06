@@ -39,7 +39,7 @@ import {
 import { buildHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff } from "@/lib/parcours/handoff";
 import { isFeatureEnabled } from "@/lib/flags";
 import { Button } from "@/components/ui/button";
-import { emptyParcoursDraft as emptyDraft, PUBLIC_RECEPTION_STEPS, publicStepError, BUDGET_PER_TRIP_LABEL, parseBudgetPerTrip, formatClientTripBudget, type ParcoursDraft as Draft } from "@/lib/remblai/public-form";
+import { emptyParcoursDraft as emptyDraft, PUBLIC_RECEPTION_STEPS, publicStepError, BUDGET_PER_TRIP_LABEL, parseBudgetPerTrip, formatClientTripBudget, BUDGET_FIELD_ERROR, type ParcoursDraft as Draft } from "@/lib/remblai/public-form";
 import MaterialAssistantStep from "@/components/parcours/MaterialAssistantStep";
 import ExtraLocations from "@/components/parcours/ExtraLocations";
 import { locationErrors, newLocation, MULTI_SITES_SERVER_READY, type LocationDraft } from "@/lib/parcours/multi-sites";
@@ -242,6 +242,12 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
       lastBody.current = body;
       const { data: res, error: fnError } = await supabase.functions.invoke("submit-parcours", { body });
       if (fnError) throw fnError;
+      if (!res?.ok && res?.field === BUDGET_FIELD_ERROR && steps.includes("budget")) {
+        // Budget manquant : retour à la question, toutes les réponses restent en place.
+        setIndex(steps.indexOf("budget"));
+        setError(res.message || "Indiquez votre budget par voyage pour envoyer la demande.");
+        return;
+      }
       if (!res?.ok) throw new Error(res?.message || "Envoi impossible.");
       // Continuité : on conserve l'ID RÉEL retourné par `submissions`.
       const ho = buildHandoff({
@@ -311,7 +317,7 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
         </p>
         {variant === "reception" && (
           <p className="mt-3 font-body text-sm text-foreground">
-            Budget du client par voyage reçu : <strong>{formatClientTripBudget(data.budgetPerTrip, "$ / voyage")}</strong>
+            Budget du client par voyage reçu : <strong>{formatClientTripBudget(data.budgetPerTrip)}</strong>
             <span className="block text-xs text-muted-foreground">Budget proposé seulement : ce n’est ni un prix accepté ni un paiement.</span>
           </p>
         )}

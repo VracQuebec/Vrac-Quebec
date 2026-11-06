@@ -1,4 +1,4 @@
-import { CLIENT_TRIP_BUDGET_CRM_LABEL, formatClientTripBudget } from "@/lib/remblai/public-form";
+import { CLIENT_TRIP_BUDGET_CRM_LABEL, clientTripBudgetFromAnswers } from "@/lib/remblai/public-form";
 import { formatRequestLabel } from "@/lib/requests/labels";
 import { useScreenContext } from "@/lib/navigation/listContext";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -1800,7 +1800,7 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
           </LeadSection>
           <div className="mb-3 rounded-lg border border-border bg-secondary/30 p-3">
             <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground">{CLIENT_TRIP_BUDGET_CRM_LABEL}</div>
-            <div className="font-body text-sm font-semibold text-foreground">{formatClientTripBudget(sub.budget_max, sub.budget_unit)}</div>
+            <div className="font-body text-sm font-semibold text-foreground">{clientTripBudgetFromAnswers((sub as { form_answers?: unknown }).form_answers)}</div>
             <div className="text-[11px] text-muted-foreground">Budget proposé par le client — ni prix accepté ni paiement.</div>
           </div>
           <LeadSection title="Budget et machinerie" defaultOpen={false}>

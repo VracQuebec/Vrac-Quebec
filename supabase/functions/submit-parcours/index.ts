@@ -132,7 +132,14 @@ Deno.serve(async (req) => {
       const txt = typeof rawBudget === 'number' && Number.isFinite(rawBudget) ? String(rawBudget) : typeof rawBudget === 'string' ? rawBudget.trim().replace(',', '.') : '';
       const nb = Number(txt);
       if (!/^\d{1,7}(?:\.\d{1,2})?$/.test(txt) || !Number.isFinite(nb)) {
-        throw new Error('Indiquez votre budget par voyage (0 $ ou plus, deux décimales au maximum).');
+        // Réponse claire (200) : le formulaire ramène à la question sans perdre les réponses;
+        // une ancienne page ouverte affiche ce message au lieu d'une erreur générique.
+        return json({
+          ok: false, retry: false, field: 'budget_per_trip',
+          message: txt
+            ? 'Le budget par voyage est invalide : inscrivez 0 $ ou un montant positif, avec deux décimales au maximum.'
+            : "Il manque votre budget par voyage de remblai reçu (inscrivez 0 $ si vous souhaitez seulement du remblai gratuit). Si vous ne voyez pas cette question, rechargez la page : vos réponses sont conservées.",
+        });
       }
       budgetPerTrip = String(nb);
     }
@@ -201,8 +208,8 @@ Deno.serve(async (req) => {
       property_type: projectUsage ?? 'Remplissage / remblai',
       quantity: quantityLabel,
       quantity_value: quantityValue,
-      budget_max: budgetPerTrip,
-      budget_unit: budgetPerTrip !== null ? '$ / voyage' : null,
+      // Budget par voyage dans une clé dédiée : l'ancienne case « Budget max » (unités mixtes) reste intacte.
+      ...(budgetPerTrip !== null ? { form_answers: { client_trip_budget_cad: Number(budgetPerTrip) } } : {}),
       quantity_unit: quantityUnit,
       parcours_direction: variant,
       truck_type_key: truckTypeKey,
