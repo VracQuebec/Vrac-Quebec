@@ -46,3 +46,21 @@ describe("inscription : mot de passe choisi seulement par le titulaire de la bo�
     expect(a).not.toBe(b); expect(a.length).toBeGreaterThan(60);
   });
 });
+
+import { publicTriggerVerdict } from "../../supabase/functions/send-transactional-email/service-caller";
+describe("courriels publics : une référence n'est pas une autorisation", () => {
+  const now = Date.parse("2026-11-06T20:00:00Z");
+  it("premier déclenchement juste après la création : accepté", () => {
+    expect(publicTriggerVerdict("2026-11-06T19:58:00Z", now, false)).toBe("allow");
+  });
+  it("ancienne demande d'un autre client : refusée", () => {
+    expect(publicTriggerVerdict("2026-11-05T10:00:00Z", now, false)).toBe("too_old");
+  });
+  it("répétition sur la même demande : refusée", () => {
+    expect(publicTriggerVerdict("2026-11-06T19:59:00Z", now, true)).toBe("already_triggered");
+  });
+  it("date absente ou future : refusée", () => {
+    expect(publicTriggerVerdict(null, now, false)).toBe("too_old");
+    expect(publicTriggerVerdict("2026-11-07T20:00:00Z", now, false)).toBe("too_old");
+  });
+});
