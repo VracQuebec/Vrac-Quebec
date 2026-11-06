@@ -1,1 +1,2 @@
-- Remblai client trip budget lives in submissions.form_answers.client_trip_budget_cad, never in legacy budget_max/budget_unit (mixed total/tonne/voyage meanings) so historical values keep their original sense.
+- Remblai client trip budget lives in submissions.form_answers.client_trip_budget_cad (+ client_trip_budget_choice), never in legacy budget_max/budget_unit (mixed total/tonne/voyage meanings) so historical values keep their original sense.
+- The budget is offered only after the request is saved; submit-parcours action set_trip_budget updates that exact submission when the browser's secret token matches the stored SHA-256, so visitors cannot edit another request and a budget failure never cancels the request.

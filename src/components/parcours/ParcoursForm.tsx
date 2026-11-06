@@ -40,7 +40,7 @@ import { buildHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff } fro
 import { isFeatureEnabled } from "@/lib/flags";
 import { Button } from "@/components/ui/button";
 import TripBudgetOffer from "@/components/parcours/TripBudgetOffer";
-import { emptyParcoursDraft as emptyDraft, PUBLIC_RECEPTION_STEPS, publicStepError, BUDGET_PER_TRIP_LABEL, parseBudgetPerTrip, formatClientTripBudget, BUDGET_FIELD_ERROR, newBudgetToken, type ParcoursDraft as Draft } from "@/lib/remblai/public-form";
+import { emptyParcoursDraft as emptyDraft, PUBLIC_RECEPTION_STEPS, publicStepError, BUDGET_PER_TRIP_LABEL, BUDGET_FIELD_ERROR, newBudgetToken, type ParcoursDraft as Draft } from "@/lib/remblai/public-form";
 import MaterialAssistantStep from "@/components/parcours/MaterialAssistantStep";
 import ExtraLocations from "@/components/parcours/ExtraLocations";
 import { locationErrors, newLocation, MULTI_SITES_SERVER_READY, type LocationDraft } from "@/lib/parcours/multi-sites";
