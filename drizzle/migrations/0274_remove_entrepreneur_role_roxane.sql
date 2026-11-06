@@ -1,0 +1,1 @@
+DELETE FROM public.user_roles WHERE user_id = 'be891e47-af40-4761-b1c7-078aa5eec22c' AND role = 'entrepreneur';

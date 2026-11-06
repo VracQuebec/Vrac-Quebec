@@ -1919,6 +1919,13 @@
       "when": 1793919013087,
       "tag": "0273_exclude_confirmed_test_fixtures",
       "breakpoints": true
+    },
+    {
+      "idx": 274,
+      "version": "7",
+      "when": 1793934783630,
+      "tag": "0274_remove_entrepreneur_role_roxane",
+      "breakpoints": true
     }
   ]
 }
