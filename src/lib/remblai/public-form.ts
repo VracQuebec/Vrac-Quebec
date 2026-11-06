@@ -24,6 +24,8 @@ export const emptyParcoursDraft: ParcoursDraft = {
 };
 export const PUBLIC_RECEPTION_STEPS = ['address', 'quantity', 'project', 'material', 'access', 'photos', 'contact'] as const;
 export const BUDGET_PER_TRIP_LABEL = 'Quel montant seriez-vous prêt à payer par voyage de remblai reçu?';
+/** Question affichée sur l'écran de confirmation, après l'enregistrement de la demande. */
+export const BUDGET_PER_TRIP_QUESTION = 'Quel montant seriez-vous prêt à investir par voyage de remblai reçu?';
 export const CLIENT_TRIP_BUDGET_CRM_LABEL = 'Budget proposé par voyage reçu';
 /** Montant ≥ 0, deux décimales au plus, virgule ou point. Retourne null si vide ou invalide. */
 export function parseBudgetPerTrip(raw: string | null | undefined): number | null {

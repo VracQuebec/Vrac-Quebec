@@ -65,7 +65,7 @@ export default function TripBudgetOffer({ submissionId, budgetToken }: { submiss
         Recevoir du remblai implique du transport, du temps de camion et de la manutention. Proposer un budget par voyage peut rendre votre demande plus intéressante pour les entrepreneurs et favoriser une livraison plus rapide, selon les matériaux disponibles et votre secteur. Vous pouvez aussi conserver votre demande sans contribution. Aucune livraison ni aucun délai ne sont garantis.
       </p>
       <label htmlFor="vq-contrib-amount" className="mt-4 block font-display text-sm font-bold text-foreground">
-        {BUDGET_PER_TRIP_LABEL}
+        {BUDGET_PER_TRIP_QUESTION}
       </label>
       <div className="mt-2 flex items-stretch overflow-hidden rounded-xl border-2 border-border bg-background focus-within:border-primary">
         <input
@@ -103,6 +103,7 @@ export default function TripBudgetOffer({ submissionId, budgetToken }: { submiss
       <p id="vq-contrib-note" className="mt-3 font-body text-xs text-muted-foreground">
         Ce montant est une proposition. Tout prix devra être convenu avec l’entrepreneur avant la livraison. Aucun paiement n’est effectué ici.
       </p>
-    </section>
+      </section>
+    </>
   );
 }
