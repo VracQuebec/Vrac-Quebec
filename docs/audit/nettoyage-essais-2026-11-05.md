@@ -35,3 +35,9 @@ Aucun déclencheur de communication sur suppression; aucun contact, compte ni do
 
 ## Prévention
 Aucun environnement de test séparé : l'aperçu partage la base de production. Plus aucun test d'écriture en production tant qu'une base distincte n'existe pas.
+
+## Complément — exclusion des 5 essais protégés (2026-11-05 soir)
+Numéros : « Dompe 984–987 » = numéro de dompe affiché; #823/824/826/827 = numéro de demande interne. Même fiches (UUID 342f1785…, 483d4b78…, b7a52ea3…, 0216d082…); #773 = Dompe 934 (24d65de9…).
+Verrou : journaux EXEC-01 immuables (8 événements de portail, 6 de propriété) refusent toute suppression (« immutable_history »). Suppression impossible sans désactiver ce verrou → conservés et exclus.
+Exclus (registre test_fixture_records) : 5 demandes, DT-0056/57, 2 missions chauffeur, 1 carnet CPN, 48 notifications. Sauvegarde : /mnt/documents/.lovable/exclusion-essais-2026-11-05/.
+Vérifié : CRM 776 (781 − 5), recherches R4K/Camille/984 vides, carte publique 528 points, jumelage 500, revalidation 658, statistiques — 0 essai; 773 vraies demandes antérieures identiques; #918–921 reçues pendant l'opération visibles.
