@@ -36,12 +36,22 @@ export function budgetPerTripError(raw: string | null | undefined): string | nul
   return parseBudgetPerTrip(raw) === null ? 'Montant invalide : chiffres seulement, 0 ou plus, deux décimales au maximum.' : null;
 }
 const fmtCad = (n: number) => n.toLocaleString('fr-CA', { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 });
-/** Affichage CRM/récapitulatif : jamais 0 $ par défaut pour une absence de réponse. */
-export function formatClientTripBudget(amount: string | null | undefined, unit?: string | null): string {
+/** Clé dédiée dans submissions.form_answers : distincte de l'ancienne case « Budget max » (unité libre : total, tonne, voyage). */
+export const CLIENT_TRIP_BUDGET_KEY = 'client_trip_budget_cad';
+/** Champ renvoyé par le serveur lorsque le budget manque : le formulaire ramène à la question. */
+export const BUDGET_FIELD_ERROR = 'budget_per_trip';
+/** Affichage récapitulatif : jamais 0 $ par défaut pour une absence de réponse. */
+export function formatClientTripBudget(amount: string | number | null | undefined): string {
   const raw = String(amount ?? '').trim();
-  if (!raw || !unit || !/voyage/i.test(unit)) return 'Non précisé';
+  if (!raw) return 'Non précisé';
   const n = parseBudgetPerTrip(raw);
-  return `${n === null ? raw : fmtCad(n)} $ CA / voyage`;
+  return n === null ? 'Non précisé' : `${fmtCad(n)} $ CA / voyage`;
+}
+/** Fiche CRM : lit seulement la clé dédiée; les anciennes demandes affichent « Non précisé ». */
+export function clientTripBudgetFromAnswers(answers: unknown): string {
+  if (!answers || typeof answers !== 'object') return 'Non précisé';
+  const v = (answers as Record<string, unknown>)[CLIENT_TRIP_BUDGET_KEY];
+  return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? formatClientTripBudget(v) : 'Non précisé';
 }
 export function publicStepError(step: string, data: ParcoursDraft): string | null {
   if (step === 'budget') return budgetPerTripError(data.budgetPerTrip);
