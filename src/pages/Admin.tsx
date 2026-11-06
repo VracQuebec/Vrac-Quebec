@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import AdminMap from "@/components/AdminMap";
 import BillingSection from "@/components/BillingSection";
+import { isAdminReadonlyActive } from "@/lib/admin-readonly/guard";
 // Chargés à la demande : ils embarquent la bibliothèque Excel (~160 Ko) inutile à l'ouverture.
 const BillingOverview = lazy(() => import("@/components/BillingOverview"));
 import EntrepreneursAdmin from "@/components/EntrepreneursAdmin";
@@ -1087,6 +1088,9 @@ const StatusBadgePicker = ({
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
+  if (isAdminReadonlyActive()) {
+    return <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-display font-bold uppercase" style={{ backgroundColor: s.color, color: s.text_color }}>{s.label}</span>;
+  }
   return (
     <div ref={ref} className="relative inline-block" onClick={(e) => e.stopPropagation()}>
       <button
@@ -1131,6 +1135,9 @@ const TypeBadgePicker = ({
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
+  if (isAdminReadonlyActive()) {
+    return <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-display font-bold border ${t.color}`}>{t.label}</span>;
+  }
   return (
     <div ref={ref} className="relative inline-block" onClick={(e) => e.stopPropagation()}>
       <button
