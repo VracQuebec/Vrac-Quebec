@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { confirmRedirect, decideSignup, entrepreneurSignupRole, type ExistingAuthUser, SIGNUP_EMAIL_CONFIRMED } from "./role.ts";
+import { confirmRedirect, decideSignup, entrepreneurSignupRole, type ExistingAuthUser, SIGNUP_EMAIL_CONFIRMED, unusablePassword } from "./role.ts";
 import { clientIp, enforceIpQuota, GuardError } from "../_shared/public-guard.ts";
 
 const corsHeaders = {
@@ -44,13 +44,11 @@ Deno.serve(async (req) => {
     }
 
     const email = String((body as Record<string, unknown>).email || "").trim().toLowerCase();
-    const password = String((body as Record<string, unknown>).password || "");
     const company = String((body as Record<string, unknown>).company || "").trim();
     const phone = String((body as Record<string, unknown>).phone || "").trim();
     const name = String((body as Record<string, unknown>).name || "").trim();
 
     if (!email) return json(400, { error: "Courriel requis" });
-    if (!password || password.length < 8) return json(400, { error: "Mot de passe minimum 8 caractères" });
     if (!name) return json(400, { error: "Nom requis" });
 
     // Limites anti-abus : par adresse IP et par courriel visé (évite l'envoi
@@ -106,7 +104,11 @@ Deno.serve(async (req) => {
       if (createdNewUser) await admin.auth.admin.deleteUser(userId);
       return json(500, { error: "Erreur serveur" });
     }
-    const { error: pwErr } = await admin.auth.admin.updateUserById(userId, { password });
+    // Aucun mot de passe fourni par l'initiateur n'est conservé : une inscription
+    // reprise perd tout ancien mot de passe; le titulaire choisit le sien via le lien.
+    const { error: pwErr } = createdNewUser
+      ? { error: null }
+      : await admin.auth.admin.updateUserById(userId, { password: unusablePassword() });
     if (pwErr) {
       if (createdNewUser) await admin.auth.admin.deleteUser(userId);
       console.error("signup-entrepreneur password:", pwErr.message);
@@ -136,7 +138,7 @@ Deno.serve(async (req) => {
       ok: true,
       email,
       confirmation_required: true,
-      message: "Vérifiez votre courriel pour confirmer votre adresse et activer votre compte.",
+      message: "Vérifiez votre courriel : ouvrez le lien pour confirmer votre adresse et choisir votre mot de passe.",
     });
   } catch (e) {
     console.error("signup-entrepreneur:", (e as Error).message);

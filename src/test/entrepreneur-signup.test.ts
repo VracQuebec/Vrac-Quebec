@@ -13,7 +13,7 @@ describe("inscription entrepreneur sans approbation manuelle", () => {
     expect(approvedRoleHints([entrepreneurSignupRole("test-user")])).not.toContain("admin");
   });
 });
-import { decideSignup, confirmRedirect, SIGNUP_EMAIL_CONFIRMED } from "../../supabase/functions/signup-entrepreneur/role";
+import { decideSignup, confirmRedirect, SIGNUP_EMAIL_CONFIRMED, SIGNUP_ACCEPTS_PASSWORD, unusablePassword } from "../../supabase/functions/signup-entrepreneur/role";
 import { isServiceCaller } from "../../supabase/functions/send-transactional-email/service-caller";
 
 describe("inscription : courriel prouvé avant activation", () => {
@@ -25,8 +25,8 @@ describe("inscription : courriel prouvé avant activation", () => {
   it("fiche entrepreneur liée à un autre compte : refus", () => { expect(decideSignup(pending, "u2")).toBe("conflict"); expect(decideSignup(null, "u2")).toBe("conflict"); });
   it("inscription en attente : nouvel envoi du lien", () => { expect(decideSignup(pending, "u1")).toBe("resend_pending"); });
   it("redirection limitée aux domaines du site", () => {
-    expect(confirmRedirect("https://evil.example")).toBe("https://vracquebec.ca/login?confirmation=entrepreneur");
-    expect(confirmRedirect("https://www.vracquebec.ca")).toBe("https://www.vracquebec.ca/login?confirmation=entrepreneur");
+    expect(confirmRedirect("https://evil.example")).toBe("https://vracquebec.ca/reset-password?bienvenue=entrepreneur");
+    expect(confirmRedirect("https://www.vracquebec.ca")).toBe("https://www.vracquebec.ca/reset-password?bienvenue=entrepreneur");
   });
 });
 
@@ -37,4 +37,12 @@ describe("courriels privilégiés réservés aux fonctions serveur", () => {
     expect(isServiceCaller("", "")).toBe(false);
   });
   it("accepte seulement la clé de service exacte", () => { expect(isServiceCaller("service-key", "service-key")).toBe(true); });
+});
+
+describe("inscription : mot de passe choisi seulement par le titulaire de la boîte", () => {
+  it("le serveur n'accepte aucun mot de passe de l'initiateur", () => { expect(SIGNUP_ACCEPTS_PASSWORD).toBe(false); });
+  it("une reprise reçoit un secret aléatoire, différent à chaque fois", () => {
+    const a = unusablePassword(), b = unusablePassword();
+    expect(a).not.toBe(b); expect(a.length).toBeGreaterThan(60);
+  });
 });
