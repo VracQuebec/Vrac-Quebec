@@ -39,7 +39,8 @@ import {
 import { buildHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff } from "@/lib/parcours/handoff";
 import { isFeatureEnabled } from "@/lib/flags";
 import { Button } from "@/components/ui/button";
-import { emptyParcoursDraft as emptyDraft, PUBLIC_RECEPTION_STEPS, publicStepError, BUDGET_PER_TRIP_LABEL, parseBudgetPerTrip, formatClientTripBudget, BUDGET_FIELD_ERROR, type ParcoursDraft as Draft } from "@/lib/remblai/public-form";
+import TripBudgetOffer from "@/components/parcours/TripBudgetOffer";
+import { emptyParcoursDraft as emptyDraft, PUBLIC_RECEPTION_STEPS, publicStepError, BUDGET_PER_TRIP_LABEL, parseBudgetPerTrip, formatClientTripBudget, BUDGET_FIELD_ERROR, newBudgetToken, type ParcoursDraft as Draft } from "@/lib/remblai/public-form";
 import MaterialAssistantStep from "@/components/parcours/MaterialAssistantStep";
 import ExtraLocations from "@/components/parcours/ExtraLocations";
 import { locationErrors, newLocation, MULTI_SITES_SERVER_READY, type LocationDraft } from "@/lib/parcours/multi-sites";
@@ -84,10 +85,8 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
   const { user } = useAuthReady();
   // Budget par voyage : formulaire public de remblai seulement (pas l'éditeur de suivi).
   const steps = useMemo<StepKey[]>(() => {
-    if (variant !== "reception" || editor) return STEPS[variant];
-    const base = [...STEPS.reception];
-    base.splice(base.indexOf("quantity") + 1, 0, "budget");
-    return base;
+    // Le budget par voyage est proposé APRÈS l'enregistrement (écran de confirmation), jamais exigé avant.
+    return STEPS[variant];
   }, [variant, editor]);
   // Drapeau material_assistant_v2 : désactivé par défaut (production inchangée).
   const assistantOn = useMemo(() => !editor && isFeatureEnabled("material_assistant_v2"), [editor]);
@@ -121,6 +120,9 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
   const [emailStatus, setEmailStatus] = useState<"queued" | "failed" | "not_sent" | null>(null);
   const [resending, setResending] = useState(false);
   const lastBody = useRef<Record<string, unknown> | null>(null);
+  // Jeton secret du formulaire : identique pour toute nouvelle tentative (même dossier, aucun doublon).
+  const budgetToken = useRef<string>(newBudgetToken());
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [handoff, setHandoff] = useState<ParcoursHandoff | null>(null);
   const [error, setError] = useState<string | null>(null);
   const startedAt = useRef(Date.now());
@@ -207,7 +209,7 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
           materials: data.materials,
           other_material: data.otherMaterial,
           project_usage: data.projectUsage || null,
-          ...(variant === "reception" ? { budget_per_trip: parseBudgetPerTrip(data.budgetPerTrip) } : {}),
+          ...(variant === "reception" && !editor ? { budget_token: budgetToken.current } : {}),
           quantity_label: quantityLabel,
           quantity_value: data.quantityUnknown ? null : parseQuantityValue(data.quantityValue),
           quantity_unit: data.quantityUnknown ? "inconnu" : data.quantityUnit,
@@ -273,6 +275,7 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
         saveHandoff(ho);
       }
       setEmailStatus(res?.email_status ?? null);
+      setSubmissionId(res?.submission_id ? String(res.submission_id) : null);
       setDone(true);
       trackEvent("lead_created", { form: "parcours", variant });
       try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
@@ -308,18 +311,15 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
       <div className="rounded-2xl border-2 border-primary/40 bg-primary/5 p-6 text-center">
         <CheckCircle2 className="mx-auto h-12 w-12 text-primary" aria-hidden />
         <h2 className="mt-3 font-display text-2xl font-extrabold text-foreground">
-          Votre demande a été reçue.
+          {variant === "reception" ? "Votre demande est enregistrée!" : "Votre demande a été reçue."}
         </h2>
         <p className="mt-3 font-body text-sm leading-relaxed text-muted-foreground">
           Vrac Québec vérifiera les solutions disponibles pour votre secteur et vous reviendra
           avec les informations. Aucun site, aucune disponibilité, aucun prix et aucun délai
           ne sont confirmés à cette étape.
         </p>
-        {variant === "reception" && (
-          <p className="mt-3 font-body text-sm text-foreground">
-            Budget du client par voyage reçu : <strong>{formatClientTripBudget(data.budgetPerTrip)}</strong>
-            <span className="block text-xs text-muted-foreground">Budget proposé seulement : ce n’est ni un prix accepté ni un paiement.</span>
-          </p>
+        {variant === "reception" && submissionId && (
+          <TripBudgetOffer submissionId={submissionId} budgetToken={budgetToken.current} />
         )}
         {emailStatus === "queued" && (
           <p role="status" className="mt-3 font-body text-sm text-foreground">
