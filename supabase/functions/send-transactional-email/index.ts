@@ -47,6 +47,14 @@ const PUBLIC_TEMPLATES = new Set(['client-confirmation', 'new-lead-notification'
 // callers from redirecting these notifications to arbitrary addresses.
 const ADMIN_NOTIFICATION_EMAIL = 'TransportJSC@hotmail.com'
 
+// Constant-time comparison of the caller bearer with the service key.
+export function isServiceCaller(token: string, serviceKey: string): boolean {
+  if (!token || !serviceKey || token.length !== serviceKey.length) return false
+  let diff = 0
+  for (let i = 0; i < token.length; i++) diff |= token.charCodeAt(i) ^ serviceKey.charCodeAt(i)
+  return diff === 0
+}
+
 // UUID v4-ish validation for submission IDs accepted from public callers.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -136,10 +144,12 @@ Deno.serve(async (req) => {
 
   // Restrict which templates can be invoked with just the anon key.
   // Privileged templates require a real user session.
+  // Privileged templates (caller-chosen recipient/data) are reserved to the
+  // app's own server functions, which authenticate with the service key.
+  // Any other bearer (anon key, user session, forged string) is refused.
   if (!PUBLIC_TEMPLATES.has(templateName)) {
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
     const callerToken = authHeader.slice(7).trim()
-    if (callerToken === anonKey) {
+    if (!isServiceCaller(callerToken, supabaseServiceKey)) {
       return new Response(
         JSON.stringify({ error: 'Forbidden' }),
         {
