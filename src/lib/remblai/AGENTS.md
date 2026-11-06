@@ -1,0 +1,1 @@
+- Remblai client trip budget lives in submissions.form_answers.client_trip_budget_cad, never in legacy budget_max/budget_unit (mixed total/tonne/voyage meanings) so historical values keep their original sense.
