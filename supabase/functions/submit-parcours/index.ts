@@ -92,6 +92,59 @@ const sendClientConfirmation = (id: string) => sendEmail({
   templateName: 'client-confirmation', idempotencyKey: `client-confirm-${id}`, submissionId: id,
 });
 
+
+// ---------- Budget par voyage proposé APRÈS l'enregistrement ----------
+// Le navigateur crée un jeton secret aléatoire envoyé avec la demande; seul son empreinte
+// SHA-256 est conservée. La mise à jour exige ce jeton : un visiteur ne peut modifier
+// que la demande qu'il vient d'envoyer, jamais celle d'une autre personne.
+const TOKEN_RE = /^[A-Za-z0-9_-]{32,128}$/;
+const BUDGET_WINDOW_MS = 7 * 24 * 3600 * 1000;
+async function sha256Hex(v: string) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+function sameHex(a: string, b: string) {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+async function setTripBudget(sb: ReturnType<typeof db>, body: Record<string, unknown>) {
+  const id = typeof body.submission_id === 'string' && /^[0-9a-f-]{36}$/i.test(body.submission_id) ? body.submission_id : null;
+  const token = typeof body.budget_token === 'string' && TOKEN_RE.test(body.budget_token) ? body.budget_token : null;
+  const refuse = () => json({ ok: false, retry: false, message: "Ce budget ne peut pas être enregistré pour cette demande. Votre demande reste enregistrée." }, 403);
+  if (!id || !token) return refuse();
+  const choice = body.choice === 'sans_contribution' ? 'sans_contribution' : body.choice === 'montant' ? 'montant' : null;
+  if (!choice) return json({ ok: false, retry: false, message: 'Choix invalide.' }, 400);
+  let amount: number | null = null;
+  if (choice === 'montant') {
+    const txt = typeof body.amount === 'number' && Number.isFinite(body.amount) ? String(body.amount)
+      : typeof body.amount === 'string' ? body.amount.trim().replace(/\s|\$/g, '').replace(',', '.') : '';
+    if (!/^\d{1,7}(?:\.\d{1,2})?$/.test(txt)) {
+      return json({ ok: false, retry: false, field: 'budget_per_trip', message: 'Montant invalide : inscrivez 0 ou un montant positif, avec deux décimales au maximum.' });
+    }
+    amount = Number(txt);
+  }
+  const { data: row, error } = await sb.from('submissions')
+    .select('id, form_answers, created_at, request_type, parcours_direction').eq('id', id).maybeSingle();
+  if (error) return json({ ok: false, retry: true, message: "Le budget n'a pas pu être enregistré. Votre demande reste enregistrée; réessayez." }, 503);
+  const fa = (row?.form_answers && typeof row.form_answers === 'object' ? row.form_answers : {}) as Record<string, unknown>;
+  const stored = typeof fa.client_trip_budget_token_sha256 === 'string' ? fa.client_trip_budget_token_sha256 : '';
+  if (!row || row.request_type !== 'remblai' || row.parcours_direction !== 'reception' || !stored
+    || !sameHex(stored, await sha256Hex(token))
+    || Date.now() - new Date(row.created_at as string).getTime() > BUDGET_WINDOW_MS) return refuse();
+  const next: Record<string, unknown> = { ...fa, client_trip_budget_choice: choice, client_trip_budget_answered_at: new Date().toISOString() };
+  if (choice === 'montant') next.client_trip_budget_cad = amount; else delete next.client_trip_budget_cad;
+  // Seule la clé dédiée change : statut, priorité, anciens budgets et autres réponses restent intacts.
+  const { error: upErr } = await sb.from('submissions').update({ form_answers: next }).eq('id', id);
+  if (upErr) {
+    logEventAsync({ source: 'submit_parcours', event: 'budget.update_failed', level: 'warn', refId: id, message: upErr.message });
+    return json({ ok: false, retry: true, message: "Le budget n'a pas pu être enregistré. Votre demande reste enregistrée; réessayez." }, 503);
+  }
+  logEventAsync({ source: 'submit_parcours', event: 'budget.updated', refId: id, context: { choice } });
+  return json({ ok: true, submission_id: id, choice, amount });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ ok: false, error: 'Méthode non supportée' }, 405);
@@ -99,6 +152,9 @@ Deno.serve(async (req) => {
   try {
     const sb = db();
     const body = await req.json().catch(() => null);
+    if (body?.action === 'set_trip_budget') return await setTripBudget(sb, body);
+    const budgetToken = typeof body?.budget_token === 'string' && TOKEN_RE.test(body.budget_token) ? body.budget_token : null;
+    const budgetTokenHash = budgetToken ? await sha256Hex(budgetToken) : null;
 
     const variant = body?.variant === 'evacuation' ? 'evacuation' : 'reception';
     const name = clean(body?.contact?.name, 160);
@@ -127,7 +183,9 @@ Deno.serve(async (req) => {
     // Budget proposé par le client ($ CA / voyage reçu) : obligatoire pour /remblai,
     // 0 accepté, deux décimales max. Ni prix accepté, ni paiement.
     let budgetPerTrip: string | null = null;
-    if (variant === 'reception') {
+    // Le budget n'est plus demandé pendant le formulaire (proposé après l'enregistrement).
+    // Une ancienne page qui l'envoie encore reste acceptée.
+    if (variant === 'reception' && body?.budget_per_trip != null && body?.budget_per_trip !== '') {
       const rawBudget = body?.budget_per_trip;
       const txt = typeof rawBudget === 'number' && Number.isFinite(rawBudget) ? String(rawBudget) : typeof rawBudget === 'string' ? rawBudget.trim().replace(',', '.') : '';
       const nb = Number(txt);
@@ -209,7 +267,10 @@ Deno.serve(async (req) => {
       quantity: quantityLabel,
       quantity_value: quantityValue,
       // Budget par voyage dans une clé dédiée : l'ancienne case « Budget max » (unités mixtes) reste intacte.
-      ...(budgetPerTrip !== null ? { form_answers: { client_trip_budget_cad: Number(budgetPerTrip) } } : {}),
+      ...((budgetPerTrip !== null || budgetTokenHash) ? { form_answers: {
+        ...(budgetPerTrip !== null ? { client_trip_budget_cad: Number(budgetPerTrip), client_trip_budget_choice: 'montant' } : {}),
+        ...(budgetTokenHash && variant === 'reception' ? { client_trip_budget_token_sha256: budgetTokenHash } : {}),
+      } } : {}),
       quantity_unit: quantityUnit,
       parcours_direction: variant,
       truck_type_key: truckTypeKey,
