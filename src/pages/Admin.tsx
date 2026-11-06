@@ -2,6 +2,8 @@ import { CLIENT_TRIP_BUDGET_CRM_LABEL, clientTripBudgetFromAnswers } from "@/lib
 import { formatRequestLabel } from "@/lib/requests/labels";
 import { useScreenContext } from "@/lib/navigation/listContext";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { neutralizeSpreadsheetCell } from "@/lib/security/filters";
 import { supabase } from "@/integrations/supabase/client";
@@ -1058,7 +1060,7 @@ const Admin = () => {
       />
 
       {/* Le raccourci ajoute une demande; il reste caché dans les autres sections CRM. */}
-      {tab === "leads" && <button
+      {tab === "leads" && !expanded && <button
         type="button"
         aria-label="Ajouter un Lead"
         onClick={() => setShowNewLead(true)}
@@ -1186,101 +1188,49 @@ interface CardProps {
   leadStatuses: LeadStatus[];
 }
 
-const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete, onArchive, userEmail, leadStatuses }: CardProps) => {
-  const [notes, setNotes] = useState<LeadNote[]>([]);
-  const [newNote, setNewNote] = useState("");
-  const [savingNote, setSavingNote] = useState(false);
-  const [internalDraft, setInternalDraft] = useState(sub.internal_notes || "");
-  const [entrepreneurs, setEntrepreneurs] = useState<{ user_id: string; email: string }[]>([]);
-  const cardNavigate = useNavigate();
-  const [validating, setValidating] = useState(false);
-  const [validatedAt, setValidatedAt] = useState<string | null>(sub.site_validated_at ?? null);
-  const [linkedTransport, setLinkedTransport] = useState<LinkedTransportRequest | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  // Validation admin du site sélectionné : UPDATE idempotent sur CETTE demande.
-  const onValidateSite = async () => {
-    if (validating) return; // double clic → une seule validation
-    setValidating(true);
-    const res = await validateSelectedSite(sub.id, { hasSelection: !!sub.selected_site_id });
-    setValidating(false);
-    if (res.ok !== true) {
-      toast({ title: "Validation impossible", description: res.message, variant: "destructive" });
-      return;
-    }
-    setValidatedAt(res.validated.validatedAt);
-    toast({ title: "Site validé", description: res.validated.siteLabel || "Site confirmé pour cette demande." });
-  };
-
-  const goToTransportRequest = () => {
-    if (linkedTransport) {
-      // La relation en base est la source de vérité : on rouvre la demande
-      // existante au lieu d'en créer une nouvelle.
-      cardNavigate(`/demande-transport?submission=${sub.id}`);
-      return;
-    }
-    const prefill = buildTransportPrefill(sub as unknown as TransportPrefillSource);
-    cardNavigate("/demande-transport", { state: { vqPrefill: prefill } });
-  };
-
-  // Rattachement submission → demande de transport (relu depuis la DB).
-  useEffect(() => {
-    if (!expanded) return;
-    let cancelled = false;
-    fetchLinkedTransportRequest(sub.id).then((row) => {
-      if (!cancelled) setLinkedTransport(row);
-    });
-    return () => { cancelled = true; };
-  }, [expanded, sub.id, validatedAt]);
-
-  useEffect(() => {
-    if (expanded && cardRef.current) {
-      const timer = setTimeout(() => {
-        cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 120);
-      return () => clearTimeout(timer);
-    }
-  }, [expanded]);
-
-  useEffect(() => { setInternalDraft(sub.internal_notes || ""); }, [sub.internal_notes]);
-
-  useEffect(() => {
-    if (!expanded) return;
-    supabase.rpc("list_users_with_roles").then(({ data }) => {
-      const list = ((data as any) || [])
-        .filter((u: any) => (u.roles || []).includes("entrepreneur"))
-        .map((u: any) => ({ user_id: u.user_id, email: u.email }));
-      setEntrepreneurs(list);
-    });
-  }, [expanded]);
-
-  useEffect(() => {
-    if (!expanded) return;
-    supabase.from("lead_notes").select("*").eq("submission_id", sub.id).order("created_at", { ascending: false })
-      .then(({ data }) => setNotes((data as any) || []));
-  }, [expanded, sub.id]);
-
-  const addNote = async () => {
-    if (!newNote.trim()) return;
-    setSavingNote(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
-    const { data, error } = await supabase.from("lead_notes").insert({
-      submission_id: sub.id, author_id: session.user.id, author_email: userEmail, note: newNote.trim(),
-    }).select().single();
-    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    else { setNotes((prev) => [data as any, ...prev]); setNewNote(""); }
-    setSavingNote(false);
-  };
-
-  const phoneClean = (sub.phone || "").replace(/\D/g, "");
-  const mapsUrl = sub.latitude && sub.longitude
-    ? `https://www.google.com/maps?q=${sub.latitude},${sub.longitude}`
-    : `https://www.google.com/maps?q=${encodeURIComponent(`${sub.address} ${sub.postal_code || ""}`)}`;
-
+/** Bloc d'une section : consultation par défaut, champs de modification seulement après « Modifier ». */
+const EditBlock = ({ title, view, children }: { title?: string; view: React.ReactNode; children: React.ReactNode }) => {
+  const [editing, setEditing] = useState(false);
   return (
-    <div ref={cardRef} className="bg-card rounded-xl border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
-      <button onClick={onToggle} className="w-full px-4 sm:px-5 py-4 flex items-center justify-between text-left gap-3">
+    <div className="rounded-lg bg-secondary/30 p-3 min-w-0">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        {title ? <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground">{title}</div> : <span />}
+        <button
+          type="button"
+          onClick={() => setEditing((e) => !e)}
+          className="inline-flex min-h-[36px] items-center gap-1 rounded-md border border-border bg-background px-3 text-xs font-display font-semibold text-foreground"
+        >
+          {editing ? "Terminé" : "Modifier"}
+        </button>
+      </div>
+      {editing ? (
+        <div className="space-y-3">
+          {children}
+          <p className="text-[11px] text-muted-foreground">Chaque champ est enregistré dès que vous le quittez; un message « Enregistré » le confirme.</p>
+        </div>
+      ) : view}
+    </div>
+  );
+};
+
+const nz = (v: unknown): string => {
+  if (v == null) return "Non renseigné";
+  if (Array.isArray(v)) return v.length ? v.join(", ") : "Non renseigné";
+  const s = String(v).trim();
+  return s || "Non renseigné";
+};
+
+const SummaryItem = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="min-w-0">
+    <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground">{label}</div>
+    <div className="text-sm font-body text-foreground break-words">{children}</div>
+  </div>
+);
+
+const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete, onArchive, userEmail, leadStatuses }: CardProps) => {
+  return (
+    <div className="bg-card rounded-xl border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
+      <button onClick={onToggle} className="w-full px-4 sm:px-5 py-4 flex items-center justify-between text-left gap-3" aria-haspopup="dialog">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             {sub.dompe_number ? (
@@ -1323,96 +1273,328 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
             {formatDate(sub.created_at)} • {getMaterialLabels(sub.materials)} • {sub.address}
           </p>
         </div>
-        {expanded ? <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" /> : <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />}
+        <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
       </button>
+      {expanded && createPortal(
+        <LeadDetail
+          key={sub.id}
+          sub={sub}
+          onClose={onToggle}
+          onStatusChange={onStatusChange}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+          onArchive={onArchive}
+          userEmail={userEmail}
+          leadStatuses={leadStatuses}
+        />,
+        document.body,
+      )}
+    </div>
+  );
+};
 
-      {expanded && (
-        <div className="px-3 sm:px-5 pb-5 border-t border-border pt-4 space-y-4 min-w-0">
-          {/* 1. Résumé du lead */}
-          <div className="rounded-xl border border-border bg-secondary/30 p-3 sm:p-4">
-            <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Résumé du lead</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 text-xs font-body min-w-0">
-              <D label="Numéro" v={sub.submission_number ? `#${sub.submission_number}` : "Non renseigné"} />
-              <D label="Client" v={sub.name || "Non renseigné"} />
-              <D label="Type de demande" v={requestTypeMeta(sub.request_type)?.label || sub.request_type || "Non renseigné"} />
-              <D label="Matériau principal" v={getMaterialLabels(sub.materials || []) || sub.other_material || "Non renseigné"} />
-              <D label="Voyages" v={sub.quantity || "Non renseigné"} />
-              {(() => {
-                const o = sub as unknown as { origin_table?: string | null; origin_record_id?: string | null };
-                if (!o.origin_table || !o.origin_record_id) return null;
-                const to = o.origin_table === "transport_requests" ? "/admin/demandes-acces"
-                  : o.origin_table === "mkt_quote_requests" ? "/admin/marche/soumissions" : "/admin/jsc";
-                const lbl = o.origin_table === "transport_requests" ? "Accès dompe / transport"
-                  : o.origin_table === "mkt_quote_requests" ? "Demande de services" : "Soumission matériaux";
-                return (
-                  <div className="min-w-0">
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Dossier opérationnel</div>
-                    <Link to={to} className="font-semibold text-primary underline-offset-2 hover:underline">{lbl}</Link>
+type DetailProps = Omit<CardProps, "expanded" | "onToggle"> & { onClose: () => void };
+
+const LeadDetail = ({ sub, onClose, onStatusChange, onUpdate, onDelete, onArchive, userEmail, leadStatuses }: DetailProps) => {
+  const [notes, setNotes] = useState<LeadNote[]>([]);
+  const [newNote, setNewNote] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
+  const [internalDraft, setInternalDraft] = useState(sub.internal_notes || "");
+  const [entrepreneurs, setEntrepreneurs] = useState<{ user_id: string; email: string }[]>([]);
+  const cardNavigate = useNavigate();
+  const [validating, setValidating] = useState(false);
+  const [validatedAt, setValidatedAt] = useState<string | null>(sub.site_validated_at ?? null);
+  const [linkedTransport, setLinkedTransport] = useState<LinkedTransportRequest | null>(null);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isRemblai = normalizeRequestType(sub.request_type) === "remblai";
+
+  // Fiche plein écran : début de fiche à chaque ouverture, liste figée derrière (position conservée).
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    const y = window.scrollY;
+    document.body.style.overflow = "hidden";
+    scrollRef.current?.scrollTo({ top: 0 });
+    scrollRef.current?.focus({ preventScroll: true });
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+      window.scrollTo({ top: y });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onValidateSite = async () => {
+    if (validating) return;
+    setValidating(true);
+    const res = await validateSelectedSite(sub.id, { hasSelection: !!sub.selected_site_id });
+    setValidating(false);
+    if (res.ok !== true) {
+      toast({ title: "Validation impossible", description: res.message, variant: "destructive" });
+      return;
+    }
+    setValidatedAt(res.validated.validatedAt);
+    toast({ title: "Site validé", description: res.validated.siteLabel || "Site confirmé pour cette demande." });
+  };
+
+  const goToTransportRequest = () => {
+    if (linkedTransport) {
+      cardNavigate(`/demande-transport?submission=${sub.id}`);
+      return;
+    }
+    const prefill = buildTransportPrefill(sub as unknown as TransportPrefillSource);
+    cardNavigate("/demande-transport", { state: { vqPrefill: prefill } });
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchLinkedTransportRequest(sub.id).then((row) => { if (!cancelled) setLinkedTransport(row); });
+    return () => { cancelled = true; };
+  }, [sub.id, validatedAt]);
+
+  useEffect(() => { setInternalDraft(sub.internal_notes || ""); }, [sub.internal_notes]);
+
+  useEffect(() => {
+    supabase.rpc("list_users_with_roles").then(({ data }) => {
+      const list = ((data as any) || [])
+        .filter((u: any) => (u.roles || []).includes("entrepreneur"))
+        .map((u: any) => ({ user_id: u.user_id, email: u.email }));
+      setEntrepreneurs(list);
+    });
+  }, []);
+
+  useEffect(() => {
+    supabase.from("lead_notes").select("*").eq("submission_id", sub.id).order("created_at", { ascending: false })
+      .then(({ data }) => setNotes((data as any) || []));
+  }, [sub.id]);
+
+  const addNote = async () => {
+    if (!newNote.trim()) return;
+    setSavingNote(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) { setSavingNote(false); return; }
+    const { data, error } = await supabase.from("lead_notes").insert({
+      submission_id: sub.id, author_id: session.user.id, author_email: userEmail, note: newNote.trim(),
+    }).select().single();
+    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    else { setNotes((prev) => [data as any, ...prev]); setNewNote(""); toast({ title: "Note enregistrée" }); }
+    setSavingNote(false);
+  };
+
+  const phoneClean = (sub.phone || "").replace(/\D/g, "");
+  const mapsUrl = sub.latitude && sub.longitude
+    ? `https://www.google.com/maps?q=${sub.latitude},${sub.longitude}`
+    : `https://www.google.com/maps?q=${encodeURIComponent(`${sub.address} ${sub.postal_code || ""}`)}`;
+  const statusMeta = findStatus(leadStatuses, sub.status);
+  const quantityText = sub.quote_quantity != null
+    ? `${sub.quote_quantity} ${sub.quote_unit || ""}`.trim()
+    : sub.quantity ? `${sub.quantity} voyage(s)` : "Non renseigné";
+  const wantedDate = sub.delivery_deadline
+    ? new Date(`${sub.delivery_deadline.slice(0, 10)}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })
+    : (sub.delivery_timeframe || "Non précisée");
+  const contactBtn = "inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-display font-semibold";
+
+  return (
+    <div className="fixed inset-0 z-[70] flex justify-end">
+      <div className="absolute inset-0 hidden bg-foreground/40 md:block" onClick={onClose} aria-hidden />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Fiche de ${sub.name || "la demande"}`}
+        className="relative flex h-full w-full flex-col bg-background shadow-2xl md:w-[min(1040px,94vw)] md:border-l md:border-border"
+      >
+        {/* En-tête fixe hors du défilement : ne recouvre jamais le contenu. */}
+        <header
+          className="flex shrink-0 items-center gap-2 border-b border-border bg-card px-2 py-2 sm:px-4"
+          style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex min-h-[44px] items-center gap-1 rounded-md px-2 text-sm font-display font-semibold text-foreground hover:bg-secondary"
+          >
+            <ArrowLeft className="h-5 w-5" /> <span className="hidden sm:inline">Retour à la liste</span><span className="sm:hidden">Liste</span>
+          </button>
+          <div className="min-w-0 flex-1">
+            <div className="truncate font-display text-sm font-bold text-foreground">{sub.name || "Sans nom"}</div>
+            <div className="truncate text-[11px] font-body text-muted-foreground">
+              {sub.submission_number ? `#${sub.submission_number}` : ""}{sub.dompe_number ? ` · ${sub.dompe_number}` : ""}
+            </div>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" aria-label="Autres actions" className="inline-flex h-11 w-11 items-center justify-center rounded-md hover:bg-secondary">
+                <MoreHorizontal className="h-5 w-5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="z-[80]">
+              <DropdownMenuItem asChild>
+                <Link to={`/admin/calendrier?from_submission=${sub.id}`}><CalendarDays className="h-4 w-4" /> Planifier au calendrier</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onArchive()}><Archive className="h-4 w-4" /> Archiver</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => onDelete()} className="text-destructive focus:text-destructive">
+                <Trash2 className="h-4 w-4" /> Supprimer définitivement
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </header>
+
+        <div
+          ref={scrollRef}
+          tabIndex={-1}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-4 outline-none sm:px-5"
+          style={{ paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}
+        >
+          <div className="mx-auto max-w-5xl space-y-4 min-w-0">
+            {/* Essentiel, en consultation */}
+            <section className="rounded-xl border border-border bg-card p-3 sm:p-4">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h2 className="font-display text-lg font-bold text-foreground break-words">{sub.name || "Sans nom"}</h2>
+                  <div className="text-xs font-body text-muted-foreground">
+                    {sub.submission_number ? `Demande #${sub.submission_number}` : "Demande"}{sub.dompe_number ? ` · ${sub.dompe_number}` : ""} · reçue le {formatDate(sub.created_at)}
                   </div>
-                );
-              })()}
-              <D label="Transport" v={sub.quote_truck || "Non renseigné"} />
-              <D label="Dompe / site" v={sub.selected_site_label || sub.dompe_number || "Aucun site sélectionné"} />
-              <D label="Priorité" v={LEAD_PRIORITIES.find((x) => x.value === sub.priority)?.label || sub.priority || "Non renseigné"} />
-              <D label="Créé le" v={formatDate(sub.created_at)} />
-              <D label="Dernière modification" v={(sub as unknown as { updated_at?: string | null }).updated_at ? formatDate((sub as unknown as { updated_at: string }).updated_at) : "Non renseigné"} />
-              <div className="sm:col-span-2 lg:col-span-3 flex items-center gap-2 pt-1">
-                <span className="text-muted-foreground">Statut :</span>
-                <StatusBadgePicker status={sub.status} statuses={leadStatuses} onChange={(v) => onStatusChange(v)} />
+                </div>
               </div>
-            </div>
-          </div>
-          {/* Bloc unique de disponibilité — visible immédiatement, hors des sections repliées */}
-          {normalizeRequestType(sub.request_type) === "remblai" && (
-            <DompeAvailabilityPanel
-              crmStatus={sub.status}
-              data={{
-                id: sub.id,
-                availability_status: sub.availability_status ?? null,
-                availability_updated_at: sub.availability_updated_at ?? null,
-                availability_note: sub.availability_note ?? null,
-                remaining_capacity: sub.remaining_capacity ?? null,
-                opening_hours: sub.opening_hours ?? null,
-                materials: sub.materials ?? null,
-                truck_types_allowed: sub.truck_types_allowed ?? null,
-              }}
-            />
-          )}
-          <LeadSection title="Client et coordonnées" defaultOpen={true}>
-            <div className="text-[10px] text-muted-foreground italic">Sauvegarde automatique à chaque modification.</div>
-          {/* Quick actions */}
-          <div className="flex flex-wrap gap-2">
-            {sub.phone && (
-              <>
-                <a href={`tel:${phoneClean}`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold"><Phone className="w-3.5 h-3.5" /> Appeler</a>
-                <a href={`sms:${phoneClean}`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground text-background text-xs font-display font-semibold"><MessageSquare className="w-3.5 h-3.5" /> SMS</a>
-                <a href={`https://wa.me/1${phoneClean}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#25D366] text-white text-xs font-display font-semibold">🟢 WhatsApp</a>
-              </>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {sub.phone && <a href={`tel:${phoneClean}`} className={`${contactBtn} bg-primary text-primary-foreground`}><Phone className="h-4 w-4" /> Appeler</a>}
+                {sub.phone && <a href={`sms:${phoneClean}`} className={`${contactBtn} bg-secondary text-foreground`}><MessageSquare className="h-4 w-4" /> Texto</a>}
+                {sub.phone && <a href={`https://wa.me/1${phoneClean}`} target="_blank" rel="noreferrer" className={`${contactBtn} bg-secondary text-foreground`}>WhatsApp</a>}
+                {sub.email && <a href={`mailto:${sub.email}`} className={`${contactBtn} bg-secondary text-foreground`}><Mail className="h-4 w-4" /> Courriel</a>}
+                <a href={mapsUrl} target="_blank" rel="noreferrer" className={`${contactBtn} bg-secondary text-foreground`}><MapPin className="h-4 w-4" /> Carte</a>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+                <SummaryItem label="Client et coordonnées">
+                  <div>{nz(sub.name)}</div>
+                  <div className="text-muted-foreground">{sub.phone || "Téléphone non renseigné"}</div>
+                  <div className="text-muted-foreground break-all">{sub.email || "Courriel non renseigné"}</div>
+                </SummaryItem>
+                <SummaryItem label="Adresse du chantier">{[sub.address, sub.postal_code].filter(Boolean).join(" ") || "Non renseignée"}</SummaryItem>
+                <SummaryItem label="Type de demande et matériaux">
+                  <div>{requestTypeMeta(sub.request_type)?.label || sub.request_type || "Non renseigné"}</div>
+                  <div className="text-muted-foreground">{getMaterialLabels(sub.materials || []) || sub.other_material || "Matériaux non renseignés"}</div>
+                </SummaryItem>
+                <SummaryItem label="Quantité et unité">
+                  {quantityText}{sub.tonnage ? <span className="text-muted-foreground"> · {sub.tonnage} t</span> : null}
+                </SummaryItem>
+                <SummaryItem label={CLIENT_TRIP_BUDGET_CRM_LABEL}>
+                  {clientTripBudgetFromAnswers((sub as { form_answers?: unknown }).form_answers)}
+                  <div className="text-[11px] text-muted-foreground">Budget proposé — ni prix accepté ni paiement.</div>
+                </SummaryItem>
+                <SummaryItem label="Date souhaitée">{wantedDate}</SummaryItem>
+              </div>
+            </section>
+
+            {/* Statut commercial CRM — indépendant de la disponibilité */}
+            <section className="rounded-xl border border-border bg-card p-3 sm:p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground">Statut CRM (suivi commercial)</div>
+                  <span
+                    className="mt-1 inline-block rounded-md px-2.5 py-1 text-xs font-display font-bold uppercase"
+                    style={{ backgroundColor: statusMeta.color, color: statusMeta.text_color }}
+                  >
+                    {statusMeta.label}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStatusOpen((o) => !o)}
+                  aria-expanded={statusOpen}
+                  className="inline-flex min-h-[44px] items-center rounded-md border border-border bg-background px-4 text-xs font-display font-bold uppercase tracking-wide text-foreground"
+                >
+                  {statusOpen ? "Fermer" : "Modifier le statut"}
+                </button>
+              </div>
+              {statusOpen && (
+                <div className="mt-3 border-t border-border pt-3">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {leadStatuses.filter((s) => s.enabled || s.value === sub.status).map((s) => {
+                      const active = sub.status === s.value;
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          data-ro-write="1"
+                          disabled={active}
+                          onClick={() => { onStatusChange(s.value); setStatusOpen(false); }}
+                          className={`flex min-h-[48px] items-center gap-2 rounded-lg border px-3 text-left text-sm font-display font-semibold ${active ? "border-primary bg-primary/10 text-foreground" : "border-border bg-background text-foreground hover:bg-secondary"}`}
+                        >
+                          <span aria-hidden className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                          {s.label}{active ? " (actuel)" : ""}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">Changer le statut ne modifie jamais la disponibilité du site.</p>
+                </div>
+              )}
+            </section>
+
+            {isRemblai && (
+              <DompeAvailabilityPanel
+                data={{
+                  id: sub.id,
+                  availability_status: sub.availability_status ?? null,
+                  availability_updated_at: sub.availability_updated_at ?? null,
+                  availability_note: sub.availability_note ?? null,
+                  remaining_capacity: sub.remaining_capacity ?? null,
+                  opening_hours: sub.opening_hours ?? null,
+                  materials: sub.materials ?? null,
+                  truck_types_allowed: sub.truck_types_allowed ?? null,
+                }}
+              />
             )}
-            <a href={`mailto:${sub.email}`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-display font-semibold"><Mail className="w-3.5 h-3.5" /> Courriel</a>
-            <a href={mapsUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-display font-semibold"><MapPin className="w-3.5 h-3.5" /> Carte</a>
-            <Link to={`/admin/calendrier?from_submission=${sub.id}`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold">
-              <CalendarDays className="w-3.5 h-3.5" /> Planifier au calendrier
-            </Link>
-            <button onClick={onArchive} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary text-foreground text-xs font-display font-semibold"><Archive className="w-3.5 h-3.5" /> Archiver</button>
-          </div>
-            {/* Contact */}
-            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
-              <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Contact</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <InlineField label="Nom du client" type="text" value={sub.name || ""} onSave={(v) => onUpdate({ name: v })} />
-                <InlineField label="Téléphone" type="tel" value={sub.phone || ""} onSave={(v) => onUpdate({ phone: v })} />
-                <InlineField label="Courriel" type="email" value={sub.email || ""} onSave={(v) => onUpdate({ email: v })} />
-                <InlineField label="Adresse" type="text" value={sub.address || ""} onSave={(v) => onUpdate({ address: v })} />
-                <InlineField label="Code postal" type="text" value={sub.postal_code || ""} onSave={(v) => onUpdate({ postal_code: v })} />
+
+            <LeadSection title="Réponses originales du formulaire">
+              <LeadParcoursPanel lead={sub} />
+              <div>
+                <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground">Notes du client (description)</div>
+                <p className="text-sm font-body whitespace-pre-wrap break-words">{sub.description || "Aucune"}</p>
               </div>
-            </div>
-          </LeadSection>
-          <LeadSection title="Demande et projet" defaultOpen={true}>
-            {/* Matériaux & projet */}
-            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
-              <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Matériaux et projet</div>
-              <div className="grid grid-cols-1 gap-3">
+              {sub.photos && sub.photos.length > 0 && (
+                <div>
+                  <div className="mb-1.5 text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground">Photos</div>
+                  <LeadPhotos photos={sub.photos} />
+                </div>
+              )}
+            </LeadSection>
+
+            <LeadSection title="Client et coordonnées">
+              <EditBlock
+                view={<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-body">
+                  <D label="Nom" v={nz(sub.name)} /><D label="Téléphone" v={nz(sub.phone)} />
+                  <D label="Courriel" v={nz(sub.email)} /><D label="Adresse" v={nz(sub.address)} />
+                  <D label="Code postal" v={nz(sub.postal_code)} />
+                </div>}
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <InlineField label="Nom du client" type="text" value={sub.name || ""} onSave={(v) => onUpdate({ name: v })} />
+                  <InlineField label="Téléphone" type="tel" value={sub.phone || ""} onSave={(v) => onUpdate({ phone: v })} />
+                  <InlineField label="Courriel" type="email" value={sub.email || ""} onSave={(v) => onUpdate({ email: v })} />
+                  <InlineField label="Adresse" type="text" value={sub.address || ""} onSave={(v) => onUpdate({ address: v })} />
+                  <InlineField label="Code postal" type="text" value={sub.postal_code || ""} onSave={(v) => onUpdate({ postal_code: v })} />
+                </div>
+              </EditBlock>
+            </LeadSection>
+
+            <LeadSection title="Demande et projet">
+              <EditBlock
+                view={<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-body">
+                  <D label="Matériaux" v={getMaterialLabels(sub.materials || []) || "Non renseigné"} />
+                  <D label="Autre matériau" v={nz(sub.other_material)} />
+                  <D label="Type de projet" v={nz(sub.property_type)} />
+                  <D label="Voyages" v={nz(sub.quantity)} />
+                  <D label="Tonnage" v={nz(sub.tonnage)} />
+                  <D label="Livrer / Sortir" v={nz(sub.deliver_or_remove)} />
+                  <D label="Contamination" v={nz(sub.contamination)} />
+                </div>}
+              >
                 <InlineField
                   label="Matériaux"
                   type="multiselect"
@@ -1422,525 +1604,317 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <InlineField label="Autre matériau" type="text" value={sub.other_material || ""} onSave={(v) => onUpdate({ other_material: v })} />
-                  <InlineField
-                    label="Type de projet"
-                    type="select"
-                    value={sub.property_type || ""}
-                    allowEmpty
+                  <InlineField label="Type de projet" type="select" value={sub.property_type || ""} allowEmpty
                     options={PROJECT_TYPES.map((p) => ({ value: p.value, label: p.value }))}
-                    onSave={(v) => onUpdate({ property_type: v })}
-                  />
+                    onSave={(v) => onUpdate({ property_type: v })} />
                   <InlineField label="Voyages" type="text" value={sub.quantity || ""} onSave={(v) => onUpdate({ quantity: v })} />
                   <InlineField label="Tonnage" type="text" value={sub.tonnage || ""} onSave={(v) => onUpdate({ tonnage: v })} />
-                  <InlineField
-                    label="Livrer / Sortir"
-                    type="select"
-                    value={sub.deliver_or_remove || ""}
-                    allowEmpty
+                  <InlineField label="Livrer / Sortir" type="select" value={sub.deliver_or_remove || ""} allowEmpty
                     options={DELIVER_OR_REMOVE_OPTIONS.map((o) => ({ value: o, label: o }))}
-                    onSave={(v) => onUpdate({ deliver_or_remove: v || null })}
-                  />
-                  <InlineField
-                    label="Contamination"
-                    type="select"
-                    value={sub.contamination || ""}
-                    allowEmpty
+                    onSave={(v) => onUpdate({ deliver_or_remove: v || null })} />
+                  <InlineField label="Contamination" type="select" value={sub.contamination || ""} allowEmpty
                     options={CONTAMINATION_OPTIONS.map((o) => ({ value: o, label: o }))}
-                    onSave={(v) => onUpdate({ contamination: v || null })}
-                  />
+                    onSave={(v) => onUpdate({ contamination: v || null })} />
                 </div>
-              </div>
-            </div>
-            {/* Notes client */}
-            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
-              <InlineField
-                label="Notes du client (description)"
-                type="textarea"
-                rows={3}
-                value={sub.description || ""}
-                onSave={(v) => onUpdate({ description: v || null })}
-              />
-            </div>
-          {sub.photos && sub.photos.length > 0 && (
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Photos</label>
-              <LeadPhotos photos={sub.photos} />
-            </div>
-          )}
-          </LeadSection>
-          <LeadSection title="Demande complète (formulaire)" defaultOpen={true}>
-            <LeadParcoursPanel lead={sub} />
-          </LeadSection>
-          <LeadSection title="Statut et suivi" defaultOpen={true}>
-          {/* Status selector */}
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Statut du lead</label>
-            <div className="flex flex-wrap gap-2">
-              {leadStatuses.filter((s) => s.enabled || s.value === sub.status).map((s) => {
-                const active = sub.status === s.value;
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => onStatusChange(s.value)}
-                    style={active ? { backgroundColor: s.color, color: s.text_color, borderColor: "transparent" } : undefined}
-                    className={`px-3 py-2 min-h-[36px] rounded-md text-[11px] font-display font-bold uppercase border transition-all touch-manipulation ${active ? "" : "bg-card text-muted-foreground border-border hover:border-foreground/30 active:bg-secondary"}`}
-                  >
-                    {s.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          {/* Request type selector */}
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Type de demande</label>
-            <div className="flex flex-wrap gap-1.5">
-              {REQUEST_TYPES.map((t) => (
-                <button key={t.value} onClick={() => {
-                  const updates: any = { request_type: t.value };
-                  updates.visible_to_entrepreneur = t.value === "remblai";
-                  onUpdate(updates);
-                }}
-                  className={`px-2.5 py-1 rounded text-[11px] font-display font-bold border transition-all ${normalizeRequestType(sub.request_type) === t.value ? t.color : "bg-card text-muted-foreground border-border hover:border-foreground/30"}`}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          {/* Priority + visibility + assigned */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Priorité</label>
-              <div className="flex gap-1.5">
-                {LEAD_PRIORITIES.map((p) => (
-                  <button key={p.value} onClick={() => onUpdate({ priority: p.value })}
-                    className={`px-2.5 py-1 rounded text-[11px] font-display font-bold uppercase border transition-all ${sub.priority === p.value ? p.color + " border-transparent" : "bg-card text-muted-foreground border-border hover:border-foreground/30"}`}>
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Entrepreneur assigné</label>
-              <select value={sub.assigned_entrepreneur || ""}
-                onChange={(e) => onUpdate({ assigned_entrepreneur: e.target.value || null })}
-                className="w-full px-2 py-1.5 text-xs rounded-lg border border-border bg-background font-body">
-                <option value="">— Aucun —</option>
-                {entrepreneurs.map((e) => (
-                  <option key={e.user_id} value={e.user_id}>{e.email}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Afficher sur carte entrepreneurs</label>
-              <button onClick={() => onUpdate({ visible_to_entrepreneur: !sub.visible_to_entrepreneur })}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-bold uppercase border ${sub.visible_to_entrepreneur ? "bg-emerald-600 text-white border-transparent" : "bg-card text-muted-foreground border-border"}`}>
-                {sub.visible_to_entrepreneur ? <><Eye className="w-3.5 h-3.5" /> Oui</> : <><EyeOff className="w-3.5 h-3.5" /> Non</>}
-              </button>
-            </div>
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Afficher sur carte administration</label>
-              <button onClick={() => onUpdate({ show_on_admin_map: !(sub.show_on_admin_map !== false) })}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-bold uppercase border ${sub.show_on_admin_map !== false ? "bg-emerald-600 text-white border-transparent" : "bg-card text-muted-foreground border-border"}`}>
-                {sub.show_on_admin_map !== false ? <><Eye className="w-3.5 h-3.5" /> Oui</> : <><EyeOff className="w-3.5 h-3.5" /> Non</>}
-              </button>
-            </div>
-          </div>
-          </LeadSection>
-          {sub.quote_calc_status && (
-            <LeadSection title="Soumission automatique (site public)" defaultOpen>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 text-xs font-body min-w-0">
-                <D label="Résultat du calcul" v={CALC_LABEL[sub.quote_calc_status] ?? sub.quote_calc_status} />
-                <D label="Décision du client" v={DECISION_LABEL[sub.quote_client_decision ?? "en_attente"] ?? sub.quote_client_decision ?? "En attente"} />
-                <D label="Total estimé" v={sub.quote_total != null ? `${Number(sub.quote_total).toFixed(2)} $` : "—"} />
-                <D label="Quantité demandée" v={sub.quote_quantity != null ? `${sub.quote_quantity} ${sub.quote_unit || ""}`.trim() : (sub.quantity || "—")} />
-                <D label="N° de soumission" v={sub.quote_number || "Non confirmée"} />
-                <D label="Calculé le" v={sub.quote_calc_at ? formatDate(sub.quote_calc_at) : "—"} />
-                {sub.quote_calc_error && <D label="Motif / erreur" v={sub.quote_calc_error} />}
-              </div>
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                Le statut de suivi CRM reste indépendant : une demande de prix n'est jamais une acceptation.
-              </p>
+                <InlineField label="Notes du client (description)" type="textarea" rows={3} value={sub.description || ""}
+                  onSave={(v) => onUpdate({ description: v || null })} />
+              </EditBlock>
             </LeadSection>
-          )}
-          <LeadSection title="Transport" defaultOpen={false}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 text-xs font-body min-w-0">
-              <D label="Type de camion" v={sub.quote_truck || "Non renseigné"} />
-              <D label="Nombre de voyages" v={sub.quote_trips != null ? String(sub.quote_trips) : (sub.quantity || "Non renseigné")} />
-              <D label="Distance" v={sub.quote_distance_km != null ? `${sub.quote_distance_km} km` : "Non renseigné"} />
-              <D label="Durée estimée" v={sub.quote_duration_minutes != null ? `${sub.quote_duration_minutes} min` : "Non renseigné"} />
-              <D label="Camions acceptés" v={(sub.truck_types_allowed || []).join(", ") || "Non renseigné"} />
-              <D label="Camions lourds" v={sub.access_heavy_truck || "Non renseigné"} />
-              <D label="Accessibilité camion" v={(sub.accessibility || []).join(", ") || "Non renseigné"} />
-              <D label="Demande de transport" v={linkedTransport ? (linkedTransport.requestNumber ? formatRequestLabel(linkedTransport.requestNumber) : linkedTransport.id.slice(0, 8)) : "Aucune"} />
-            </div>
 
-          </LeadSection>
-          <LeadSection title="Livraison et accessibilité" defaultOpen={false}>
-            {/* Dimensions & livraison */}
-            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
-              <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Dimensions et livraison</div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <InlineField label="Longueur (pi)" type="text" value={sub.length_ft || ""} onSave={(v) => onUpdate({ length_ft: v || null })} />
-                <InlineField label="Largeur (pi)" type="text" value={sub.width_ft || ""} onSave={(v) => onUpdate({ width_ft: v || null })} />
-                <InlineField label="Profondeur (po)" type="text" value={sub.depth_in || ""} onSave={(v) => onUpdate({ depth_in: v || null })} />
-                <InlineField label="Date limite" type="date" value={sub.delivery_deadline || ""} onSave={(v) => onUpdate({ delivery_deadline: v || null })} />
-                <InlineField label="Délai souhaité" type="text" value={sub.delivery_timeframe || ""} onSave={(v) => onUpdate({ delivery_timeframe: v || null })} />
-                <InlineField
-                  label="Prochain suivi"
-                  type="date"
-                  value={(sub.next_follow_up_at || "").slice(0, 10)}
-                  onSave={(v) => onUpdate({ next_follow_up_at: v ? `${v}T09:00:00` : null })}
-                />
-              </div>
-              <div className="mt-3">
-                <InlineField
-                  label="Accessibilité camion"
-                  type="multiselect"
-                  value={sub.accessibility || []}
-                  options={TRUCK_ACCESS_OPTIONS.map((o) => ({ value: o.value, label: o.value }))}
-                  onSave={(v) => onUpdate({ accessibility: v })}
-                />
-              </div>
-            </div>
-          </LeadSection>
-          <LeadSection title="Dompe / site" defaultOpen={false}>
-            {/* Budget & machinerie */}
-            {normalizeRequestType(sub.request_type) === "remblai" && (() => {
-              const details = (sub.access_details ?? {}) as Record<string, unknown>;
-              const activeRestrictions = ACCESS_RESTRICTION_OPTIONS
-                .map((o) => o.key)
-                .filter((k) => details[k] === true);
-              const gaps = siteGaps(sub);
-              const toConfirm = siteToConfirm(sub);
-              return (
-                <>
-                <CrmReceptionPanel submissionId={sub.id} />
-                <MaterialInterpretationPanel
-                  submissionId={sub.id}
-                  historicalMaterials={sub.materials ?? null}
-                  otherMaterial={sub.other_material ?? null}
-                />
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-3">
-                   <div className="flex flex-wrap items-center gap-2 mb-2">
-                     <div className="text-[10px] uppercase tracking-wide font-display font-bold text-foreground">
-                       Fiche site (dompe) — visible par les entrepreneurs
-                     </div>
-                     <span className="text-[10px] font-body text-muted-foreground">
-                       Disponibilité et fraîcheur : voir le bloc « Disponibilité du remblai » en haut de la fiche
-                     </span>
-                   </div>
-                  {(gaps.length > 0 || toConfirm.length > 0) && (
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      {gaps.map((g) => (
-                        <span key={g} className="px-2 py-0.5 rounded text-[10px] font-body bg-destructive/10 text-destructive border border-destructive/30">
-                          {g}
-                        </span>
-                      ))}
-                      {toConfirm.map((g) => (
-                        <span key={g} className="px-2 py-0.5 rounded text-[10px] font-body bg-muted text-muted-foreground border border-border">
-                          {g} : à confirmer
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                     <InlineField
-                       label="Capacité restante"
-                      type="text"
-                      value={sub.remaining_capacity || ""}
-                      onSave={(v) => onUpdate({ remaining_capacity: v || null } as Partial<Submission>)}
-                    />
-                    <InlineField
-                      label="Heures d'ouverture"
-                      type="text"
-                      value={sub.opening_hours || ""}
-                      onSave={(v) => onUpdate({ opening_hours: v || null } as Partial<Submission>)}
-                    />
-                    <InlineField
-                      label="Camions lourds acceptés"
-                      type="select"
-                      value={sub.access_heavy_truck || ""}
-                      allowEmpty
-                      options={[{ value: "oui", label: "Oui" }, { value: "non", label: "Non" }]}
-                      onSave={(v) => onUpdate({ access_heavy_truck: v || null } as Partial<Submission>)}
-                    />
-                  </div>
-                  <div className="mt-3 grid grid-cols-1 gap-3">
-                    <InlineField
-                      label="Types de camions acceptés"
-                      type="multiselect"
-                      value={sub.truck_types_allowed ?? []}
-                      options={TRUCK_OPTIONS.map((t) => ({ value: t.key, label: t.label }))}
-                      onSave={(v) => onUpdate({ truck_types_allowed: (v as string[]).length ? (v as string[]) : null } as Partial<Submission>)}
-                    />
-                    <InlineField
-                      label="Restrictions d'accès réelles"
-                      type="multiselect"
-                      value={activeRestrictions}
-                      options={ACCESS_RESTRICTION_OPTIONS.map((o) => ({ value: o.key, label: o.label }))}
-                      onSave={(v) => {
-                        const keys = v as string[];
-                        const next: Record<string, unknown> = {};
-                        Object.entries(details).forEach(([k, val]) => {
-                          if (val !== true) next[k] = val; // conserve les notes texte existantes
-                        });
-                        keys.forEach((k) => { next[k] = true; });
-                        onUpdate({ access_details: Object.keys(next).length ? next : null } as Partial<Submission>);
-                      }}
-                    />
-                    <InlineField
-                      label="Autre restriction (texte libre)"
-                      type="text"
-                      value={typeof details.autre === "string" ? (details.autre as string) : ""}
-                      onSave={(v) => {
-                        const next: Record<string, unknown> = { ...details };
-                        if (v) next.autre = v; else delete next.autre;
-                        onUpdate({ access_details: Object.keys(next).length ? next : null } as Partial<Submission>);
-                      }}
-                    />
-                    <InlineField
-                      label="Note de disponibilité (visible entrepreneurs)"
-                      type="textarea"
-                      rows={2}
-                      value={sub.availability_note || ""}
-                      onSave={(v) => onUpdate({ availability_note: v || null } as Partial<Submission>)}
-                    />
+            <LeadSection title="Suivi : type, priorité, assignation, cartes">
+              <EditBlock
+                view={<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-body">
+                  <D label="Type de demande" v={requestTypeMeta(sub.request_type)?.label || nz(sub.request_type)} />
+                  <D label="Priorité" v={LEAD_PRIORITIES.find((x) => x.value === sub.priority)?.label || nz(sub.priority)} />
+                  <D label="Entrepreneur assigné" v={entrepreneurs.find((e) => e.user_id === sub.assigned_entrepreneur)?.email || (sub.assigned_entrepreneur ? "Assigné" : "Aucun")} />
+                  <D label="Carte entrepreneurs" v={sub.visible_to_entrepreneur ? "Affichée" : "Masquée"} />
+                  <D label="Carte administration" v={sub.show_on_admin_map !== false ? "Affichée" : "Masquée"} />
+                  <D label="Prochain suivi" v={sub.next_follow_up_at ? formatDate(sub.next_follow_up_at) : "Non planifié"} />
+                </div>}
+              >
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Type de demande</label>
+                  <div className="flex flex-wrap gap-2">
+                    {REQUEST_TYPES.map((t) => (
+                      <button key={t.value} type="button" onClick={() => onUpdate({ request_type: t.value, visible_to_entrepreneur: t.value === "remblai" } as any)}
+                        className={`min-h-[40px] px-3 rounded text-xs font-display font-bold border ${normalizeRequestType(sub.request_type) === t.value ? t.color : "bg-card text-muted-foreground border-border"}`}>
+                        {t.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
-                </>
-              );
-            })()}
-            {/* Approbation dompe par dompe : chaque relation demande + dompe
-                possède son propre état et sa propre notification. */}
-            <DompesApprobationPanel submissionId={sub.id} />
-
-            {/* Sélection du comparateur — rattachée à cette demande (lecture seule) */}
-            {!sub.selected_site_id ? (
-              <div className="mb-3 rounded-lg border border-border bg-muted/30 p-3 text-xs font-body text-muted-foreground">
-                <span className="font-display font-bold uppercase tracking-wide text-[10px]">Site non sélectionné</span>
-                <div className="mt-1">L'entrepreneur n'a pas encore choisi de site pour cette demande. La validation du site est indisponible.</div>
-              </div>
-            ) : (
-              <div className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs font-body text-foreground">
-                <div className="mb-1.5 font-display text-[10px] font-bold uppercase tracking-wide text-primary">
-                  Site sélectionné par l'entrepreneur
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Priorité</label>
+                  <div className="flex flex-wrap gap-2">
+                    {LEAD_PRIORITIES.map((p) => (
+                      <button key={p.value} type="button" onClick={() => onUpdate({ priority: p.value })}
+                        className={`min-h-[40px] px-3 rounded text-xs font-display font-bold uppercase border ${sub.priority === p.value ? p.color + " border-transparent" : "bg-card text-muted-foreground border-border"}`}>
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                  <div><span className="font-semibold">Site : </span>{sub.selected_site_label || "—"}</div>
-                  <div><span className="font-semibold">Adresse du site : </span>{sub.selected_site_address || "—"}</div>
-                  <div><span className="font-semibold">GPS du site : </span>
-                    {sub.selected_site_latitude != null && sub.selected_site_longitude != null
-                      ? `${sub.selected_site_latitude.toFixed(4)}, ${sub.selected_site_longitude.toFixed(4)}`
-                      : "—"}</div>
-                  <div><span className="font-semibold">Matériau : </span>{sub.quote_material || "—"}</div>
-                  <div><span className="font-semibold">Quantité : </span>
-                    {sub.quote_quantity != null ? `${sub.quote_quantity} ${sub.quote_unit || ""}`.trim() : "—"}</div>
-                  <div><span className="font-semibold">Voyages : </span>{sub.quote_trips ?? "—"}</div>
-                  <div><span className="font-semibold">Camion : </span>{sub.quote_truck || "—"}</div>
-                  <div><span className="font-semibold">Distance : </span>
-                    {sub.quote_distance_km != null ? `${sub.quote_distance_km} km` : "—"}</div>
-                  <div><span className="font-semibold">Durée : </span>
-                    {sub.quote_duration_minutes != null ? `${sub.quote_duration_minutes} min` : "—"}</div>
-                  <div><span className="font-semibold">Mise à jour : </span>
-                    {sub.selection_updated_at ? formatDate(sub.selection_updated_at) : "—"}</div>
-                </div>
-
-                {/* Action admin : valider le site puis poursuivre vers la demande de transport */}
-                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-primary/20 pt-2">
-                  {validatedAt ? (
-                    <span className="inline-flex items-center rounded border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[11px] font-display font-semibold text-emerald-800">
-                      Site validé le {formatDate(validatedAt)}
-                    </span>
-                  ) : (
-                    <button
-                      onClick={onValidateSite}
-                      disabled={validating}
-                      className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-display font-semibold text-primary-foreground disabled:opacity-60"
-                    >
-                      {validating ? "Validation…" : "Valider le site"}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Entrepreneur assigné</label>
+                    <select value={sub.assigned_entrepreneur || ""} onChange={(e) => onUpdate({ assigned_entrepreneur: e.target.value || null })}
+                      className="w-full min-h-[40px] px-2 text-sm rounded-lg border border-border bg-background font-body">
+                      <option value="">— Aucun —</option>
+                      {entrepreneurs.map((e) => <option key={e.user_id} value={e.user_id}>{e.email}</option>)}
+                    </select>
+                  </div>
+                  <InlineField label="Prochain suivi" type="date" value={(sub.next_follow_up_at || "").slice(0, 10)}
+                    onSave={(v) => onUpdate({ next_follow_up_at: v ? `${v}T09:00:00` : null })} />
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Afficher sur carte entrepreneurs</label>
+                    <button type="button" onClick={() => onUpdate({ visible_to_entrepreneur: !sub.visible_to_entrepreneur })}
+                      className={`flex min-h-[40px] items-center gap-1.5 px-3 rounded-lg text-xs font-display font-bold uppercase border ${sub.visible_to_entrepreneur ? "bg-primary text-primary-foreground border-transparent" : "bg-card text-muted-foreground border-border"}`}>
+                      {sub.visible_to_entrepreneur ? <><Eye className="w-3.5 h-3.5" /> Oui</> : <><EyeOff className="w-3.5 h-3.5" /> Non</>}
                     </button>
-                  )}
-                  <button
-                    onClick={goToTransportRequest}
-                    disabled={!validatedAt}
-                    className="rounded-lg border border-primary/40 px-3 py-1.5 text-[11px] font-display font-semibold text-primary disabled:opacity-50"
-                  >
-                    {linkedTransport ? "Ouvrir la demande de transport" : "Poursuivre la demande de transport"}
-                  </button>
-                </div>
-
-                {/* Rattachement : Submission → Site sélectionné → Site validé → Demande de transport */}
-                <div className="mt-2 border-t border-primary/20 pt-2 text-[11px] font-body">
-                  <div className="font-display text-[10px] font-bold uppercase tracking-wide text-primary">
-                    Demande de transport rattachée
                   </div>
-                  {linkedTransport ? (
-                    <div className="mt-1 space-y-0.5">
-                      <div>
-                        <span className="font-semibold">Numéro : </span>
-                        {linkedTransport.requestNumber ? formatRequestLabel(linkedTransport.requestNumber) : linkedTransport.id.slice(0, 8)}
-                        {linkedTransport.status ? ` — ${linkedTransport.status}` : ""}
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Afficher sur carte administration</label>
+                    <button type="button" onClick={() => onUpdate({ show_on_admin_map: !(sub.show_on_admin_map !== false) })}
+                      className={`flex min-h-[40px] items-center gap-1.5 px-3 rounded-lg text-xs font-display font-bold uppercase border ${sub.show_on_admin_map !== false ? "bg-primary text-primary-foreground border-transparent" : "bg-card text-muted-foreground border-border"}`}>
+                      {sub.show_on_admin_map !== false ? <><Eye className="w-3.5 h-3.5" /> Oui</> : <><EyeOff className="w-3.5 h-3.5" /> Non</>}
+                    </button>
+                  </div>
+                </div>
+              </EditBlock>
+            </LeadSection>
+
+            {sub.quote_calc_status && (
+              <LeadSection title="Soumission automatique (site public)">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 text-xs font-body min-w-0">
+                  <D label="Résultat du calcul" v={CALC_LABEL[sub.quote_calc_status] ?? sub.quote_calc_status} />
+                  <D label="Décision du client" v={DECISION_LABEL[sub.quote_client_decision ?? "en_attente"] ?? sub.quote_client_decision ?? "En attente"} />
+                  <D label="Total estimé" v={sub.quote_total != null ? `${Number(sub.quote_total).toFixed(2)} $` : "—"} />
+                  <D label="Quantité demandée" v={sub.quote_quantity != null ? `${sub.quote_quantity} ${sub.quote_unit || ""}`.trim() : (sub.quantity || "—")} />
+                  <D label="N° de soumission" v={sub.quote_number || "Non confirmée"} />
+                  <D label="Calculé le" v={sub.quote_calc_at ? formatDate(sub.quote_calc_at) : "—"} />
+                  {sub.quote_calc_error && <D label="Motif / erreur" v={sub.quote_calc_error} />}
+                </div>
+                <p className="text-[11px] text-muted-foreground">Le statut de suivi CRM reste indépendant : une demande de prix n'est jamais une acceptation.</p>
+              </LeadSection>
+            )}
+
+            <LeadSection title="Transport et accès">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 text-xs font-body min-w-0">
+                <D label="Type de camion" v={sub.quote_truck || "Non renseigné"} />
+                <D label="Nombre de voyages" v={sub.quote_trips != null ? String(sub.quote_trips) : (sub.quantity || "Non renseigné")} />
+                <D label="Distance" v={sub.quote_distance_km != null ? `${sub.quote_distance_km} km` : "Non renseigné"} />
+                <D label="Durée estimée" v={sub.quote_duration_minutes != null ? `${sub.quote_duration_minutes} min` : "Non renseigné"} />
+                <D label="Demande de transport" v={linkedTransport ? (linkedTransport.requestNumber ? formatRequestLabel(linkedTransport.requestNumber) : linkedTransport.id.slice(0, 8)) : "Aucune"} />
+              </div>
+              <EditBlock
+                title="Dimensions, livraison et accessibilité"
+                view={<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-body">
+                  <D label="Longueur (pi)" v={nz(sub.length_ft)} /><D label="Largeur (pi)" v={nz(sub.width_ft)} />
+                  <D label="Profondeur (po)" v={nz(sub.depth_in)} /><D label="Date limite" v={nz(sub.delivery_deadline)} />
+                  <D label="Délai souhaité" v={nz(sub.delivery_timeframe)} />
+                  <D label="Accessibilité camion" v={nz(sub.accessibility)} />
+                </div>}
+              >
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <InlineField label="Longueur (pi)" type="text" value={sub.length_ft || ""} onSave={(v) => onUpdate({ length_ft: v || null })} />
+                  <InlineField label="Largeur (pi)" type="text" value={sub.width_ft || ""} onSave={(v) => onUpdate({ width_ft: v || null })} />
+                  <InlineField label="Profondeur (po)" type="text" value={sub.depth_in || ""} onSave={(v) => onUpdate({ depth_in: v || null })} />
+                  <InlineField label="Date limite" type="date" value={sub.delivery_deadline || ""} onSave={(v) => onUpdate({ delivery_deadline: v || null })} />
+                  <InlineField label="Délai souhaité" type="text" value={sub.delivery_timeframe || ""} onSave={(v) => onUpdate({ delivery_timeframe: v || null })} />
+                </div>
+                <InlineField label="Accessibilité camion" type="multiselect" value={sub.accessibility || []}
+                  options={TRUCK_ACCESS_OPTIONS.map((o) => ({ value: o.value, label: o.value }))}
+                  onSave={(v) => onUpdate({ accessibility: v })} />
+              </EditBlock>
+
+              {isRemblai && (() => {
+                const details = (sub.access_details ?? {}) as Record<string, unknown>;
+                const activeRestrictions = ACCESS_RESTRICTION_OPTIONS.map((o) => o.key).filter((k) => details[k] === true);
+                const gaps = siteGaps(sub);
+                const toConfirm = siteToConfirm(sub);
+                return (
+                  <>
+                    <CrmReceptionPanel submissionId={sub.id} />
+                    <MaterialInterpretationPanel submissionId={sub.id} historicalMaterials={sub.materials ?? null} otherMaterial={sub.other_material ?? null} />
+                    {(gaps.length > 0 || toConfirm.length > 0) && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {gaps.map((g) => <span key={g} className="px-2 py-0.5 rounded text-[10px] font-body bg-destructive/10 text-destructive border border-destructive/30">{g}</span>)}
+                        {toConfirm.map((g) => <span key={g} className="px-2 py-0.5 rounded text-[10px] font-body bg-muted text-muted-foreground border border-border">{g} : à confirmer</span>)}
                       </div>
-                      <div>
-                        <span className="font-semibold">Créée le : </span>
-                        {linkedTransport.createdAt ? formatDate(linkedTransport.createdAt) : "—"}
+                    )}
+                    <EditBlock
+                      title="Fiche site (dompe) — visible par les entrepreneurs"
+                      view={<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-body">
+                        <D label="Capacité restante" v={nz(sub.remaining_capacity)} />
+                        <D label="Heures d'ouverture" v={nz(sub.opening_hours)} />
+                        <D label="Camions lourds acceptés" v={nz(sub.access_heavy_truck)} />
+                        <D label="Types de camions acceptés" v={nz((sub.truck_types_allowed ?? []).map((k) => TRUCK_OPTIONS.find((t) => t.key === k)?.label || k))} />
+                        <D label="Restrictions d'accès" v={nz(activeRestrictions.map((k) => ACCESS_RESTRICTION_OPTIONS.find((o) => o.key === k)?.label || k))} />
+                        <D label="Autre restriction" v={typeof details.autre === "string" ? (details.autre as string) : "Aucune"} />
+                        <D label="Note de disponibilité" v={nz(sub.availability_note)} />
+                      </div>}
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <InlineField label="Capacité restante" type="text" value={sub.remaining_capacity || ""}
+                          onSave={(v) => onUpdate({ remaining_capacity: v || null } as Partial<Submission>)} />
+                        <InlineField label="Heures d'ouverture" type="text" value={sub.opening_hours || ""}
+                          onSave={(v) => onUpdate({ opening_hours: v || null } as Partial<Submission>)} />
+                        <InlineField label="Camions lourds acceptés" type="select" value={sub.access_heavy_truck || ""} allowEmpty
+                          options={[{ value: "oui", label: "Oui" }, { value: "non", label: "Non" }]}
+                          onSave={(v) => onUpdate({ access_heavy_truck: v || null } as Partial<Submission>)} />
                       </div>
-                      <div className="text-muted-foreground">Rattachée à la demande #{sub.submission_number}</div>
-                    </div>
-                  ) : (
-                    <div className="mt-1 text-muted-foreground">
-                      Aucune demande de transport n'est encore rattachée à cette demande.
+                      <InlineField label="Types de camions acceptés" type="multiselect" value={sub.truck_types_allowed ?? []}
+                        options={TRUCK_OPTIONS.map((t) => ({ value: t.key, label: t.label }))}
+                        onSave={(v) => onUpdate({ truck_types_allowed: (v as string[]).length ? (v as string[]) : null } as Partial<Submission>)} />
+                      <InlineField label="Restrictions d'accès réelles" type="multiselect" value={activeRestrictions}
+                        options={ACCESS_RESTRICTION_OPTIONS.map((o) => ({ value: o.key, label: o.label }))}
+                        onSave={(v) => {
+                          const keys = v as string[];
+                          const next: Record<string, unknown> = {};
+                          Object.entries(details).forEach(([k, val]) => { if (val !== true) next[k] = val; });
+                          keys.forEach((k) => { next[k] = true; });
+                          onUpdate({ access_details: Object.keys(next).length ? next : null } as Partial<Submission>);
+                        }} />
+                      <InlineField label="Autre restriction (texte libre)" type="text" value={typeof details.autre === "string" ? (details.autre as string) : ""}
+                        onSave={(v) => {
+                          const next: Record<string, unknown> = { ...details };
+                          if (v) next.autre = v; else delete next.autre;
+                          onUpdate({ access_details: Object.keys(next).length ? next : null } as Partial<Submission>);
+                        }} />
+                      <InlineField label="Note de disponibilité (visible entrepreneurs)" type="textarea" rows={2} value={sub.availability_note || ""}
+                        onSave={(v) => onUpdate({ availability_note: v || null } as Partial<Submission>)} />
+                    </EditBlock>
+                  </>
+                );
+              })()}
+
+              <DompesApprobationPanel submissionId={sub.id} />
+
+              {!sub.selected_site_id ? (
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs font-body text-muted-foreground">
+                  <span className="font-display font-bold uppercase tracking-wide text-[10px]">Site non sélectionné</span>
+                  <div className="mt-1">L'entrepreneur n'a pas encore choisi de site pour cette demande. La validation du site est indisponible.</div>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs font-body text-foreground">
+                  <div className="mb-1.5 font-display text-[10px] font-bold uppercase tracking-wide text-primary">Site sélectionné par l'entrepreneur</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    <div><span className="font-semibold">Site : </span>{sub.selected_site_label || "—"}</div>
+                    <div><span className="font-semibold">Adresse du site : </span>{sub.selected_site_address || "—"}</div>
+                    <div><span className="font-semibold">GPS du site : </span>
+                      {sub.selected_site_latitude != null && sub.selected_site_longitude != null
+                        ? `${sub.selected_site_latitude.toFixed(4)}, ${sub.selected_site_longitude.toFixed(4)}` : "—"}</div>
+                    <div><span className="font-semibold">Matériau : </span>{sub.quote_material || "—"}</div>
+                    <div><span className="font-semibold">Mise à jour : </span>{sub.selection_updated_at ? formatDate(sub.selection_updated_at) : "—"}</div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-primary/20 pt-2">
+                    {validatedAt ? (
+                      <span className="inline-flex items-center rounded border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-display font-semibold text-foreground">
+                        Site validé le {formatDate(validatedAt)}
+                      </span>
+                    ) : (
+                      <button onClick={onValidateSite} disabled={validating}
+                        className="min-h-[40px] rounded-lg bg-primary px-3 text-[11px] font-display font-semibold text-primary-foreground disabled:opacity-60">
+                        {validating ? "Validation…" : "Valider le site"}
+                      </button>
+                    )}
+                    <button onClick={goToTransportRequest} disabled={!validatedAt}
+                      className="min-h-[40px] rounded-lg border border-primary/40 px-3 text-[11px] font-display font-semibold text-primary disabled:opacity-50">
+                      {linkedTransport ? "Ouvrir la demande de transport" : "Poursuivre la demande de transport"}
+                    </button>
+                  </div>
+                  {linkedTransport && (
+                    <div className="mt-2 border-t border-primary/20 pt-2 text-[11px]">
+                      <span className="font-semibold">Demande de transport rattachée : </span>
+                      {linkedTransport.requestNumber ? formatRequestLabel(linkedTransport.requestNumber) : linkedTransport.id.slice(0, 8)}
+                      {linkedTransport.status ? ` — ${linkedTransport.status}` : ""}
+                      {linkedTransport.createdAt ? ` · créée le ${formatDate(linkedTransport.createdAt)}` : ""}
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-          </LeadSection>
-          <div className="mb-3 rounded-lg border border-border bg-secondary/30 p-3">
-            <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground">{CLIENT_TRIP_BUDGET_CRM_LABEL}</div>
-            <div className="font-body text-sm font-semibold text-foreground">{clientTripBudgetFromAnswers((sub as { form_answers?: unknown }).form_answers)}</div>
-            <div className="text-[11px] text-muted-foreground">Budget proposé par le client — ni prix accepté ni paiement.</div>
-          </div>
-          <LeadSection title="Budget et machinerie" defaultOpen={false}>
-            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
-              <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Budget et machinerie</div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <InlineField label="Budget max" type="text" value={sub.budget_max || ""} onSave={(v) => onUpdate({ budget_max: v || null })} />
-                <InlineField
-                  label="Unité budget"
-                  type="select"
-                  value={sub.budget_unit || ""}
-                  allowEmpty
-                  options={[
-                    { value: "$ / voyage", label: "$ / voyage" },
-                    { value: "$ / tonne", label: "$ / tonne" },
-                    { value: "$ total", label: "$ total" },
-                  ]}
-                  onSave={(v) => onUpdate({ budget_unit: v || null })}
-                />
-                <InlineField
-                  label="Machinerie sur place"
-                  type="boolean"
-                  value={!!sub.machinery_available}
-                  onSave={(v) => onUpdate({ machinery_available: v })}
-                />
-              </div>
-              <div className="mt-3">
-                <InlineField
-                  label="Description machinerie"
-                  type="textarea"
-                  rows={2}
-                  value={sub.machinery_description || ""}
-                  onSave={(v) => onUpdate({ machinery_description: v || null })}
-                />
-              </div>
-            </div>
-          </LeadSection>
-          <LeadSection title="Communication et historique" defaultOpen={false}>
-            <div className="text-xs font-body text-muted-foreground">
-              Dernier contact : {notes[0] ? formatDate(notes[0].created_at) : "Non renseigné"}
-            </div>
-          {/* Quick actions */}
-          <div className="flex flex-wrap gap-2">
-            {sub.phone && (
-              <>
-                <a href={`tel:${phoneClean}`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold"><Phone className="w-3.5 h-3.5" /> Appeler</a>
-                <a href={`sms:${phoneClean}`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground text-background text-xs font-display font-semibold"><MessageSquare className="w-3.5 h-3.5" /> SMS</a>
-                <a href={`https://wa.me/1${phoneClean}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#25D366] text-white text-xs font-display font-semibold">🟢 WhatsApp</a>
-              </>
-            )}
-            <a href={`mailto:${sub.email}`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-display font-semibold"><Mail className="w-3.5 h-3.5" /> Courriel</a>
-            <a href={mapsUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-display font-semibold"><MapPin className="w-3.5 h-3.5" /> Carte</a>
-            <Link to={`/admin/calendrier?from_submission=${sub.id}`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold">
-              <CalendarDays className="w-3.5 h-3.5" /> Planifier au calendrier
-            </Link>
-            <button onClick={onArchive} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary text-foreground text-xs font-display font-semibold"><Archive className="w-3.5 h-3.5" /> Archiver</button>
-          </div>
-            <div className="space-y-2 max-h-60 overflow-auto min-w-0">
-              {notes.length === 0 && <p className="text-xs text-muted-foreground italic">Aucun échange enregistré.</p>}
-              {notes.map((n) => (
-                <div key={`comm-${n.id}`} className="text-sm bg-secondary/50 rounded-lg p-3 break-words">
-                  <div className="text-[10px] text-muted-foreground font-display uppercase mb-1">
-                    {formatDate(n.created_at)} {n.author_email && `• ${n.author_email}`}
-                  </div>
-                  <p className="font-body whitespace-pre-wrap">{n.note}</p>
-                </div>
-              ))}
-            </div>
+              )}
+            </LeadSection>
 
-          </LeadSection>
-          <LeadSection title="Facturation et paiements" defaultOpen={false}>
-          {/* Facturation */}
-          <BillingSection submissionId={sub.id} />
-          </LeadSection>
-          <LeadSection title="Notes internes" defaultOpen={false}>
-          {/* Internal notes timeline */}
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Notes internes (privées)</label>
-            <div className="mb-3">
+            <LeadSection title="Budget et machinerie">
+              <EditBlock
+                view={<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-body">
+                  <D label="Ancien budget max (ancien formulaire)" v={nz(sub.budget_max)} />
+                  <D label="Unité de l'ancien budget" v={nz(sub.budget_unit)} />
+                  <D label="Machinerie sur place" v={sub.machinery_available ? "Oui" : "Non"} />
+                  <D label="Description machinerie" v={nz(sub.machinery_description)} />
+                </div>}
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <InlineField label="Budget max" type="text" value={sub.budget_max || ""} onSave={(v) => onUpdate({ budget_max: v || null })} />
+                  <InlineField label="Unité budget" type="select" value={sub.budget_unit || ""} allowEmpty
+                    options={[{ value: "$ / voyage", label: "$ / voyage" }, { value: "$ / tonne", label: "$ / tonne" }, { value: "$ total", label: "$ total" }]}
+                    onSave={(v) => onUpdate({ budget_unit: v || null })} />
+                  <InlineField label="Machinerie sur place" type="boolean" value={!!sub.machinery_available} onSave={(v) => onUpdate({ machinery_available: v })} />
+                </div>
+                <InlineField label="Description machinerie" type="textarea" rows={2} value={sub.machinery_description || ""}
+                  onSave={(v) => onUpdate({ machinery_description: v || null })} />
+              </EditBlock>
+            </LeadSection>
+
+            <LeadSection title="Historique et notes">
+              <div className="text-xs font-body text-muted-foreground">Dernier échange : {notes[0] ? formatDate(notes[0].created_at) : "Non renseigné"}</div>
+              <div className="flex gap-2">
+                <textarea value={newNote} onChange={(e) => setNewNote(e.target.value)}
+                  placeholder="Ajouter une note horodatée à l'historique…"
+                  className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background font-body resize-none" rows={2} />
+                <button onClick={addNote} disabled={savingNote || !newNote.trim()} aria-label="Ajouter la note"
+                  className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold disabled:opacity-40 self-start min-h-[44px]">
+                  {savingNote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                </button>
+              </div>
+              <div className="space-y-2 min-w-0">
+                {notes.length === 0 && <p className="text-xs text-muted-foreground italic">Aucune note pour ce lead.</p>}
+                {notes.map((n) => (
+                  <div key={n.id} className="text-sm bg-secondary/50 rounded-lg p-3 break-words">
+                    <div className="text-[10px] text-muted-foreground font-display uppercase mb-1">{formatDate(n.created_at)} {n.author_email && `• ${n.author_email}`}</div>
+                    <p className="font-body whitespace-pre-wrap">{n.note}</p>
+                  </div>
+                ))}
+              </div>
+            </LeadSection>
+
+            <LeadSection title="Notes internes (bloc-notes privé)">
               <textarea value={internalDraft} onChange={(e) => setInternalDraft(e.target.value)}
-                placeholder="Bloc-notes libre (toujours visible sur ce lead)…"
-                className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background font-body resize-none mb-1.5" rows={2} />
+                placeholder="Bloc-notes libre…"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background font-body resize-none" rows={3} />
               <button onClick={() => onUpdate({ internal_notes: internalDraft })}
                 disabled={internalDraft === (sub.internal_notes || "")}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground text-background text-xs font-display font-semibold disabled:opacity-40">
+                className="flex min-h-[40px] items-center gap-1 px-3 rounded-lg bg-foreground text-background text-xs font-display font-semibold disabled:opacity-40">
                 <Save className="w-3.5 h-3.5" /> Enregistrer le bloc-notes
               </button>
-            </div>
-            <div className="flex gap-2 mb-3">
-              <textarea value={newNote} onChange={(e) => setNewNote(e.target.value)}
-                placeholder="Ajouter une note horodatée à l'historique…"
-                className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background font-body resize-none" rows={2} />
-              <button onClick={addNote} disabled={savingNote || !newNote.trim()}
-                className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold disabled:opacity-40 self-start">
-                {savingNote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              </button>
-            </div>
-            <div className="space-y-2 max-h-60 overflow-auto">
-              {notes.length === 0 && <p className="text-xs text-muted-foreground italic">Aucune note pour ce lead.</p>}
-              {notes.map((n) => (
-                <div key={n.id} className="text-sm bg-secondary/50 rounded-lg p-3">
-                  <div className="text-[10px] text-muted-foreground font-display uppercase mb-1">
-                    {formatDate(n.created_at)} {n.author_email && `• ${n.author_email}`}
-                  </div>
-                  <p className="font-body whitespace-pre-wrap">{n.note}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          </LeadSection>
-          <LeadSection title="Informations du dossier" defaultOpen={false}>
-            {/* Lecture seule */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground font-body bg-muted/30 rounded-lg p-3">
-              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Numéro :</span> #{sub.submission_number}</div>
-              {sub.dompe_number && <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Dompe :</span> {sub.dompe_number}</div>}
-              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Créé le :</span> {formatDate(sub.created_at)}</div>
-              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">GPS :</span> {sub.latitude && sub.longitude ? `${sub.latitude.toFixed(4)}, ${sub.longitude.toFixed(4)}` : "—"}</div>
-              <div className="sm:col-span-2">
-                <span className="uppercase tracking-wide text-[10px] font-display font-bold">Validation géo :</span>{" "}
+            </LeadSection>
+
+            <LeadSection title="Finances">
+              <BillingSection submissionId={sub.id} />
+            </LeadSection>
+
+            <LeadSection title="Informations techniques">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground font-body">
+                <D label="Numéro" v={sub.submission_number ? `#${sub.submission_number}` : "—"} />
+                {sub.dompe_number && <D label="Dompe" v={sub.dompe_number} />}
+                <D label="Créé le" v={formatDate(sub.created_at)} />
+                <D label="Dernière modification" v={(sub as unknown as { updated_at?: string | null }).updated_at ? formatDate((sub as unknown as { updated_at: string }).updated_at) : "Non renseigné"} />
+                <D label="GPS" v={sub.latitude && sub.longitude ? `${sub.latitude.toFixed(4)}, ${sub.longitude.toFixed(4)}` : "—"} />
+                <D label="Validation géo" v={({ validated_address: "Adresse validée", validated_postal: "Centre code postal", approximate: "Position approximative", error: "Erreur géocodage" } as Record<string, string>)[sub.geocoding_status || ""] || "Non vérifiée"} />
                 {(() => {
-                  const st = sub.geocoding_status || "pending";
-                  const map: Record<string, { label: string; cls: string }> = {
-                    validated_address: { label: "Adresse validée", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
-                    validated_postal:  { label: "Centre code postal", cls: "bg-blue-100 text-blue-800 border-blue-300" },
-                    approximate:       { label: "Position approximative", cls: "bg-amber-100 text-amber-800 border-amber-300" },
-                    error:             { label: "Erreur géocodage", cls: "bg-rose-100 text-rose-800 border-rose-300" },
-                    pending:           { label: "Non vérifiée", cls: "bg-slate-100 text-slate-700 border-slate-300" },
-                  };
-                  const v = map[st] || map.pending;
-                  return <span className={`inline-block px-2 py-0.5 rounded border text-[11px] font-display font-semibold ${v.cls}`}>{v.label}</span>;
+                  const o = sub as unknown as { origin_table?: string | null; origin_record_id?: string | null };
+                  if (!o.origin_table || !o.origin_record_id) return null;
+                  const to = o.origin_table === "transport_requests" ? "/admin/demandes-acces"
+                    : o.origin_table === "mkt_quote_requests" ? "/admin/marche/soumissions" : "/admin/jsc";
+                  const lbl = o.origin_table === "transport_requests" ? "Accès dompe / transport"
+                    : o.origin_table === "mkt_quote_requests" ? "Demande de services" : "Soumission matériaux";
+                  return <div><span className="text-muted-foreground">Dossier opérationnel:</span> <Link to={to} className="font-semibold text-primary hover:underline">{lbl}</Link></div>;
                 })()}
               </div>
-            </div>
-          </LeadSection>
-          <div className="flex justify-end pt-2 border-t border-border">
-            <button onClick={onDelete} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-destructive hover:bg-destructive/10 font-display font-semibold">
-              <Trash2 className="w-3.5 h-3.5" /> Supprimer définitivement
-            </button>
-          </div>        </div>
-      )}
+            </LeadSection>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
