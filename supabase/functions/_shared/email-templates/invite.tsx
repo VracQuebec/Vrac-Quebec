@@ -25,28 +25,28 @@ export const InviteEmail = ({
   siteUrl,
   confirmationUrl,
 }: InviteEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="fr" dir="ltr">
     <Head>
       <style>{darkModeCss}</style>
     </Head>
-    <Preview>You've been invited to join {siteName}</Preview>
+    <Preview>Confirmez votre inscription à {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>You've been invited</Heading>
+        <Heading style={h1}>Confirmez votre adresse courriel</Heading>
         <Text style={text}>
-          You've been invited to join{' '}
+          Une inscription à l'espace entrepreneur{' '}
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
-          </Link>
-          . Click the button below to accept the invitation and create your
-          account.
+          </Link>{' '}
+          a été demandée avec cette adresse. Cliquez sur le bouton pour la
+          confirmer, puis choisissez vous-même votre mot de passe.
         </Text>
         <Button className="dm-btn" style={button} href={confirmationUrl}>
-          Accept Invitation
+          Confirmer et choisir mon mot de passe
         </Button>
         <Text style={footer}>
-          If you weren't expecting this invitation, you can safely ignore this
-          email.
+          Vous n'avez rien demandé? Ignorez ce courriel : aucun compte ne sera
+          activé.
         </Text>
       </Container>
     </Body>
@@ -71,10 +71,10 @@ const text = {
 }
 const link = { color: 'inherit', textDecoration: 'underline' }
 const button = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
+  backgroundColor: '#7DD520',
+  color: '#000000',
   fontSize: '14px',
-  border: '1px solid #000000',
+  border: '1px solid #7DD520',
   borderRadius: '8px',
   padding: '12px 20px',
   textDecoration: 'none',

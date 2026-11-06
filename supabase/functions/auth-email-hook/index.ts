@@ -17,12 +17,12 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirm your email',
-  invite: "You've been invited",
-  magiclink: 'Your login link',
-  recovery: 'Reset your password',
-  email_change: 'Confirm your new email',
-  reauthentication: 'Your verification code',
+  signup: 'Confirmez votre courriel',
+  invite: 'Confirmez votre inscription Vrac Québec',
+  magiclink: 'Votre lien de connexion',
+  recovery: 'Réinitialisez votre mot de passe',
+  email_change: 'Confirmez votre nouveau courriel',
+  reauthentication: 'Votre code de vérification',
 }
 
 // Template mapping
@@ -36,7 +36,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "Vrac Quebec Simple"
+const SITE_NAME = "Vrac Québec"
 const SENDER_DOMAIN = "notify.vracquebec.ca"
 const ROOT_DOMAIN = "vracquebec.ca"
 const FROM_DOMAIN = "notify.vracquebec.ca" // Domain shown in From address (may be root or sender subdomain)

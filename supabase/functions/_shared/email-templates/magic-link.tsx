@@ -22,23 +22,23 @@ export const MagicLinkEmail = ({
   siteName,
   confirmationUrl,
 }: MagicLinkEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="fr" dir="ltr">
     <Head>
       <style>{darkModeCss}</style>
     </Head>
-    <Preview>Your login link for {siteName}</Preview>
+    <Preview>Votre lien de connexion {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Your login link</Heading>
+        <Heading style={h1}>Votre lien de connexion</Heading>
         <Text style={text}>
-          Click the button below to log in to {siteName}. This link will expire
-          shortly.
+          Cliquez sur le bouton pour vous connecter à {siteName}. Ce lien expire
+          rapidement.
         </Text>
         <Button className="dm-btn" style={button} href={confirmationUrl}>
-          Log In
+          Me connecter
         </Button>
         <Text style={footer}>
-          If you didn't request this link, you can safely ignore this email.
+          Vous n'avez rien demandé? Ignorez simplement ce courriel.
         </Text>
       </Container>
     </Body>
@@ -62,10 +62,10 @@ const text = {
   margin: '0 0 25px',
 }
 const button = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
+  backgroundColor: '#7DD520',
+  color: '#000000',
   fontSize: '14px',
-  border: '1px solid #000000',
+  border: '1px solid #7DD520',
   borderRadius: '8px',
   padding: '12px 20px',
   textDecoration: 'none',

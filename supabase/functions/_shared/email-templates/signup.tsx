@@ -27,33 +27,33 @@ export const SignupEmail = ({
   recipient,
   confirmationUrl,
 }: SignupEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="fr" dir="ltr">
     <Head>
       <style>{darkModeCss}</style>
     </Head>
-    <Preview>Confirm your email for {siteName}</Preview>
+    <Preview>Confirmez votre courriel pour {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Confirm your email</Heading>
+        <Heading style={h1}>Confirmez votre courriel</Heading>
         <Text style={text}>
-          Thanks for signing up for{' '}
+          Merci de votre inscription à{' '}
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
           </Link>
           !
         </Text>
         <Text style={text}>
-          Please confirm your email address (
+          Veuillez confirmer votre adresse (
           <Link href={`mailto:${recipient}`} style={link}>
             {recipient}
           </Link>
-          ) by clicking the button below:
+          ) en cliquant sur le bouton ci-dessous :
         </Text>
         <Button className="dm-btn" style={button} href={confirmationUrl}>
-          Verify Email
+          Confirmer mon courriel
         </Button>
         <Text style={footer}>
-          If you didn't create an account, you can safely ignore this email.
+          Vous n'avez pas créé de compte? Ignorez simplement ce courriel.
         </Text>
       </Container>
     </Body>
@@ -78,10 +78,10 @@ const text = {
 }
 const link = { color: 'inherit', textDecoration: 'underline' }
 const button = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
+  backgroundColor: '#7DD520',
+  color: '#000000',
   fontSize: '14px',
-  border: '1px solid #000000',
+  border: '1px solid #7DD520',
   borderRadius: '8px',
   padding: '12px 20px',
   textDecoration: 'none',
