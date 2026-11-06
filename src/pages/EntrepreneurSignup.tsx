@@ -1,6 +1,6 @@
 import { useState } from "react";
 import PromoConsent, { useSender, recordPromoConsent } from "@/components/marketing/PromoConsent";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Truck, Loader2 } from "lucide-react";
@@ -29,7 +29,7 @@ const EntrepreneurSignup = () => {
   const [company, setCompany] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,16 +49,9 @@ const EntrepreneurSignup = () => {
       });
       if (!response.ok) throw new Error(await getFunctionError(response));
 
-      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-      if (loginError) throw loginError;
+      // Le compte ne s'active qu'après ouverture du lien envoyé à ce courriel.
       if (promo && sender) { const pe = await recordPromoConsent(email, "inscription_entrepreneur", sender.consent_version); if (pe) toast({ title: "Consentement non enregistré", description: pe, variant: "destructive" }); }
-
-      try { localStorage.setItem("vq_stay_logged_in", "1"); } catch { /* ignore storage errors */ }
-      toast({
-        title: "Compte créé",
-        description: "Votre compte est prêt. Vous pouvez accéder à votre espace entrepreneur.",
-      });
-      navigate("/entrepreneur", { replace: true });
+      setSentTo(email);
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Inscription échouée", variant: "destructive" });
     } finally {
@@ -82,6 +75,16 @@ const EntrepreneurSignup = () => {
             <p className="text-muted-foreground text-sm mt-1">Créez votre compte pour accéder aux dompes disponibles</p>
           </div>
 
+          {sentTo ? (
+            <div role="status" className="space-y-3 bg-card p-6 rounded-2xl text-center" style={{ boxShadow: "var(--shadow-lg)" }}>
+              <h2 className="text-lg font-display font-bold text-foreground">Vérifiez votre courriel</h2>
+              <p className="text-sm text-muted-foreground font-body">
+                Un lien de confirmation a été envoyé à <strong className="text-foreground">{sentTo}</strong>. Ouvrez-le pour activer votre compte entrepreneur, puis connectez-vous avec votre mot de passe.
+              </p>
+              <p className="text-xs text-muted-foreground font-body">Rien reçu après quelques minutes? Vérifiez vos courriels indésirables ou recommencez l'inscription avec la même adresse.</p>
+              <Link to="/login" className="inline-block text-primary underline text-sm">Aller à la connexion</Link>
+            </div>
+          ) : (
           <form onSubmit={handleSignup} className="space-y-3 bg-card p-6 rounded-2xl" style={{ boxShadow: "var(--shadow-lg)" }}>
             <div>
               <label className="block text-sm font-semibold text-foreground mb-1 font-display">Nom complet</label>
@@ -114,6 +117,7 @@ const EntrepreneurSignup = () => {
               Déjà un compte ? <Link to="/login" className="text-primary underline">Se connecter</Link>
             </p>
           </form>
+          )}
         </div>
       </div>
     </div>

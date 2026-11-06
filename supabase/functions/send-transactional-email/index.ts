@@ -2,6 +2,7 @@ import * as React from 'npm:react@18.3.1'
 import { clientIp, enforceIpQuota } from '../_shared/public-guard.ts'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { isServiceCaller } from './service-caller.ts'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 import { logEvent, logEventAsync } from '../_shared/observability.ts'
 import { enqueueOwnerConfirmation } from '../_shared/exec01/confirmation-queue.ts'
@@ -136,10 +137,12 @@ Deno.serve(async (req) => {
 
   // Restrict which templates can be invoked with just the anon key.
   // Privileged templates require a real user session.
+  // Privileged templates (caller-chosen recipient/data) are reserved to the
+  // app's own server functions, which authenticate with the service key.
+  // Any other bearer (anon key, user session, forged string) is refused.
   if (!PUBLIC_TEMPLATES.has(templateName)) {
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
     const callerToken = authHeader.slice(7).trim()
-    if (callerToken === anonKey) {
+    if (!isServiceCaller(callerToken, supabaseServiceKey)) {
       return new Response(
         JSON.stringify({ error: 'Forbidden' }),
         {
