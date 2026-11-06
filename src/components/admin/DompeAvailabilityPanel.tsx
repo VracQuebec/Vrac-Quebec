@@ -3,6 +3,7 @@
 // fiabilité/fraîcheur de l'information (dérivée de la date de confirmation).
 // Une disponibilité héritée de l'ancien système n'est JAMAIS présentée comme confirmée.
 import { useState } from "react";
+import { isAdminReadonlyActive } from "@/lib/admin-readonly/guard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
@@ -192,16 +193,16 @@ export default function DompeAvailabilityPanel({
         </div>
       )}
 
-      <button
+      {!isAdminReadonlyActive() && <button
         type="button"
         onClick={() => setManageOpen((v) => !v)}
         aria-expanded={manageOpen}
         className="mt-2 ml-2 inline-flex min-h-[44px] items-center rounded-md border border-border bg-background px-3 text-xs font-display font-bold uppercase tracking-wide text-foreground"
       >
         {manageOpen ? "Fermer" : "Gérer la disponibilité"}
-      </button>
+      </button>}
 
-      {manageOpen && <div className="mt-3 grid grid-cols-1 gap-3 border-t border-border pt-3 sm:grid-cols-2 lg:grid-cols-3">
+      {manageOpen && !isAdminReadonlyActive() && <div className="mt-3 grid grid-cols-1 gap-3 border-t border-border pt-3 sm:grid-cols-2 lg:grid-cols-3">
         {actions.map((a) => (
           <button
             key={a.key}
