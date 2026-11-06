@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { isAdminReadonlyActive } from "@/lib/admin-readonly/guard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Plus, Trash2, AlertTriangle, Receipt } from "lucide-react";
@@ -62,6 +63,8 @@ export default function BillingSection({ submissionId }: Props) {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<LeadTrip | null>(null);
   const [deleting, setDeleting] = useState<LeadTrip | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const readOnly = isAdminReadonlyActive();
 
 
   const load = async () => {
@@ -125,7 +128,8 @@ export default function BillingSection({ submissionId }: Props) {
     if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
     setTrips((prev) => [data as unknown as LeadTrip, ...prev]);
     setDraft(emptyDraft());
-    toast({ title: "Voyage ajouté" });
+    setShowAdd(false);
+    toast({ title: "Voyage ajouté — enregistré" });
   };
 
   const patchTrip = async (id: string, patch: Partial<LeadTrip>) => {
@@ -201,66 +205,38 @@ export default function BillingSection({ submissionId }: Props) {
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span className="text-xs font-display font-bold px-2 py-0.5 rounded bg-secondary text-foreground">{t.material || "—"}</span>
                 <span className="text-[10px] uppercase font-display font-bold text-muted-foreground">{REQUEST_TYPES.find((r) => r.value === t.trip_type)?.label || t.trip_type}</span>
-                <select
-                  value={t.payment_status}
-                  onChange={(e) => patchTrip(t.id, { payment_status: e.target.value })}
-                  className={`px-2 py-0.5 rounded text-[10px] font-display font-bold uppercase border ${ps.color}`}
-                >
-                  {PAYMENT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-display font-bold uppercase border ${ps.color}`}>{ps.label}</span>
                 <div className="ml-auto text-right">
                   <div className="text-sm font-display font-bold text-foreground leading-tight">{fmtMoney(tx.total)}</div>
                   {tx.taxable
                     ? <div className="text-[10px] text-muted-foreground font-body">HT {fmtMoney(tx.subtotal)} + taxes</div>
                     : <div className="text-[10px] text-muted-foreground font-body italic">Non taxable</div>}
                 </div>
-                <button onClick={() => setEditing(t)} title="Modifier la facture"
-                  className="px-2 py-1 rounded-md border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 text-[11px] font-display font-semibold min-h-[32px]">
-                  Modifier
-                </button>
-                <button onClick={() => setDeleting(t)} className="text-rose-600 border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 p-1.5 rounded-md min-h-[32px]" title="Supprimer la facture">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                {!readOnly && (
+                  <>
+                    <button onClick={() => setEditing(t)} title="Modifier la facture"
+                      className="px-2 py-1 rounded-md border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 text-[11px] font-display font-semibold min-h-[32px]">
+                      Modifier
+                    </button>
+                    <button onClick={() => setDeleting(t)} className="text-rose-600 border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 p-1.5 rounded-md min-h-[32px]" title="Supprimer la facture">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                )}
 
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                <Field label="Voyages"><input type="number" min={0} step="0.5" value={t.trips_count}
-                  onChange={(e) => patchTrip(t.id, { trips_count: Number(e.target.value) })} className={inputCls} /></Field>
-                <Field label="Prix / voyage"><input type="number" min={0} step="0.01" value={t.price_per_trip}
-                  onChange={(e) => patchTrip(t.id, { price_per_trip: Number(e.target.value) })} className={inputCls} /></Field>
-                <Field label="Date livraison"><input type="date" value={t.delivery_date || ""}
-                  onChange={(e) => patchTrip(t.id, { delivery_date: e.target.value || null })} className={inputCls} /></Field>
-                <Field label="Échéance"><input type="date" value={(t.due_date as any) || ""}
-                  onChange={(e) => patchTrip(t.id, { due_date: e.target.value || null } as any)} className={inputCls} /></Field>
-                <Field label="Date paiement"><input type="date" value={t.payment_date || ""}
-                  onChange={(e) => patchTrip(t.id, { payment_date: e.target.value || null })} className={inputCls} /></Field>
-                <Field label="Facture #"><input type="text" value={t.invoice_number}
-                  onChange={(e) => patchTrip(t.id, { invoice_number: e.target.value })} className={inputCls} /></Field>
-                <Field label="Mode paiement">
-                  <select value={t.payment_method} onChange={(e) => patchTrip(t.id, { payment_method: e.target.value })} className={inputCls}>
-                    <option value="">—</option>
-                    {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </Field>
-                <Field label="Entrepreneur livreur">
-                  <select value={t.entrepreneur_id || ""} onChange={(e) => patchTrip(t.id, { entrepreneur_id: e.target.value || null })} className={inputCls}>
-                    <option value="">—</option>
-                    {entrepreneurs.map((e) => <option key={e.id} value={e.id}>{e.name}{e.company ? ` (${e.company})` : ""}</option>)}
-                  </select>
-                </Field>
-                <Field label="Taxes TPS/TVQ">
-                  <label className="flex items-center gap-2 h-[34px] px-2 rounded border border-border bg-background cursor-pointer">
-                    <input type="checkbox" checked={!!t.taxable}
-                      onChange={(e) => patchTrip(t.id, { taxable: e.target.checked } as any)} />
-                    <span className="text-[11px] font-body">
-                      {t.taxable ? "Appliquées (5 % + 9,975 %)" : "Non taxable"}
-                    </span>
-                  </label>
-                </Field>
-                <Field label="Notes" full>
-                  <input type="text" value={t.notes} onChange={(e) => patchTrip(t.id, { notes: e.target.value })} className={inputCls} />
-                </Field>
-              </div>
+              <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <Info label="Voyages" value={String(t.trips_count ?? "")} />
+                <Info label="Prix / voyage" value={fmtMoney(Number(t.price_per_trip || 0))} />
+                <Info label="Date livraison" value={t.delivery_date || ""} />
+                <Info label="Échéance" value={(t as any).due_date || ""} />
+                <Info label="Date paiement" value={t.payment_date || ""} />
+                <Info label="Facture #" value={t.invoice_number || ""} />
+                <Info label="Mode paiement" value={t.payment_method || ""} />
+                <Info label="Entrepreneur livreur" value={(() => { const e = entrepreneurs.find((x) => x.id === t.entrepreneur_id); return e ? `${e.name}${e.company ? ` (${e.company})` : ""}` : ""; })()} />
+                <Info label="Taxes TPS/TVQ" value={t.taxable ? "Appliquées (5 % + 9,975 %)" : "Non taxable"} />
+                {t.notes ? <Info label="Notes" value={t.notes} full /> : null}
+              </dl>
               {tx.taxable ? (
                 <div className="mt-2 text-[11px] font-body bg-secondary/40 border border-border rounded px-2 py-1.5 grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-0.5">
                   <span>Sous-total : <strong>{fmtMoney(tx.subtotal)}</strong></span>
@@ -278,7 +254,14 @@ export default function BillingSection({ submissionId }: Props) {
         })}
       </div>
 
-      {/* Add trip form */}
+      {/* Add trip form — uniquement après une action explicite d'un utilisateur autorisé */}
+      {!readOnly && !showAdd && (
+        <button type="button" onClick={() => setShowAdd(true)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-primary/40 bg-primary/10 text-primary text-xs font-display font-semibold min-h-[40px]">
+          <Plus className="w-3.5 h-3.5" /> Ajouter un voyage
+        </button>
+      )}
+      {!readOnly && showAdd && (
       <div className="bg-secondary/30 border border-dashed border-border rounded-lg p-3">
         <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Ajouter un voyage</div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
@@ -350,7 +333,9 @@ export default function BillingSection({ submissionId }: Props) {
             <input type="text" value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} className={inputCls} />
           </Field>
         </div>
-        <div className="mt-3 flex justify-end">
+        <div className="mt-3 flex justify-end gap-2">
+          <button type="button" onClick={() => setShowAdd(false)} disabled={adding}
+            className="px-3 py-1.5 rounded-lg border border-border text-xs font-display font-semibold">Annuler</button>
           <button onClick={addTrip} disabled={adding}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold disabled:opacity-50">
             {adding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
@@ -358,7 +343,8 @@ export default function BillingSection({ submissionId }: Props) {
           </button>
         </div>
       </div>
-      {editing && (
+      )}
+      {editing && !readOnly && (
         <InvoiceEditDialog
           invoice={editing}
           allowMove={false}
@@ -368,7 +354,7 @@ export default function BillingSection({ submissionId }: Props) {
         />
       )}
 
-      {deleting && (
+      {deleting && !readOnly && (
         <ConfirmDialog
           danger
           title="⚠️ Supprimer cette facture ?"
@@ -394,6 +380,13 @@ const Field = ({ label, children, full }: { label: string; children: React.React
     <span className="block text-[10px] uppercase tracking-wide text-muted-foreground font-display font-bold mb-1">{label}</span>
     {children}
   </label>
+);
+
+const Info = ({ label, value, full }: { label: string; value: string; full?: boolean }) => (
+  <div className={full ? "col-span-2 sm:col-span-4" : ""}>
+    <dt className="text-[10px] uppercase tracking-wide text-muted-foreground font-display font-bold mb-0.5">{label}</dt>
+    <dd className="font-body text-foreground break-words">{value || "—"}</dd>
+  </div>
 );
 
 const Kpi = ({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "emerald" | "amber" }) => {
