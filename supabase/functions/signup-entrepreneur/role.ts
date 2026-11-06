@@ -10,7 +10,8 @@ export interface ExistingAuthUser {
   id: string;
   confirmed: boolean;
   requestedEntrepreneur: boolean;
-  hasRoles: boolean;
+  /** Rôles autres qu'« entrepreneur » (ex. admin) : jamais repris par l'inscription publique. */
+  hasOtherRoles: boolean;
 }
 
 export type SignupDecision = "create" | "resend_pending" | "conflict";
@@ -23,7 +24,7 @@ export type SignupDecision = "create" | "resend_pending" | "conflict";
  */
 export function decideSignup(existing: ExistingAuthUser | null, linkedProfileUserId: string | null): SignupDecision {
   if (!existing) return linkedProfileUserId ? "conflict" : "create";
-  if (existing.confirmed || !existing.requestedEntrepreneur) return "conflict";
+  if (existing.confirmed || !existing.requestedEntrepreneur || existing.hasOtherRoles) return "conflict";
   if (linkedProfileUserId && linkedProfileUserId !== existing.id) return "conflict";
   return "resend_pending";
 }
