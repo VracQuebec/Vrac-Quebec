@@ -514,6 +514,7 @@ const ParcoursForm = ({ variant, editor }: { variant: ParcoursVariant; editor?: 
             <p id="vq-budget-help" className="font-body text-sm text-muted-foreground">
               Indiquez votre budget en dollars canadiens pour chaque voyage livré. Inscrivez 0 $ si vous souhaitez uniquement recevoir du remblai gratuitement. Ce montant ne garantit pas une livraison.
             </p>
+            {error && <p role="alert" className="font-body text-sm text-destructive">{error}</p>}
           </div>
         );
 
