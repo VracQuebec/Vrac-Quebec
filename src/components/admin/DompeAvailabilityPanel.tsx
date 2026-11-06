@@ -99,6 +99,7 @@ export default function DompeAvailabilityPanel({
   const [row, setRow] = useState<DompeAvailabilityData>(data);
   const [busy, setBusy] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
 
   const act = async (
     key: string,
@@ -119,14 +120,14 @@ export default function DompeAvailabilityPanel({
       return;
     }
     if (updated) setRow({ ...row, ...(updated as unknown as DompeAvailabilityData) });
-    toast.success("Disponibilité mise à jour");
+    toast.success("Disponibilité enregistrée");
     onChanged?.();
   };
 
   const fresh = freshnessOf(row);
   const status = row.availability_status || "available";
 
-  const actions: { key: string; label: string; run: () => void }[] = [
+  const actions: { key: string; label: string; run: () => Promise<void> | void }[] = [
     { key: "ok", label: "Confirmer disponible", run: () => act("ok", { status: "available", confirm: true, reason: "Confirmation administrateur" }) },
     { key: "limited", label: "Disponibilité limitée", run: () => act("limited", { status: "limited", confirm: true }) },
     { key: "completed", label: "Marquer terminée", run: () => act("completed", { status: "completed", confirm: true }) },
@@ -143,11 +144,13 @@ export default function DompeAvailabilityPanel({
 
       {/* Résumé immédiatement visible — trois concepts distincts */}
       <div className="mt-2 space-y-1.5 text-xs font-body">
-        <div className="flex items-center gap-2">
-          <Dot tone="neutral" />
-          <span className="font-semibold text-foreground">Statut CRM :</span>
-          <span className="text-muted-foreground">{crmStatus || "Non renseigné"}</span>
-        </div>
+        {crmStatus !== undefined && (
+          <div className="flex items-center gap-2">
+            <Dot tone="neutral" />
+            <span className="font-semibold text-foreground">Statut CRM :</span>
+            <span className="text-muted-foreground">{crmStatus || "Non renseigné"}</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <Dot tone={statusTone(status)} />
           <span className="font-semibold text-foreground">Disponibilité :</span>
@@ -189,12 +192,22 @@ export default function DompeAvailabilityPanel({
         </div>
       )}
 
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <button
+        type="button"
+        onClick={() => setManageOpen((v) => !v)}
+        aria-expanded={manageOpen}
+        className="mt-2 ml-2 inline-flex min-h-[44px] items-center rounded-md border border-border bg-background px-3 text-xs font-display font-bold uppercase tracking-wide text-foreground"
+      >
+        {manageOpen ? "Fermer" : "Gérer la disponibilité"}
+      </button>
+
+      {manageOpen && <div className="mt-3 grid grid-cols-1 gap-3 border-t border-border pt-3 sm:grid-cols-2 lg:grid-cols-3">
         {actions.map((a) => (
           <button
             key={a.key}
             type="button"
-            onClick={a.run}
+            data-ro-write="1"
+            onClick={async () => { await a.run(); setManageOpen(false); }}
             disabled={busy !== null}
             className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-display font-bold uppercase tracking-wide text-foreground disabled:opacity-50"
           >
@@ -202,7 +215,7 @@ export default function DompeAvailabilityPanel({
             {a.label}
           </button>
         ))}
-      </div>
+      </div>}
 
       <p className="mt-2 font-body text-[11px] leading-relaxed text-muted-foreground">
         Le suivi commercial (CRM) et la disponibilité sont indépendants : changer le statut CRM ne modifie
