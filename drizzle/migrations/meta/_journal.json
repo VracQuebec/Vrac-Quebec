@@ -1926,6 +1926,13 @@
       "when": 1793934783630,
       "tag": "0274_remove_entrepreneur_role_roxane",
       "breakpoints": true
+    },
+    {
+      "idx": 275,
+      "version": "7",
+      "when": 1793996459429,
+      "tag": "0275_migration",
+      "breakpoints": true
     }
   ]
 }

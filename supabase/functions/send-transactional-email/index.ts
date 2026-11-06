@@ -2,7 +2,7 @@ import * as React from 'npm:react@18.3.1'
 import { clientIp, enforceIpQuota } from '../_shared/public-guard.ts'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { isServiceCaller } from './service-caller.ts'
+import { isServiceCaller, publicTriggerVerdict } from './service-caller.ts'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 import { logEvent, logEventAsync } from '../_shared/observability.ts'
 import { enqueueOwnerConfirmation } from '../_shared/exec01/confirmation-queue.ts'
@@ -197,6 +197,32 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Une référence connue n'autorise rien : hors clé de service, seul un premier
+    // déclenchement, juste après la création de la demande, est accepté.
+    if (!isServiceCaller(authHeader.slice(7).trim(), supabaseServiceKey)) {
+      const onceScope = `send-transactional-email-once:${templateName}`
+      const { count: prior, error: priorErr } = await supabase
+        .from('public_request_guard')
+        .select('id', { count: 'exact', head: true })
+        .eq('scope', onceScope)
+        .eq('identity', sub.id)
+      if (priorErr) {
+        return new Response(JSON.stringify({ error: 'Vérification impossible' }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+      const verdict = publicTriggerVerdict(sub.created_at, Date.now(), (prior ?? 0) > 0)
+      if (verdict !== 'allow') {
+        return new Response(JSON.stringify({ success: false, reason: verdict }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+      const { error: claimErr } = await supabase.from('public_request_guard')
+        .insert({ scope: onceScope, identity: sub.id, fingerprint: `${onceScope}:${sub.id}` })
+      if (claimErr) {
+        return new Response(JSON.stringify({ success: false, reason: 'already_triggered' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+    }
+
     if (templateName === 'new-lead-notification') {
       effectiveRecipient = ADMIN_NOTIFICATION_EMAIL
       const materialsLabel = Array.isArray(sub.materials)
@@ -260,7 +286,6 @@ Deno.serve(async (req) => {
   if (suppressionError) {
     console.error('Suppression check failed — refusing to send', {
       error: suppressionError,
-      effectiveRecipient,
     })
     return new Response(
       JSON.stringify({ error: 'Failed to verify suppression status' }),
@@ -284,7 +309,7 @@ Deno.serve(async (req) => {
       status: 'suppressed',
     })
 
-    console.log('Email suppressed', { effectiveRecipient, templateName })
+    console.log('Email suppressed', { templateName })
     return new Response(
       JSON.stringify({ success: false, reason: 'email_suppressed' }),
       {
@@ -308,7 +333,7 @@ Deno.serve(async (req) => {
   if (tokenLookupError) {
     console.error('Token lookup failed', {
       error: tokenLookupError,
-      email: normalizedEmail,
+      // adresse volontairement absente des journaux
     })
     await supabase.from('email_send_log').insert({
       message_id: messageId,
@@ -370,7 +395,7 @@ Deno.serve(async (req) => {
     if (reReadError || !storedToken) {
       console.error('Failed to read back unsubscribe token after upsert', {
         error: reReadError,
-        email: normalizedEmail,
+        // adresse volontairement absente des journaux
       })
       await supabase.from('email_send_log').insert({
         message_id: messageId,
@@ -392,7 +417,7 @@ Deno.serve(async (req) => {
     // Token exists but is already used — email should have been caught by suppression check above.
     // This is a safety fallback; log and skip sending.
     console.warn('Unsubscribe token already used but email not suppressed', {
-      email: normalizedEmail,
+      // adresse volontairement absente des journaux
     })
     await supabase.from('email_send_log').insert({
       message_id: messageId,

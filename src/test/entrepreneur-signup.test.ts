@@ -13,7 +13,7 @@ describe("inscription entrepreneur sans approbation manuelle", () => {
     expect(approvedRoleHints([entrepreneurSignupRole("test-user")])).not.toContain("admin");
   });
 });
-import { decideSignup, confirmRedirect, SIGNUP_EMAIL_CONFIRMED } from "../../supabase/functions/signup-entrepreneur/role";
+import { decideSignup, confirmRedirect, SIGNUP_EMAIL_CONFIRMED, SIGNUP_ACCEPTS_PASSWORD, unusablePassword } from "../../supabase/functions/signup-entrepreneur/role";
 import { isServiceCaller } from "../../supabase/functions/send-transactional-email/service-caller";
 
 describe("inscription : courriel prouvé avant activation", () => {
@@ -25,8 +25,8 @@ describe("inscription : courriel prouvé avant activation", () => {
   it("fiche entrepreneur liée à un autre compte : refus", () => { expect(decideSignup(pending, "u2")).toBe("conflict"); expect(decideSignup(null, "u2")).toBe("conflict"); });
   it("inscription en attente : nouvel envoi du lien", () => { expect(decideSignup(pending, "u1")).toBe("resend_pending"); });
   it("redirection limitée aux domaines du site", () => {
-    expect(confirmRedirect("https://evil.example")).toBe("https://vracquebec.ca/login?confirmation=entrepreneur");
-    expect(confirmRedirect("https://www.vracquebec.ca")).toBe("https://www.vracquebec.ca/login?confirmation=entrepreneur");
+    expect(confirmRedirect("https://evil.example")).toBe("https://vracquebec.ca/reset-password?bienvenue=entrepreneur");
+    expect(confirmRedirect("https://www.vracquebec.ca")).toBe("https://www.vracquebec.ca/reset-password?bienvenue=entrepreneur");
   });
 });
 
@@ -37,4 +37,30 @@ describe("courriels privilégiés réservés aux fonctions serveur", () => {
     expect(isServiceCaller("", "")).toBe(false);
   });
   it("accepte seulement la clé de service exacte", () => { expect(isServiceCaller("service-key", "service-key")).toBe(true); });
+});
+
+describe("inscription : mot de passe choisi seulement par le titulaire de la boîte", () => {
+  it("le serveur n'accepte aucun mot de passe de l'initiateur", () => { expect(SIGNUP_ACCEPTS_PASSWORD).toBe(false); });
+  it("une reprise reçoit un secret aléatoire, différent à chaque fois", () => {
+    const a = unusablePassword(), b = unusablePassword();
+    expect(a).not.toBe(b); expect(a.length).toBeGreaterThan(60);
+  });
+});
+
+import { publicTriggerVerdict } from "../../supabase/functions/send-transactional-email/service-caller";
+describe("courriels publics : une référence n'est pas une autorisation", () => {
+  const now = Date.parse("2026-11-06T20:00:00Z");
+  it("premier déclenchement juste après la création : accepté", () => {
+    expect(publicTriggerVerdict("2026-11-06T19:58:00Z", now, false)).toBe("allow");
+  });
+  it("ancienne demande d'un autre client : refusée", () => {
+    expect(publicTriggerVerdict("2026-11-05T10:00:00Z", now, false)).toBe("too_old");
+  });
+  it("répétition sur la même demande : refusée", () => {
+    expect(publicTriggerVerdict("2026-11-06T19:59:00Z", now, true)).toBe("already_triggered");
+  });
+  it("date absente ou future : refusée", () => {
+    expect(publicTriggerVerdict(null, now, false)).toBe("too_old");
+    expect(publicTriggerVerdict("2026-11-07T20:00:00Z", now, false)).toBe("too_old");
+  });
 });

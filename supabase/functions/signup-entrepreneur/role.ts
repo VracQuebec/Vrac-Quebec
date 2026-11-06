@@ -32,5 +32,17 @@ export function decideSignup(existing: ExistingAuthUser | null, linkedProfileUse
 const ALLOWED_ORIGINS = /^https:\/\/((www\.)?vracquebec\.ca|[a-z0-9-]+\.lovable\.app)$/i;
 export function confirmRedirect(origin: string | null): string {
   const base = origin && ALLOWED_ORIGINS.test(origin) ? origin : "https://vracquebec.ca";
-  return `${base}/login?confirmation=entrepreneur`;
+  return `${base}/reset-password?bienvenue=entrepreneur`;
 }
+
+/**
+ * Le mot de passe n'est JAMAIS fixé par la personne qui lance l'inscription :
+ * seul le titulaire de la boîte le choisit après avoir ouvert le lien. Une
+ * inscription en attente reprise reçoit un secret aléatoire jamais transmis,
+ * ce qui invalide tout mot de passe choisi auparavant par un tiers.
+ */
+export function unusablePassword(): string {
+  const b = new Uint8Array(32); crypto.getRandomValues(b);
+  return Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("") + "Aa1!";
+}
+export const SIGNUP_ACCEPTS_PASSWORD = false;
