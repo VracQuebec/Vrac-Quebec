@@ -55,13 +55,14 @@ export default function AdminReadonlyTracker() {
     return () => { document.removeEventListener("input", onInput, true); document.removeEventListener("change", onInput, true); document.removeEventListener("click", onClick, true); };
   }, [isAdminReader]);
 
+  const onAdmin = loc.pathname.startsWith("/admin");
   useEffect(() => {
-    if (!isAdminReader) return;
+    if (!isAdminReader || !onAdmin) return;
     document.body.style.paddingBottom = window.innerWidth < 640 ? "5rem" : "3rem"; // le bandeau ne masque aucune commande
     return () => { document.body.style.paddingBottom = ""; };
-  }, [isAdminReader]);
+  }, [isAdminReader, onAdmin]);
 
-  if (!isAdminReader) return null;
+  if (!isAdminReader || !onAdmin) return null;
   return (
     <div role="note" className="fixed bottom-0 inset-x-0 z-[60] bg-secondary text-secondary-foreground border-t border-border text-xs px-3 py-1.5 flex items-center justify-center gap-2" style={{ paddingBottom: "max(0.375rem, env(safe-area-inset-bottom))" }}>
       <Eye className="h-3.5 w-3.5 shrink-0" />
