@@ -1,6 +1,6 @@
 import { useState } from "react";
 import PromoConsent, { useSender, recordPromoConsent } from "@/components/marketing/PromoConsent";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Truck, Loader2 } from "lucide-react";
@@ -30,7 +30,6 @@ const EntrepreneurSignup = () => {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
