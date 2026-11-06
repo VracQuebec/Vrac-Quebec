@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BUDGET_PER_TRIP_LABEL, budgetPerTripError, formatClientTripBudget } from "@/lib/remblai/public-form";
+import TripBudgetReference from "@/components/parcours/TripBudgetReference";
+import { BUDGET_PER_TRIP_QUESTION, budgetPerTripError, formatClientTripBudget } from "@/lib/remblai/public-form";
 
 type Saved = { choice: "montant"; amount: string } | { choice: "sans_contribution" };
 
@@ -54,7 +55,9 @@ export default function TripBudgetOffer({ submissionId, budgetToken }: { submiss
   }
 
   return (
-    <section aria-labelledby="vq-contrib-title" className="mt-5 rounded-xl border border-border bg-background p-4 text-left sm:p-5">
+    <>
+      <TripBudgetReference />
+      <section aria-labelledby="vq-contrib-title" className="mt-5 rounded-xl border border-border bg-background p-4 text-left sm:p-5">
       <h3 id="vq-contrib-title" className="font-display text-lg font-bold text-foreground">
         Souhaitez-vous proposer une contribution par voyage reçu?
       </h3>
@@ -62,7 +65,7 @@ export default function TripBudgetOffer({ submissionId, budgetToken }: { submiss
         Recevoir du remblai implique du transport, du temps de camion et de la manutention. Proposer un budget par voyage peut rendre votre demande plus intéressante pour les entrepreneurs et favoriser une livraison plus rapide, selon les matériaux disponibles et votre secteur. Vous pouvez aussi conserver votre demande sans contribution. Aucune livraison ni aucun délai ne sont garantis.
       </p>
       <label htmlFor="vq-contrib-amount" className="mt-4 block font-display text-sm font-bold text-foreground">
-        {BUDGET_PER_TRIP_LABEL}
+        {BUDGET_PER_TRIP_QUESTION}
       </label>
       <div className="mt-2 flex items-stretch overflow-hidden rounded-xl border-2 border-border bg-background focus-within:border-primary">
         <input
@@ -100,6 +103,7 @@ export default function TripBudgetOffer({ submissionId, budgetToken }: { submiss
       <p id="vq-contrib-note" className="mt-3 font-body text-xs text-muted-foreground">
         Ce montant est une proposition. Tout prix devra être convenu avec l’entrepreneur avant la livraison. Aucun paiement n’est effectué ici.
       </p>
-    </section>
+      </section>
+    </>
   );
 }
