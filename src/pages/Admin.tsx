@@ -1230,7 +1230,7 @@ const SummaryItem = ({ label, children }: { label: string; children: React.React
 const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete, onArchive, userEmail, leadStatuses }: CardProps) => {
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
-      <button onClick={onToggle} className="w-full px-4 sm:px-5 py-4 flex items-center justify-between text-left gap-3" aria-haspopup="dialog">
+      <button onClick={onToggle} data-lead-card="1" className="w-full px-4 sm:px-5 py-4 flex items-center justify-between text-left gap-3" aria-haspopup="dialog">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             {sub.dompe_number ? (
@@ -1316,10 +1316,14 @@ const LeadDetail = ({ sub, onClose, onStatusChange, onUpdate, onDelete, onArchiv
     document.body.style.overflow = "hidden";
     scrollRef.current?.scrollTo({ top: 0 });
     scrollRef.current?.focus({ preventScroll: true });
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
+    // Échap ferme d'abord un menu ouvert, jamais la fiche en même temps.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented || document.querySelector("[role=menu]")) return;
+      onClose();
+    };
+    document.addEventListener("keydown", onKey, true);
     return () => {
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", onKey, true);
       document.body.style.overflow = prevOverflow;
       window.scrollTo({ top: y });
     };
@@ -1390,7 +1394,7 @@ const LeadDetail = ({ sub, onClose, onStatusChange, onUpdate, onDelete, onArchiv
   const statusMeta = findStatus(leadStatuses, sub.status);
   const quantityText = sub.quote_quantity != null
     ? `${sub.quote_quantity} ${sub.quote_unit || ""}`.trim()
-    : sub.quantity ? `${sub.quantity} voyage(s)` : "Non renseigné";
+    : sub.quantity ? (/^\s*\d+([.,]\d+)?\s*$/.test(sub.quantity) ? `${sub.quantity.trim()} voyage(s)` : sub.quantity) : "Non renseigné";
   const wantedDate = sub.delivery_deadline
     ? new Date(`${sub.delivery_deadline.slice(0, 10)}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })
     : (sub.delivery_timeframe || "Non précisée");
