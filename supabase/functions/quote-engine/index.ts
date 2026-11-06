@@ -15,6 +15,9 @@ import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.t
 import { logEvent, logEventAsync } from '../_shared/observability.ts';
 import { clientIp, enforceIpQuota, GuardError } from '../_shared/public-guard.ts';
 
+// Usage anonyme réel observé : 9 calculs par jour au maximum (60 derniers jours).
+const ANON_DAILY_CAP = 200;
+
 const UNITS: Unit[] = ['tonne', 'verge', 'm3', 'voyage'];
 
 const json = (body: unknown, status = 200) =>
@@ -46,6 +49,8 @@ Deno.serve(async (req) => {
       // distances). Quota par adresse pour éviter l'abus de la clé publique.
       try {
         await enforceIpQuota(db, 'quote-engine', clientIp(req), 40, 60);
+        // Plafond global journalier (toutes adresses) : borne le coût des services payants.
+        await enforceIpQuota(db, 'quote-engine-global', 'global', ANON_DAILY_CAP, 1440);
       } catch (guardError) {
         const status = guardError instanceof GuardError ? guardError.status : 429;
         return json({ error: (guardError as Error).message }, status);
