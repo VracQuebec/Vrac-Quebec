@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Truck, Loader2 } from "lucide-react";
@@ -11,6 +11,7 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
   const navigate = useNavigate();
+  const welcome = useSearchParams()[0].get("bienvenue") === "entrepreneur";
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -36,7 +37,7 @@ const ResetPassword = () => {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      toast({ title: "Mot de passe mis à jour", description: "Vous pouvez maintenant vous connecter." });
+      toast({ title: welcome ? "Compte activé" : "Mot de passe mis à jour", description: "Vous pouvez maintenant vous connecter." });
       await supabase.auth.signOut();
       navigate("/login", { replace: true });
     } catch (err: any) {
@@ -56,7 +57,8 @@ const ResetPassword = () => {
               <Truck className="w-6 h-6 text-primary" />
               <span className="font-display font-bold text-xl">Vrac<span className="text-primary">Québec</span></span>
             </div>
-            <h1 className="text-2xl font-display font-bold">Nouveau mot de passe</h1>
+            <h1 className="text-2xl font-display font-bold">{welcome ? "Courriel confirmé" : "Nouveau mot de passe"}</h1>
+            {welcome && <p className="text-sm text-muted-foreground mt-1 font-body">Choisissez votre mot de passe pour activer votre espace entrepreneur.</p>}
           </div>
           <form onSubmit={handleSubmit} className="space-y-4 bg-card p-6 rounded-2xl" style={{ boxShadow: "var(--shadow-lg)" }}>
             {!ready && (
@@ -77,7 +79,7 @@ const ResetPassword = () => {
             <button type="submit" disabled={loading || !ready}
               className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {loading ? "Mise à jour..." : "Mettre à jour"}
+              {loading ? "Enregistrement..." : welcome ? "Enregistrer mon mot de passe" : "Mettre à jour"}
             </button>
           </form>
         </div>

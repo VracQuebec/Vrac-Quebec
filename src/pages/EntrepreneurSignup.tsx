@@ -24,7 +24,6 @@ const EntrepreneurSignup = () => {
   const [email, setEmail] = useState("");
   const [promo, setPromo] = useState(false);
   const sender = useSender();
-  const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [phone, setPhone] = useState("");
@@ -33,10 +32,6 @@ const EntrepreneurSignup = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 8) {
-      toast({ title: "Mot de passe trop court", description: "Minimum 8 caractères.", variant: "destructive" });
-      return;
-    }
     setLoading(true);
     try {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/signup-entrepreneur`, {
@@ -45,7 +40,7 @@ const EntrepreneurSignup = () => {
           "Content-Type": "application/json",
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ email, password, name, company, phone }),
+        body: JSON.stringify({ email, name, company, phone }),
       });
       if (!response.ok) throw new Error(await getFunctionError(response));
 
@@ -79,7 +74,7 @@ const EntrepreneurSignup = () => {
             <div role="status" className="space-y-3 bg-card p-6 rounded-2xl text-center" style={{ boxShadow: "var(--shadow-lg)" }}>
               <h2 className="text-lg font-display font-bold text-foreground">Vérifiez votre courriel</h2>
               <p className="text-sm text-muted-foreground font-body">
-                Un lien de confirmation a été envoyé à <strong className="text-foreground">{sentTo}</strong>. Ouvrez-le pour activer votre compte entrepreneur, puis connectez-vous avec votre mot de passe.
+                Un lien de confirmation a été envoyé à <strong className="text-foreground">{sentTo}</strong>. Ouvrez-le pour confirmer votre adresse et choisir votre mot de passe. Votre compte entrepreneur sera alors activé.
               </p>
               <p className="text-xs text-muted-foreground font-body">Rien reçu après quelques minutes? Vérifiez vos courriels indésirables ou recommencez l'inscription avec la même adresse.</p>
               <Link to="/login" className="inline-block text-primary underline text-sm">Aller à la connexion</Link>
@@ -102,11 +97,7 @@ const EntrepreneurSignup = () => {
               <label className="block text-sm font-semibold text-foreground mb-1 font-display">Courriel</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} required />
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-1 font-display">Mot de passe</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} required minLength={8} />
-              <p className="text-[11px] text-muted-foreground mt-1 font-body">Minimum 8 caractères.</p>
-            </div>
+            <p className="text-[11px] text-muted-foreground font-body">Vous choisirez votre mot de passe après avoir confirmé votre courriel.</p>
             <PromoConsent checked={promo} onChange={setPromo} sender={sender} />
             <button type="submit" disabled={loading}
               className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2">
