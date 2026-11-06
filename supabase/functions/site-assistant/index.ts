@@ -9,7 +9,7 @@ import { fetchWithTimeout } from "../_shared/http.ts";
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const MODEL = "openai/gpt-6-astra";
 const AI_DAILY_CAP = 300; // usage réel observé : quelques réponses par mois
-const MAX_OUTPUT_TOKENS = 600;
+const MAX_OUTPUT_TOKENS = 1200;
 
 const PAGES: [string, string][] = [
   ["/soumission", "Obtenir une estimation / soumission de matériaux en vrac livrés"],
