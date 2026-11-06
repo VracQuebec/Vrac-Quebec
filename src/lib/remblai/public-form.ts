@@ -39,7 +39,7 @@ const fmtCad = (n: number) => n.toLocaleString('fr-CA', { minimumFractionDigits:
 /** Affichage CRM/récapitulatif : jamais 0 $ par défaut pour une absence de réponse. */
 export function formatClientTripBudget(amount: string | null | undefined, unit?: string | null): string {
   const raw = String(amount ?? '').trim();
-  if (!raw || (unit && !/voyage/i.test(unit))) return 'Non précisé';
+  if (!raw || !unit || !/voyage/i.test(unit)) return 'Non précisé';
   const n = parseBudgetPerTrip(raw);
   return `${n === null ? raw : fmtCad(n)} $ CA / voyage`;
 }
